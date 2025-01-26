@@ -7,5 +7,5 @@ import kotlinx.parcelize.RawValue
 data class RecipeSection(
     val id: String = "",
     val name: String = "",
-    val products: @RawValue List<RecipeProduct> = listOf()
+    var products: @RawValue List<RecipeProduct> = listOf()
 ) : Parcelable

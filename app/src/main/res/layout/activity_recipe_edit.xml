@@ -1,8 +1,7 @@
-<ScrollView
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:padding="16dp">
 
     <LinearLayout
@@ -26,14 +25,16 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Nombre"
-                    android:layout_marginBottom="4dp"
-                    android:textColor="@android:color/darker_gray" />
+                    android:text="Nombre de la receta"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+
                 <EditText
                     android:id="@+id/recipeNameInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Nombre de la receta" />
+                    android:hint="Ingrese el nombre" />
             </LinearLayout>
 
             <CheckBox
@@ -45,20 +46,14 @@
                 android:layout_gravity="center" />
         </LinearLayout>
 
-        <!-- Recipe Details -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Detalles de la Receta"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="8dp"
-            android:textStyle="bold" />
-
+        <!-- Costs in a Single Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
 
+            <!-- Costo -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -69,16 +64,19 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Costo"
-                    android:layout_marginBottom="4dp"
-                    android:textColor="@android:color/darker_gray" />
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+
                 <EditText
                     android:id="@+id/recipeCostInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Costo"
+                    android:hint="Ingrese el costo"
                     android:inputType="numberDecimal" />
             </LinearLayout>
 
+            <!-- Precio sugerido -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -90,16 +88,19 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Precio sugerido"
-                    android:layout_marginBottom="4dp"
-                    android:textColor="@android:color/darker_gray" />
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+
                 <EditText
                     android:id="@+id/recipeSuggestedPriceInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Precio sugerido"
+                    android:hint="Ingrese el precio sugerido"
                     android:inputType="numberDecimal" />
             </LinearLayout>
 
+            <!-- Precio de venta -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -111,63 +112,74 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Precio de venta"
-                    android:layout_marginBottom="4dp"
-                    android:textColor="@android:color/darker_gray" />
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+
                 <EditText
                     android:id="@+id/recipeSalePriceInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Precio de venta"
+                    android:hint="Ingrese el precio de venta"
                     android:inputType="numberDecimal" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Categories Section -->
-        <TextView
+        <!-- Category Selector -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Categorías"
-            android:layout_marginTop="16dp"
-            android:textStyle="bold" />
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
 
-        <!-- Dropdown for Available Categories -->
-        <Spinner
-            android:id="@+id/categorySelector"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Categorías"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
 
-        <!-- Placeholder for Empty Dropdown -->
-        <TextView
-            android:id="@+id/categoryPlaceholder"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="No categories available to add."
-            android:textColor="@android:color/darker_gray"
-            android:gravity="center"
-            android:visibility="gone" />
+            <Spinner
+                android:id="@+id/categorySelector"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
 
-        <!-- Placeholder for Empty Tags -->
-        <TextView
-            android:id="@+id/categoryTagsPlaceholder"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="No categories added."
-            android:textColor="@android:color/darker_gray"
-            android:gravity="center"
-            android:visibility="gone"
-            android:layout_marginTop="8dp" />
-
-        <!-- Tags Container -->
         <com.google.android.flexbox.FlexboxLayout
             android:id="@+id/categoryTagsContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:padding="8dp"
-            app:alignItems="flex_start"
             app:flexWrap="wrap"
+            app:alignItems="flex_start"
             app:justifyContent="flex_start" />
+
+        <!-- Sections Title -->
+        <TextView
+            android:id="@+id/sectionsTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Secciones"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            android:paddingTop="16dp"
+            android:paddingBottom="8dp" />
+
+        <!-- Section Selector -->
+        <Spinner
+            android:id="@+id/sectionSelector"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Sections Container -->
+        <LinearLayout
+            android:id="@+id/sectionsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
 
         <!-- Save Button -->
         <Button
@@ -175,6 +187,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Guardar"
+            android:textAllCaps="false"
             android:layout_marginTop="16dp" />
     </LinearLayout>
 </ScrollView>
