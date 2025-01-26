@@ -11,14 +11,25 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.estaciondulce.app.databinding.ActivityRecipeEditBinding
+import com.estaciondulce.app.helpers.CategoriesHelper
 import com.estaciondulce.app.models.Recipe
 import com.estaciondulce.app.models.RecipeProduct
 import com.google.firebase.firestore.FirebaseFirestore
+import com.estaciondulce.app.helpers.SectionsHelper
+import com.estaciondulce.app.helpers.RecipesHelper
+import com.estaciondulce.app.helpers.ProductsHelper
+
 
 class RecipeEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityRecipeEditBinding
     private var recipe: Recipe? = null
+    // Initialize helpers
+    private val sectionsHelper = SectionsHelper()
+    private val recipesHelper = RecipesHelper()
+    private val productsHelper = ProductsHelper()
+    private val categoriesHelper = CategoriesHelper()
+
     private val allSections = mutableMapOf<String, String>() // Section ID to Name
     private val selectedSections = mutableListOf<RecipeSection>() // Selected Sections
     private val allProducts = mutableMapOf<String, String>() // Product ID to Name
@@ -26,7 +37,7 @@ class RecipeEditActivity : AppCompatActivity() {
     private val selectedCategories = mutableSetOf<String>() // Selected Categories
 
     override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
+        onBackPressedDispatcher.onBackPressed() // Use the dispatcher for handling back navigation
         return true
     }
 
@@ -37,6 +48,16 @@ class RecipeEditActivity : AppCompatActivity() {
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Editar Receta"
+
+        // Retrieve the recipe and categories map from the intent
+        recipe = intent.getParcelableExtra("recipe")
+        val passedCategoriesMap = intent.getSerializableExtra("categoriesMap") as? HashMap<String, String>
+
+        // Initialize categories map if passed
+        if (passedCategoriesMap != null) {
+            allCategories.putAll(passedCategoriesMap)
+            setupCategorySelector()
+        }
 
         // Fetch all necessary data before loading the UI
         fetchAllData {
@@ -59,24 +80,57 @@ class RecipeEditActivity : AppCompatActivity() {
             }
         }
 
-        fetchSections {
-            sectionsLoaded = true
-            setupSectionSelector()
-            checkAllDataLoaded()
-        }
-
-        fetchProducts {
-            productsLoaded = true
-            checkAllDataLoaded()
-        }
-
-        fetchCategories {
+        if (allCategories.isEmpty()) {
+            categoriesHelper.fetchCategories(
+                onSuccess = {
+                    Log.d("RecipeEditActivity", "Categories Loaded: $it")
+                    allCategories.putAll(it)
+                    categoriesLoaded = true
+                    setupCategorySelector()
+                    checkAllDataLoaded()
+                },
+                onError = { e ->
+                    Log.e("RecipeEditActivity", "Error fetching categories: ${e.message}")
+                    categoriesLoaded = true
+                    checkAllDataLoaded()
+                }
+            )
+        } else {
             categoriesLoaded = true
-            setupCategorySelector()
-            checkAllDataLoaded()
         }
-    }
 
+        sectionsHelper.fetchSections(
+            onSuccess = {
+                Log.d("RecipeEditActivity", "Sections Loaded: $it")
+                allSections.putAll(it)
+                sectionsLoaded = true
+                setupSectionSelector()
+                checkAllDataLoaded()
+            },
+            onError = { e ->
+                Log.e("RecipeEditActivity", "Error fetching sections: ${e.message}")
+                sectionsLoaded = true
+                checkAllDataLoaded()
+            }
+        )
+
+        productsHelper.fetchProducts(
+            onSuccess = { products ->
+                Log.d("RecipeEditActivity", "Products Loaded: $products")
+
+                // Convert List<Product> to Map<String, String> for allProducts
+                allProducts.putAll(products.associate { it.id to it.name })
+
+                productsLoaded = true
+                checkAllDataLoaded()
+            },
+            onError = { e ->
+                Log.e("RecipeEditActivity", "Error fetching products: ${e.message}")
+                productsLoaded = true
+                checkAllDataLoaded()
+            }
+        )
+    }
 
     private fun loadRecipeData(recipe: Recipe) {
         // Set recipe details
@@ -94,65 +148,13 @@ class RecipeEditActivity : AppCompatActivity() {
         selectedSections.addAll(recipe.sections)
         selectedCategories.addAll(recipe.categories)
 
+        Log.d("RecipeEditActivity", "Loaded Sections: $selectedSections")
+        Log.d("RecipeEditActivity", "Loaded Categories: $selectedCategories")
+
         // Update the UI
         updateSectionsUI() // Dynamically render sections
         updateCategoryTags() // Render tags now that allCategories is populated
     }
-
-    private fun fetchSections(onComplete: () -> Unit) {
-        FirebaseFirestore.getInstance().collection("sections")
-            .get()
-            .addOnSuccessListener { documents ->
-                for (document in documents) {
-                    val id = document.id
-                    val name = document.getString("name") ?: "Sin nombre"
-                    allSections[id] = name
-                }
-                onComplete() // Signal that sections are loaded
-            }
-            .addOnFailureListener { e ->
-                Log.e("RecipeEditActivity", "Error fetching sections: ${e.message}")
-                onComplete() // Proceed even if there's an error
-            }
-    }
-
-
-    private fun fetchProducts(onComplete: () -> Unit) {
-        FirebaseFirestore.getInstance().collection("products")
-            .get()
-            .addOnSuccessListener { documents ->
-                for (document in documents) {
-                    val id = document.id
-                    val name = document.getString("name") ?: "Sin nombre"
-                    allProducts[id] = name
-                }
-                onComplete() // Signal that products are loaded
-            }
-            .addOnFailureListener { e ->
-                Log.e("RecipeEditActivity", "Error fetching products: ${e.message}")
-                onComplete() // Proceed even if there's an error
-            }
-    }
-
-
-    private fun fetchCategories(onComplete: () -> Unit) {
-        FirebaseFirestore.getInstance().collection("categories")
-            .get()
-            .addOnSuccessListener { documents ->
-                for (document in documents) {
-                    val id = document.id
-                    val name = document.getString("name") ?: "Sin nombre"
-                    allCategories[id] = name
-                }
-                onComplete() // Signal that categories are loaded
-            }
-            .addOnFailureListener { e ->
-                Log.e("RecipeEditActivity", "Error fetching categories: ${e.message}")
-                onComplete() // Proceed even if there's an error
-            }
-    }
-
-
 
     private fun setupCategorySelector() {
         val categoryNames = allCategories.values.toList()
@@ -169,53 +171,45 @@ class RecipeEditActivity : AppCompatActivity() {
                     Toast.makeText(this@RecipeEditActivity, "La categoría ya fue añadida", Toast.LENGTH_SHORT).show()
                     return
                 }
-
                 // Add the category to the selected categories
                 selectedCategories.add(selectedId)
                 updateCategoryTags()
             }
-
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
     }
 
-
     private fun updateCategoryTags() {
         binding.categoryTagsContainer.removeAllViews() // Clear existing tags
 
-        // Ensure selectedCategories is not empty
         if (selectedCategories.isEmpty()) {
             binding.categoryTagsContainer.visibility = View.GONE
             return
         }
 
-        // Iterate through selected categories
         for (categoryId in selectedCategories) {
-            val categoryName = allCategories[categoryId]
-            if (categoryName == null) {
-                continue
-            }
+            val categoryName = allCategories[categoryId] ?: continue
 
             // Inflate and configure the tag view
             val tagView = LayoutInflater.from(this).inflate(R.layout.item_category_tag, binding.categoryTagsContainer, false)
             val textView = tagView.findViewById<TextView>(R.id.categoryTagName)
-            val deleteButton = tagView.findViewById<TextView>(R.id.categoryTagDelete)
+            val deleteButton = tagView.findViewById<ImageView>(R.id.categoryTagDelete)
 
             textView.text = categoryName
 
             // Handle tag removal
             deleteButton.setOnClickListener {
-                selectedCategories.remove(categoryId) // Remove category from the list
-                updateCategoryTags() // Refresh the tags
+                selectedCategories.remove(categoryId) // Remove the category from the list
+                updateCategoryTags() // Refresh tags
             }
 
-            // Add the tag view to the container
             binding.categoryTagsContainer.addView(tagView)
         }
 
-        // Make the container visible
         binding.categoryTagsContainer.visibility = View.VISIBLE
     }
+
+
 
     private fun setupSectionSelector() {
         val sectionNames = allSections.values.toList()
@@ -231,12 +225,10 @@ class RecipeEditActivity : AppCompatActivity() {
                     Toast.makeText(this@RecipeEditActivity, "Esta sección ya fue añadida.", Toast.LENGTH_SHORT).show()
                     return
                 }
-
                 val newSection = RecipeSection(id = selectedId, name = selectedName, products = listOf())
                 selectedSections.add(newSection)
                 updateSectionsUI()
             }
-
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
     }
@@ -320,7 +312,6 @@ class RecipeEditActivity : AppCompatActivity() {
                         }
                     }
                 }
-
                 override fun afterTextChanged(s: Editable?) {}
             })
 
@@ -349,47 +340,106 @@ class RecipeEditActivity : AppCompatActivity() {
 
                 productContainer.addView(productView)
             }
-
             binding.sectionsContainer.addView(sectionView)
         }
     }
 
-
     private fun saveRecipe() {
-        val updatedRecipe = Recipe(
-            id = recipe?.id ?: "",
-            name = binding.recipeNameInput.text.toString(),
-            cost = binding.recipeCostInput.text.toString().toDoubleOrNull() ?: 0.0,
-            suggestedPrice = binding.recipeSuggestedPriceInput.text.toString().toDoubleOrNull() ?: 0.0,
-            salePrice = binding.recipeSalePriceInput.text.toString().toDoubleOrNull() ?: 0.0,
-            onSale = binding.recipeOnSaleCheckbox.isChecked,
-            categories = selectedCategories.toList(),
-            sections = selectedSections
-        )
+        validateFields { isValid ->
+            if (!isValid) return@validateFields
 
-        val db = FirebaseFirestore.getInstance()
-        val recipeRef = db.collection("recipes")
+            val updatedRecipe = Recipe(
+                id = recipe?.id ?: "",
+                name = binding.recipeNameInput.text.toString(),
+                cost = binding.recipeCostInput.text.toString().toDoubleOrNull() ?: 0.0,
+                suggestedPrice = binding.recipeSuggestedPriceInput.text.toString().toDoubleOrNull() ?: 0.0,
+                salePrice = binding.recipeSalePriceInput.text.toString().toDoubleOrNull() ?: 0.0,
+                onSale = binding.recipeOnSaleCheckbox.isChecked,
+                categories = selectedCategories.toList(),
+                sections = selectedSections
+            )
 
-        if (updatedRecipe.id.isEmpty()) {
-            recipeRef.add(updatedRecipe)
-                .addOnSuccessListener { documentReference ->
-                    updatedRecipe.id = documentReference.id
-                    sendResultAndFinish(updatedRecipe)
-                }
-                .addOnFailureListener { e ->
-                    Toast.makeText(this, "Error al guardar la receta.", Toast.LENGTH_SHORT).show()
-                    e.printStackTrace()
-                }
-        } else {
-            recipeRef.document(updatedRecipe.id)
-                .set(updatedRecipe)
-                .addOnSuccessListener {
-                    sendResultAndFinish(updatedRecipe)
-                }
-                .addOnFailureListener { e ->
-                    Toast.makeText(this, "Error al actualizar la receta.", Toast.LENGTH_SHORT).show()
-                    e.printStackTrace()
-                }
+            val db = FirebaseFirestore.getInstance()
+            val recipeRef = db.collection("recipes")
+
+            if (updatedRecipe.id.isEmpty()) {
+                // New recipe: Add to Firestore
+                recipeRef.add(updatedRecipe)
+                    .addOnSuccessListener { documentReference ->
+                        updatedRecipe.id = documentReference.id
+                        sendResultAndFinish(updatedRecipe)
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(this, "Error al guardar la receta.", Toast.LENGTH_SHORT).show()
+                        e.printStackTrace()
+                    }
+            } else {
+                // Existing recipe: Update Firestore document
+                recipeRef.document(updatedRecipe.id)
+                    .set(updatedRecipe)
+                    .addOnSuccessListener {
+                        sendResultAndFinish(updatedRecipe)
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(this, "Error al actualizar la receta.", Toast.LENGTH_SHORT).show()
+                        e.printStackTrace()
+                    }
+            }
+        }
+    }
+
+    private fun validateFields(onValidationComplete: (Boolean) -> Unit) {
+        // Check if required fields are filled
+        val name = binding.recipeNameInput.text.toString().trim()
+        val cost = binding.recipeCostInput.text.toString().trim()
+        val suggestedPrice = binding.recipeSuggestedPriceInput.text.toString().trim()
+        val salePrice = binding.recipeSalePriceInput.text.toString().trim()
+
+        if (name.isEmpty()) {
+            Toast.makeText(this, "El nombre de la receta es obligatorio.", Toast.LENGTH_SHORT)
+                .show()
+            onValidationComplete(false)
+            return
+        }
+        if (cost.isEmpty()) {
+            Toast.makeText(this, "El costo es obligatorio.", Toast.LENGTH_SHORT).show()
+            onValidationComplete(false)
+            return
+        }
+        if (suggestedPrice.isEmpty()) {
+            Toast.makeText(this, "El precio sugerido es obligatorio.", Toast.LENGTH_SHORT).show()
+            onValidationComplete(false)
+            return
+        }
+        if (salePrice.isEmpty()) {
+            Toast.makeText(this, "El precio de venta es obligatorio.", Toast.LENGTH_SHORT).show()
+            onValidationComplete(false)
+            return
+        }
+
+        // Check if all sections have at least one product
+        for (section in selectedSections) {
+            if (section.products.isEmpty()) {
+                Toast.makeText(
+                    this,
+                    "La sección '${section.name}' debe tener al menos un producto.",
+                    Toast.LENGTH_SHORT
+                ).show()
+                onValidationComplete(false)
+                return
+            }
+        }
+
+        // Check if the recipe name is unique
+        val recipeNewName = binding.recipeNameInput.text.toString().trim()
+        recipesHelper.isRecipeNameUnique(recipeNewName, recipe?.id) { isUnique ->
+            if (!isUnique) {
+                Toast.makeText(this, "Ya existe una receta con este nombre.", Toast.LENGTH_SHORT)
+                    .show()
+                onValidationComplete(false)
+                return@isRecipeNameUnique
+            }
+            onValidationComplete(true)
         }
     }
 
