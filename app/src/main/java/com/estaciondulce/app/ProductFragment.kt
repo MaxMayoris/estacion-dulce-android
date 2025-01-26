@@ -11,15 +11,18 @@ import androidx.fragment.app.Fragment
 import com.estaciondulce.app.ProductBottomSheet
 import com.estaciondulce.app.adapters.ProductAdapter
 import com.estaciondulce.app.databinding.FragmentProductBinding
+import com.estaciondulce.app.helpers.MeasuresHelper
+import com.estaciondulce.app.helpers.ProductsHelper
 import com.estaciondulce.app.models.Measure
 import com.estaciondulce.app.models.Product
-import com.google.firebase.firestore.FirebaseFirestore
 
 class ProductFragment : Fragment() {
 
     private var _binding: FragmentProductBinding? = null
     private val binding get() = _binding!!
-    private val db = FirebaseFirestore.getInstance()
+
+    private val productsHelper = ProductsHelper()
+    private val measuresHelper = MeasuresHelper()
 
     private val productList = mutableListOf<Product>()
     private val measuresMap = mutableMapOf<String, Measure>() // Map to store measures by key
@@ -35,7 +38,9 @@ class ProductFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        fetchMeasures { fetchProducts() }
+        fetchData {
+            setupTableView() // Setup table after data is fetched
+        }
 
         binding.addProductButton.setOnClickListener {
             ProductBottomSheet(onSave = { newProduct ->
@@ -53,34 +58,49 @@ class ProductFragment : Fragment() {
         })
     }
 
-    private fun fetchMeasures(onComplete: () -> Unit) {
-        db.collection("measures")
-            .get()
-            .addOnSuccessListener { documents ->
-                for (document in documents) {
-                    val measure = document.toObject(Measure::class.java)
-                    measuresMap[document.id] = measure // Map measure key to Measure object
-                }
+    private fun fetchData(onComplete: () -> Unit) {
+        var productsLoaded = false
+        var measuresLoaded = false
+
+        fun checkAllDataLoaded() {
+            if (productsLoaded && measuresLoaded) {
                 onComplete()
             }
-    }
+        }
 
-    private fun fetchProducts() {
-        db.collection("products")
-            .get()
-            .addOnSuccessListener { documents ->
-                productList.clear()
-                for (document in documents) {
-                    val product = document.toObject(Product::class.java).copy(id = document.id)
-                    productList.add(product)
+        // Fetch measures
+        measuresHelper.fetchMeasures(
+            onSuccess = { measures ->
+                measures.forEach { measure ->
+                    measuresMap[measure.id] = measure
                 }
-                setupTableView()
+                Log.d("ProductFragment", "Measures Loaded: $measuresMap")
+                measuresLoaded = true
+                checkAllDataLoaded()
+            },
+            onError = { e ->
+                Log.e("ProductFragment", "Error fetching measures: ${e.message}")
+                measuresLoaded = true // Allow progress even if fetching fails
+                checkAllDataLoaded()
             }
-            .addOnFailureListener { e ->
-                Log.e("ProductFragment", "Error fetching products: ${e.message}")
-            }
-    }
+        )
 
+        // Fetch products
+        productsHelper.fetchProducts(
+            onSuccess = { products ->
+                productList.clear()
+                productList.addAll(products) // Add the List<Product> directly
+                Log.d("ProductFragment", "Products Loaded: $productList")
+                productsLoaded = true
+                checkAllDataLoaded()
+            },
+            onError = { e ->
+                Log.e("ProductFragment", "Error fetching products: ${e.message}")
+                productsLoaded = true
+                checkAllDataLoaded()
+            }
+        )
+    }
 
     private fun addProduct(product: Product) {
         // Check if the product name already exists
@@ -89,25 +109,17 @@ class ProductFragment : Fragment() {
             return
         }
 
-        val productData = mapOf(
-            "name" to product.name,
-            "quantity" to product.quantity,
-            "cost" to product.cost,
-            "measure" to product.measure,
-            "minimumQuantity" to product.minimumQuantity
-        )
-        db.collection("products")
-            .add(productData)
-            .addOnSuccessListener { documentReference ->
-                val productWithId = product.copy(id = documentReference.id)
-                productList.add(productWithId)
+        productsHelper.addProduct(
+            product = product,
+            onSuccess = { newProduct ->
+                productList.add(newProduct)
                 setupTableView() // Refresh the table
-            }
-            .addOnFailureListener { e ->
+            },
+            onError = { e ->
                 Log.e("ProductFragment", "Error adding product: ${e.message}")
             }
+        )
     }
-
 
     private fun editProduct(product: Product) {
         ProductBottomSheet(product, onSave = { updatedProduct ->
@@ -117,51 +129,34 @@ class ProductFragment : Fragment() {
                 return@ProductBottomSheet
             }
 
-            val productData = mapOf(
-                "name" to updatedProduct.name,
-                "quantity" to updatedProduct.quantity,
-                "cost" to updatedProduct.cost,
-                "measure" to updatedProduct.measure,
-                "minimumQuantity" to updatedProduct.minimumQuantity
-            )
-            db.collection("products")
-                .document(product.id) // Use Firestore document ID
-                .set(productData)
-                .addOnSuccessListener {
+            productsHelper.updateProduct(
+                productId = product.id,
+                product = updatedProduct,
+                onSuccess = {
                     val index = productList.indexOfFirst { it.id == product.id }
                     if (index != -1) {
                         productList[index] = updatedProduct.copy(id = product.id)
                         setupTableView() // Refresh the table
                     }
-                }
-                .addOnFailureListener { e ->
+                },
+                onError = { e ->
                     Log.e("ProductFragment", "Error updating product: ${e.message}")
                 }
+            )
         }).show(childFragmentManager, "EditProduct")
     }
 
-
     private fun deleteProduct(product: Product) {
-        val dialog = android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Confirm Delete")
-            .setMessage("Are you sure you want to delete the product '${product.name}'?")
-            .setPositiveButton("Delete") { _, _ ->
-                // Proceed with deletion
-                db.collection("products")
-                    .document(product.id)
-                    .delete()
-                    .addOnSuccessListener {
-                        productList.remove(product)
-                        setupTableView() // Refresh the table
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e("ProductFragment", "Error deleting product: ${e.message}")
-                    }
+        productsHelper.deleteProduct(
+            productId = product.id,
+            onSuccess = {
+                productList.remove(product)
+                setupTableView() // Refresh the table
+            },
+            onError = { e ->
+                Log.e("ProductFragment", "Error deleting product: ${e.message}")
             }
-            .setNegativeButton("Cancel", null) // Do nothing on cancel
-            .create()
-
-        dialog.show()
+        )
     }
 
     private fun showErrorDialog(message: String) {
@@ -173,7 +168,6 @@ class ProductFragment : Fragment() {
         dialog.show()
     }
 
-
     private fun setupTableView() {
         val sortedList = productList.sortedBy { it.name }
         binding.productTable.setupTable(
@@ -184,22 +178,21 @@ class ProductFragment : Fragment() {
                 onRowClick = { product -> editProduct(product) },
                 onDeleteClick = { product -> deleteProduct(product) },
                 attributeGetter = { product ->
-                    val measure = measuresMap[product.measure]?.unit ?: "Unknown"
-                    listOf(product.name, product.quantity, product.cost, measure)
+                    val measureName = measuresMap[product.measure]?.name ?: "Desconocido" // Use name instead of unit
+                    listOf(product.name, product.quantity, product.cost, measureName)
                 }
             ),
             pageSize = 10,
             columnValueGetter = { item, columnIndex ->
-                val product = item as Product // Explicitly cast to Product
+                val product = item as Product
                 when (columnIndex) {
                     0 -> product.name
                     1 -> product.quantity
                     2 -> product.cost
-                    3 -> measuresMap[product.measure]?.unit ?: "Unknown"
+                    3 -> measuresMap[product.measure]?.name ?: "Desconocido" // Use name instead of unit
                     else -> null
                 }
             }
-
         )
     }
 
@@ -215,18 +208,18 @@ class ProductFragment : Fragment() {
                 onRowClick = { product -> editProduct(product) },
                 onDeleteClick = { product -> deleteProduct(product) },
                 attributeGetter = { product ->
-                    val measure = measuresMap[product.measure]?.unit ?: "Unknown"
-                    listOf(product.name, product.quantity, product.cost, measure)
+                    val measureName = measuresMap[product.measure]?.name ?: "Desconocido" // Use name instead of unit
+                    listOf(product.name, product.quantity, product.cost, measureName)
                 }
             ),
             pageSize = 10,
             columnValueGetter = { item, columnIndex ->
-                val product = item as Product // Explicitly cast to Product
+                val product = item as Product
                 when (columnIndex) {
                     0 -> product.name
                     1 -> product.quantity
                     2 -> product.cost
-                    3 -> measuresMap[product.measure]?.unit ?: "Unknown"
+                    3 -> measuresMap[product.measure]?.name ?: "Desconocido" // Use name instead of unit
                     else -> null
                 }
             }
