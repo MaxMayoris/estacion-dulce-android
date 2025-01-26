@@ -1,0 +1,23 @@
+<resources>
+    <!-- Primary colors -->
+    <color name="purple_500">#6200EE</color>
+    <color name="purple_200">#BB86FC</color>
+    <color name="purple_400">#8652C7</color>
+    <color name="purple_700">#6200EE</color>
+
+    <!-- Secondary colors -->
+    <color name="teal_200">#03DAC5</color>
+    <color name="teal_700">#018786</color>
+
+    <!-- Other colors -->
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+
+    <color name="selected_item">#FFFFFF</color> <!-- White for selected items -->
+    <color name="unselected_item">#B0BEC5</color> <!-- Gray for unselected items -->
+
+    <color name="light_gray">#F5F5F5</color>
+    <color name="darker_gray">#B0BEC5</color>
+    <color name="light_purple">#F3E5F5</color> <!-- Light purple for alternate rows -->
+
+</resources>
