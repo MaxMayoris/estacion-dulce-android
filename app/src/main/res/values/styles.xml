@@ -1,0 +1,8 @@
+<resources>
+    <!-- Custom style for BottomNavigationView -->
+    <style name="BottomNavigationViewStyle" parent="Widget.MaterialComponents.BottomNavigationView.Colored">
+        <item name="itemIconTint">@color/nav_item_colors</item>
+        <item name="itemTextColor">@color/nav_item_colors</item>
+        <item name="backgroundTint">@color/purple_700</item> <!-- Background color -->
+    </style>
+</resources>

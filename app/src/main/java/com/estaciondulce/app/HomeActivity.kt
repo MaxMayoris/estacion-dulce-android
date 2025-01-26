@@ -1,0 +1,73 @@
+package com.estaciondulce.app
+
+import android.os.Bundle
+import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import com.estaciondulce.app.fragments.ProductFragment
+import com.google.android.material.bottomnavigation.BottomNavigationView
+
+class HomeActivity : AppCompatActivity() {
+
+    private val homeFragment = HomeFragment()
+    private val productFragment = ProductFragment()
+    private val recipeFragment = RecipeFragment()
+    private val personFragment = PersonFragment()
+    private val transactionFragment = TransactionFragment()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_home)
+
+        val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
+
+        // Set the default fragment
+        loadFragment(homeFragment)
+
+        // Handle navigation item clicks
+        bottomNavigationView.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_home -> {
+                    loadFragment(homeFragment)
+                    true
+                }
+                R.id.nav_product -> {
+                    loadFragment(productFragment)
+                    true
+                }
+                R.id.nav_recipe -> {
+                    loadFragment(recipeFragment)
+                    true
+                }
+                R.id.nav_person -> {
+                    loadFragment(personFragment)
+                    true
+                }
+                R.id.nav_transaction -> {
+                    loadFragment(transactionFragment)
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    // Function to load fragments into the container
+    private fun loadFragment(fragment: Fragment) {
+        Log.d("HomeActivity", "Loading fragment: ${fragment::class.java.simpleName}")
+        val fragmentTransaction = supportFragmentManager.beginTransaction()
+
+        // Check if the fragment is already added
+        if (supportFragmentManager.fragments.contains(fragment)) {
+            // Show the fragment if already added
+            supportFragmentManager.fragments.forEach { fragmentTransaction.hide(it) }
+            fragmentTransaction.show(fragment)
+        } else {
+            // Add and show the fragment
+            supportFragmentManager.fragments.forEach { fragmentTransaction.hide(it) }
+            fragmentTransaction.add(R.id.homeFragmentContainer, fragment)
+        }
+
+        fragmentTransaction.commit()
+    }
+}
