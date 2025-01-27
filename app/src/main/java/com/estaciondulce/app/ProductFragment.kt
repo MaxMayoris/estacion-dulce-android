@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.estaciondulce.app.ProductBottomSheet
 import com.estaciondulce.app.adapters.ProductAdapter
@@ -15,6 +16,7 @@ import com.estaciondulce.app.helpers.MeasuresHelper
 import com.estaciondulce.app.helpers.ProductsHelper
 import com.estaciondulce.app.models.Measure
 import com.estaciondulce.app.models.Product
+import com.estaciondulce.app.utils.CustomLoader
 
 class ProductFragment : Fragment() {
 
@@ -25,7 +27,8 @@ class ProductFragment : Fragment() {
     private val measuresHelper = MeasuresHelper()
 
     private val productList = mutableListOf<Product>()
-    private val measuresMap = mutableMapOf<String, Measure>() // Map to store measures by key
+    private val measuresMap = mutableMapOf<String, Measure>()
+    private lateinit var loader: CustomLoader
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -36,10 +39,15 @@ class ProductFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        // Initialize the loader
+        loader = CustomLoader(requireContext())
+
         super.onViewCreated(view, savedInstanceState)
 
+        loader.show()
         fetchData {
-            setupTableView() // Setup table after data is fetched
+            setupTableView()
+            loader.hide()
         }
 
         binding.addProductButton.setOnClickListener {
@@ -103,20 +111,16 @@ class ProductFragment : Fragment() {
     }
 
     private fun addProduct(product: Product) {
-        // Check if the product name already exists
-        if (productList.any { it.name.equals(product.name, ignoreCase = true) }) {
-            showErrorDialog("A product with the name '${product.name}' already exists.")
-            return
-        }
-
         productsHelper.addProduct(
             product = product,
             onSuccess = { newProduct ->
                 productList.add(newProduct)
                 setupTableView() // Refresh the table
+                Toast.makeText(requireContext(), "Producto añadido correctamente.", Toast.LENGTH_SHORT).show()
             },
             onError = { e ->
                 Log.e("ProductFragment", "Error adding product: ${e.message}")
+                Toast.makeText(requireContext(), "Error al añadir el producto.", Toast.LENGTH_SHORT).show()
             }
         )
     }
@@ -136,27 +140,39 @@ class ProductFragment : Fragment() {
                     val index = productList.indexOfFirst { it.id == product.id }
                     if (index != -1) {
                         productList[index] = updatedProduct.copy(id = product.id)
-                        setupTableView() // Refresh the table
+                        setupTableView()
                     }
+                    Toast.makeText(requireContext(), "Producto actualizado correctamente.", Toast.LENGTH_SHORT).show()
                 },
                 onError = { e ->
                     Log.e("ProductFragment", "Error updating product: ${e.message}")
+                    Toast.makeText(requireContext(), "Error al actualizar el producto.", Toast.LENGTH_SHORT).show()
                 }
             )
         }).show(childFragmentManager, "EditProduct")
     }
 
     private fun deleteProduct(product: Product) {
-        productsHelper.deleteProduct(
-            productId = product.id,
-            onSuccess = {
-                productList.remove(product)
-                setupTableView() // Refresh the table
-            },
-            onError = { e ->
-                Log.e("ProductFragment", "Error deleting product: ${e.message}")
+        val dialog = android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Confirmar Eliminación")
+            .setMessage("¿Está seguro de que desea eliminar el producto '${product.name}'?")
+            .setPositiveButton("Eliminar") { _, _ ->
+                productsHelper.deleteProduct(
+                    productId = product.id,
+                    onSuccess = {
+                        productList.remove(product)
+                        setupTableView() // Refresh the table
+                        Toast.makeText(requireContext(), "Producto eliminado correctamente.", Toast.LENGTH_SHORT).show()
+                    },
+                    onError = { e ->
+                        Log.e("ProductFragment", "Error deleting product: ${e.message}")
+                        Toast.makeText(requireContext(), "Error al eliminar el producto.", Toast.LENGTH_SHORT).show()
+                    }
+                )
             }
-        )
+            .setNegativeButton("Cancelar", null)
+            .create()
+        dialog.show()
     }
 
     private fun showErrorDialog(message: String) {

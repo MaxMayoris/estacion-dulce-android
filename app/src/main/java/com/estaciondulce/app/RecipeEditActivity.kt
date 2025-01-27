@@ -14,15 +14,16 @@ import com.estaciondulce.app.databinding.ActivityRecipeEditBinding
 import com.estaciondulce.app.helpers.CategoriesHelper
 import com.estaciondulce.app.models.Recipe
 import com.estaciondulce.app.models.RecipeProduct
-import com.google.firebase.firestore.FirebaseFirestore
 import com.estaciondulce.app.helpers.SectionsHelper
 import com.estaciondulce.app.helpers.RecipesHelper
 import com.estaciondulce.app.helpers.ProductsHelper
+import com.estaciondulce.app.utils.CustomLoader
 
 
 class RecipeEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityRecipeEditBinding
+    private lateinit var loader: CustomLoader
     private var recipe: Recipe? = null
     // Initialize helpers
     private val sectionsHelper = SectionsHelper()
@@ -46,6 +47,9 @@ class RecipeEditActivity : AppCompatActivity() {
         binding = ActivityRecipeEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Initialize the loader
+        loader = CustomLoader(this)
+
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Editar Receta"
 
@@ -60,12 +64,14 @@ class RecipeEditActivity : AppCompatActivity() {
         }
 
         // Fetch all necessary data before loading the UI
+        loader.show()
         fetchAllData {
             recipe = intent.getParcelableExtra("recipe")
             recipe?.let { loadRecipeData(it) } // Load the recipe after all data is ready
             binding.saveRecipeButton.setOnClickListener {
                 saveRecipe()
             }
+            loader.hide()
         }
     }
 
@@ -359,31 +365,29 @@ class RecipeEditActivity : AppCompatActivity() {
                 sections = selectedSections
             )
 
-            val db = FirebaseFirestore.getInstance()
-            val recipeRef = db.collection("recipes")
-
             if (updatedRecipe.id.isEmpty()) {
-                // New recipe: Add to Firestore
-                recipeRef.add(updatedRecipe)
-                    .addOnSuccessListener { documentReference ->
-                        updatedRecipe.id = documentReference.id
-                        sendResultAndFinish(updatedRecipe)
-                    }
-                    .addOnFailureListener { e ->
+                recipesHelper.addRecipe(
+                    recipe = updatedRecipe,
+                    onSuccess = { newRecipe ->
+                        sendResultAndFinish(newRecipe)
+                    },
+                    onError = { e ->
                         Toast.makeText(this, "Error al guardar la receta.", Toast.LENGTH_SHORT).show()
                         e.printStackTrace()
                     }
+                )
             } else {
-                // Existing recipe: Update Firestore document
-                recipeRef.document(updatedRecipe.id)
-                    .set(updatedRecipe)
-                    .addOnSuccessListener {
+                recipesHelper.updateRecipe(
+                    recipeId = updatedRecipe.id,
+                    recipe = updatedRecipe,
+                    onSuccess = {
                         sendResultAndFinish(updatedRecipe)
-                    }
-                    .addOnFailureListener { e ->
+                    },
+                    onError = { e ->
                         Toast.makeText(this, "Error al actualizar la receta.", Toast.LENGTH_SHORT).show()
                         e.printStackTrace()
                     }
+                )
             }
         }
     }
