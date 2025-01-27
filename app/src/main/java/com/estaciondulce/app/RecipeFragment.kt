@@ -132,9 +132,9 @@ class RecipeFragment : Fragment() {
     private fun editRecipe(recipe: Recipe) {
         val intent = Intent(requireContext(), RecipeEditActivity::class.java)
         intent.putExtra("recipe", recipe) // Pass the recipe as Parcelable
-
-        // Pass the categories map as a Serializable
         intent.putExtra("categoriesMap", HashMap(categoriesMap))
+        val recipesMap = HashMap(recipeList.associateBy { it.id }) // Map recipe ID to Recipe object
+        intent.putExtra("recipesMap", recipesMap)
         startActivityForResult(intent, EDIT_RECIPE_REQUEST_CODE) // Launch RecipeEditActivity
     }
 

@@ -1,7 +1,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:padding="16dp">
 
     <LinearLayout
@@ -13,8 +13,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -25,10 +25,10 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
                     android:text="Nombre de la receta"
                     android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
+                    android:textStyle="bold" />
 
                 <EditText
                     android:id="@+id/recipeNameInput"
@@ -41,17 +41,17 @@
                 android:id="@+id/recipeOnSaleCheckbox"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="En venta"
+                android:layout_gravity="center"
                 android:layout_marginStart="16dp"
-                android:layout_gravity="center" />
+                android:text="En venta" />
         </LinearLayout>
 
         <!-- Costs in a Single Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
 
             <!-- Costo -->
             <LinearLayout
@@ -63,10 +63,10 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
                     android:text="Costo"
                     android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
+                    android:textStyle="bold" />
 
                 <EditText
                     android:id="@+id/recipeCostInput"
@@ -80,17 +80,17 @@
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:layout_marginStart="8dp">
+                android:orientation="vertical">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
                     android:text="Precio sugerido"
                     android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
+                    android:textStyle="bold" />
 
                 <EditText
                     android:id="@+id/recipeSuggestedPriceInput"
@@ -104,17 +104,17 @@
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:layout_marginStart="8dp">
+                android:orientation="vertical">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
                     android:text="Precio de venta"
                     android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
+                    android:textStyle="bold" />
 
                 <EditText
                     android:id="@+id/recipeSalePriceInput"
@@ -129,16 +129,16 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="16dp"
+            android:orientation="vertical">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
                 android:text="Categorías"
                 android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="4dp" />
+                android:textStyle="bold" />
 
             <Spinner
                 android:id="@+id/categorySelector"
@@ -151,21 +151,61 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="8dp"
-            app:flexWrap="wrap"
             app:alignItems="flex_start"
+            app:flexWrap="wrap"
             app:justifyContent="flex_start" />
+
+        <!-- Nested Recipes Section -->
+        <LinearLayout
+            android:id="@+id/nestedRecipesContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp">
+
+            <!-- Title -->
+            <TextView
+                android:id="@+id/nestedRecipesTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="8dp"
+                android:text="Recetas Anidadas"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <!-- Search Bar -->
+            <EditText
+                android:id="@+id/recipeSearchBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:drawable/editbox_background"
+                android:hint="Buscar receta"
+                android:padding="8dp" />
+
+            <!-- Selected Recipe Container -->
+            <LinearLayout
+                android:id="@+id/selectedRecipeContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="8dp"
+                android:visibility="gone">
+            </LinearLayout>
+        </LinearLayout>
+
 
         <!-- Sections Title -->
         <TextView
             android:id="@+id/sectionsTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingTop="16dp"
+            android:paddingBottom="8dp"
             android:text="Secciones"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:visibility="gone"
-            android:paddingTop="16dp"
-            android:paddingBottom="8dp" />
+            android:visibility="gone" />
 
         <!-- Section Selector -->
         <Spinner
@@ -186,8 +226,8 @@
             android:id="@+id/saveRecipeButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
             android:text="Guardar"
-            android:textAllCaps="false"
-            android:layout_marginTop="16dp" />
+            android:textAllCaps="false" />
     </LinearLayout>
 </ScrollView>
