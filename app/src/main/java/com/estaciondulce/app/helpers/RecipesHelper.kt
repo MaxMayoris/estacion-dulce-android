@@ -28,8 +28,10 @@ class RecipesHelper(
             "suggestedPrice" to recipe.suggestedPrice,
             "salePrice" to recipe.salePrice,
             "onSale" to recipe.onSale,
+            "unit" to recipe.unit,
             "categories" to recipe.categories,
-            "sections" to recipe.sections
+            "sections" to recipe.sections,
+            "recipes" to recipe.recipes
         )
 
         genericHelper.addDocument(
@@ -49,8 +51,10 @@ class RecipesHelper(
             "suggestedPrice" to recipe.suggestedPrice,
             "salePrice" to recipe.salePrice,
             "onSale" to recipe.onSale,
+            "unit" to recipe.unit,
             "categories" to recipe.categories,
-            "sections" to recipe.sections
+            "sections" to recipe.sections,
+            "recipes" to recipe.recipes
         )
 
         genericHelper.updateDocument(

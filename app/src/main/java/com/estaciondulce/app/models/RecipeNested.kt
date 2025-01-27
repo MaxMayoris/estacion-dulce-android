@@ -6,5 +6,5 @@ import kotlinx.parcelize.Parcelize
 @Parcelize
 data class RecipeNested(
     val recipeId: String = "",
-    val quantity: Double = 0.0
+    var quantity: Double = 0.0
 ) : Parcelable
