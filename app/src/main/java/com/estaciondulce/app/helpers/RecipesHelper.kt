@@ -21,12 +21,54 @@ class RecipesHelper(
         )
     }
 
+    fun addRecipe(recipe: Recipe, onSuccess: (Recipe) -> Unit, onError: (Exception) -> Unit) {
+        val recipeData = mapOf(
+            "name" to recipe.name,
+            "cost" to recipe.cost,
+            "suggestedPrice" to recipe.suggestedPrice,
+            "salePrice" to recipe.salePrice,
+            "onSale" to recipe.onSale,
+            "categories" to recipe.categories,
+            "sections" to recipe.sections
+        )
+
+        genericHelper.addDocument(
+            collectionName = "recipes",
+            data = recipeData,
+            onSuccess = { documentId ->
+                onSuccess(recipe.copy(id = documentId)) // Return the recipe with the new ID
+            },
+            onError = onError
+        )
+    }
+
+    fun updateRecipe(recipeId: String, recipe: Recipe, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+        val recipeData = mapOf(
+            "name" to recipe.name,
+            "cost" to recipe.cost,
+            "suggestedPrice" to recipe.suggestedPrice,
+            "salePrice" to recipe.salePrice,
+            "onSale" to recipe.onSale,
+            "categories" to recipe.categories,
+            "sections" to recipe.sections
+        )
+
+        genericHelper.updateDocument(
+            collectionName = "recipes",
+            documentId = recipeId,
+            data = recipeData,
+            onSuccess = onSuccess,
+            onError = onError
+        )
+    }
+
     fun deleteRecipe(recipeId: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
-        db.collection("recipes")
-            .document(recipeId)
-            .delete()
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onError(it) }
+        genericHelper.deleteDocument(
+            collectionName = "recipes",
+            documentId = recipeId,
+            onSuccess = onSuccess,
+            onError = onError
+        )
     }
 
     fun isRecipeNameUnique(name: String, currentRecipeId: String?, onComplete: (Boolean) -> Unit) {

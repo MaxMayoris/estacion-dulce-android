@@ -7,14 +7,18 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.estaciondulce.app.adapters.RecipeAdapter
 import com.estaciondulce.app.databinding.FragmentRecipeBinding
 import com.estaciondulce.app.helpers.CategoriesHelper
 import com.estaciondulce.app.helpers.RecipesHelper
 import com.estaciondulce.app.models.Recipe
+import com.estaciondulce.app.utils.CustomLoader
 
 class RecipeFragment : Fragment() {
+
+    private lateinit var loader: CustomLoader
 
     private var _binding: FragmentRecipeBinding? = null
     private val binding get() = _binding!!
@@ -40,8 +44,12 @@ class RecipeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        loader = CustomLoader(requireContext())
+
+        loader.show()
         fetchData {
-            setupTableView() // Setup the table view after data is loaded
+            setupTableView()
+            loader.hide()
         }
 
         binding.addRecipeButton.setOnClickListener {
@@ -130,19 +138,30 @@ class RecipeFragment : Fragment() {
         startActivityForResult(intent, EDIT_RECIPE_REQUEST_CODE) // Launch RecipeEditActivity
     }
 
-
     private fun deleteRecipe(recipe: Recipe) {
-        recipesHelper.deleteRecipe(
-            recipeId = recipe.id,
-            onSuccess = {
-                recipeList.remove(recipe)
-                setupTableView() // Refresh the table
-            },
-            onError = { e ->
-                Log.e("RecipeFragment", "Error deleting recipe: ${e.message}")
+        val dialog = android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Confirmar Eliminación")
+            .setMessage("¿Está seguro de que desea eliminar la receta '${recipe.name}'?")
+            .setPositiveButton("Eliminar") { _, _ ->
+                recipesHelper.deleteRecipe(
+                    recipeId = recipe.id,
+                    onSuccess = {
+                        recipeList.remove(recipe)
+                        setupTableView() // Refresh the table
+                        Toast.makeText(requireContext(), "Receta eliminada correctamente.", Toast.LENGTH_SHORT).show()
+                    },
+                    onError = { e ->
+                        Log.e("RecipeFragment", "Error deleting recipe: ${e.message}")
+                        Toast.makeText(requireContext(), "Error al eliminar la receta.", Toast.LENGTH_SHORT).show()
+                    }
+                )
             }
-        )
+            .setNegativeButton("Cancelar", null)
+            .create()
+
+        dialog.show()
     }
+
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)

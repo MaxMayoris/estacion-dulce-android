@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.Toast
 import androidx.core.widget.addTextChangedListener
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.estaciondulce.app.databinding.BottomSheetProductBinding
@@ -68,23 +69,50 @@ class ProductBottomSheet(
         // Save button logic
         binding.saveProductButton.setOnClickListener {
             val name = binding.productNameInput.text.toString()
-            val stock = binding.productStockInput.text.toString().toIntOrNull() ?: 0
-            val cost = binding.productCostInput.text.toString().toDoubleOrNull() ?: 0.0
-            val minimumQuantity = binding.productMinimumQuantityInput.text.toString().toDoubleOrNull() ?: 0.0
+            val stock = binding.productStockInput.text.toString().toIntOrNull() ?: -1
+            val cost = binding.productCostInput.text.toString().toDoubleOrNull() ?: -1.0
+            val minimumQuantity = binding.productMinimumQuantityInput.text.toString().toDoubleOrNull() ?: -1.0
             val measureName = binding.measureDropdown.selectedItem?.toString()
             val measureId = measuresMap.entries.find { it.value == measureName }?.key
 
+            // Validations
+            if (name.isBlank()) {
+                showToast("El nombre del producto es obligatorio.")
+                return@setOnClickListener
+            }
+            if (stock < 0) {
+                showToast("El stock no puede ser menor a 0.")
+                return@setOnClickListener
+            }
+            if (cost < 0) {
+                showToast("El costo no puede ser menor a 0.")
+                return@setOnClickListener
+            }
+            if (minimumQuantity < 0) {
+                showToast("La cantidad mínima no puede ser menor a 0.")
+                return@setOnClickListener
+            }
+            if (measureId.isNullOrEmpty()) {
+                showToast("Debe seleccionar una medida.")
+                return@setOnClickListener
+            }
+
+            // Create or update product
             val updatedProduct = Product(
                 id = product?.id ?: "", // Keep existing ID if editing
                 name = name,
                 quantity = stock,
                 cost = cost,
                 minimumQuantity = minimumQuantity,
-                measure = measureId ?: "" // Save the measure ID
+                measure = measureId
             )
             onSave(updatedProduct)
             dismiss()
         }
+    }
+
+    private fun showToast(message: String) {
+        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
     }
 
     private fun setupFloatingLabels() {
