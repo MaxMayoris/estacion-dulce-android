@@ -27,22 +27,22 @@ class RecipeEditActivity : AppCompatActivity() {
     private lateinit var loader: CustomLoader
     private var recipe: Recipe? = null
 
-    // Initialize helpers
     private val sectionsHelper = SectionsHelper()
     private val recipesHelper = RecipesHelper()
     private val productsHelper = ProductsHelper()
     private val categoriesHelper = CategoriesHelper()
 
-    private val allSections = mutableMapOf<String, String>() // Section ID to Name
-    private val selectedSections = mutableListOf<RecipeSection>() // Selected Sections
-    private val allProducts = mutableMapOf<String, String>() // Product ID to Name
-    private val allCategories = mutableMapOf<String, String>() // Category ID to Name
-    private val selectedCategories = mutableSetOf<String>() // Selected Categories
-    private val allRecipes = mutableMapOf<String, Recipe>() // All recipes by ID
+    private val allSections = mutableMapOf<String, String>()
+    private val selectedSections = mutableListOf<RecipeSection>()
+    private val allProducts = mutableMapOf<String, Pair<String, Double>>()
+    private val allCategories = mutableMapOf<String, String>()
+    private val selectedCategories = mutableSetOf<String>()
+    private val allRecipes = mutableMapOf<String, Recipe>()
     private val selectedRecipes = mutableListOf<RecipeNested>()
 
+
     override fun onSupportNavigateUp(): Boolean {
-        onBackPressedDispatcher.onBackPressed() // Use the dispatcher for handling back navigation
+        onBackPressedDispatcher.onBackPressed()
         return true
     }
 
@@ -132,11 +132,10 @@ class RecipeEditActivity : AppCompatActivity() {
 
         productsHelper.fetchProducts(
             onSuccess = { products ->
-                Log.d("RecipeEditActivity", "Products Loaded: $products")
-
-                // Convert List<Product> to Map<String, String> for allProducts
-                allProducts.putAll(products.associate { it.id to it.name })
-
+                products.forEach { product ->
+                    allProducts[product.id] =
+                        Pair(product.name, product.cost) // Store name and cost
+                }
                 productsLoaded = true
                 checkAllDataLoaded()
             },
@@ -149,27 +148,25 @@ class RecipeEditActivity : AppCompatActivity() {
     }
 
     private fun loadRecipeData(recipe: Recipe) {
-        // Set recipe details
         binding.recipeNameInput.setText(recipe.name)
         binding.recipeCostInput.setText(recipe.cost.toString())
         binding.recipeSuggestedPriceInput.setText(recipe.suggestedPrice.toString())
         binding.recipeSalePriceInput.setText(recipe.salePrice.toString())
         binding.recipeOnSaleCheckbox.isChecked = recipe.onSale
 
-        // Clear previous data
         selectedSections.clear()
         selectedCategories.clear()
 
-        // Populate sections and categories
-        selectedSections.addAll(recipe.sections)
+        selectedSections.addAll(recipe.sections.filter {
+            val hasProducts = it.products.isNotEmpty()
+            Log.d("RecipeEditActivity", "Sección ${it.name} tiene productos? $hasProducts")
+            hasProducts
+        })
+
         selectedCategories.addAll(recipe.categories)
 
-        Log.d("RecipeEditActivity", "Loaded Sections: $selectedSections")
-        Log.d("RecipeEditActivity", "Loaded Categories: $selectedCategories")
-
-        // Update the UI
-        updateSectionsUI() // Dynamically render sections
-        updateCategoryTags() // Render tags now that allCategories is populated
+        updateSectionsUI()
+        updateCategoryTags()
     }
 
     private fun setupRecipeSearchBar() {
@@ -192,7 +189,10 @@ class RecipeEditActivity : AppCompatActivity() {
                 val query = s.toString().trim()
                 if (query.length >= 3) { // Only search when query length is at least 3
                     val filteredRecipes = allRecipes.values.filter {
-                        it.name.contains(query, ignoreCase = true) && it.id != recipe?.id // Exclude the current recipe
+                        it.name.contains(
+                            query,
+                            ignoreCase = true
+                        ) && it.id != recipe?.id // Exclude the current recipe
                     }
 
                     // Update the dropdown with filtered recipes
@@ -259,7 +259,8 @@ class RecipeEditActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             hint = "Cantidad"
             setPadding(8, 8, 8, 8)
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+            inputType =
+                android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
             setText("1") // Default quantity
         }
 
@@ -302,8 +303,6 @@ class RecipeEditActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {}
         })
     }
-
-
 
     private fun setupCategorySelector() {
         val categoryNames = allCategories.values.toList()
@@ -420,19 +419,16 @@ class RecipeEditActivity : AppCompatActivity() {
 
         for (section in selectedSections) {
             val sectionView = LayoutInflater.from(this)
-                .inflate(R.layout.item_section, binding.sectionsContainer, false)
-
+                .inflate(R.layout.item_section_recipe_edit, binding.sectionsContainer, false)
             val sectionName = sectionView.findViewById<TextView>(R.id.sectionName)
-            val searchBar = sectionView.findViewById<EditText>(R.id.productSearchBar)
+            val productSearchBar = sectionView.findViewById<EditText>(R.id.productSearchBar)
             val productContainer = sectionView.findViewById<LinearLayout>(R.id.productContainer)
-            val searchResultsContainer =
-                sectionView.findViewById<LinearLayout>(R.id.searchResultsContainer)
             val removeSectionButton = sectionView.findViewById<Button>(R.id.removeSectionButton)
 
+            sectionView.tag = section.id
             sectionName.text = section.name
 
-            // Handle product search logic
-            searchBar.addTextChangedListener(object : TextWatcher {
+            productSearchBar.addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(
                     s: CharSequence?,
                     start: Int,
@@ -442,103 +438,115 @@ class RecipeEditActivity : AppCompatActivity() {
                 }
 
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                    searchResultsContainer.removeAllViews() // Clear previous search results
-
-                    if (s != null && s.length >= 3) { // Trigger search only after 3 characters
+                    val query = s.toString().trim()
+                    if (query.length >= 3) {
                         val filteredProducts = allProducts.entries.filter {
-                            it.value.contains(s.toString(), ignoreCase = true)
+                            it.value.first.contains(
+                                query,
+                                ignoreCase = true
+                            )
                         }
-
-                        for (product in filteredProducts) {
-                            // Inflate a product row for each matching product
-                            val productView = LayoutInflater.from(this@RecipeEditActivity)
-                                .inflate(R.layout.item_product, searchResultsContainer, false)
-
-                            val productNameView =
-                                productView.findViewById<TextView>(R.id.productName)
-                            val addProductButton =
-                                productView.findViewById<Button>(R.id.addProductButton)
-
-                            productNameView.text = product.value
-
-                            addProductButton.setOnClickListener {
-                                if (section.products.any { it.productId == product.key }) {
-                                    Toast.makeText(
-                                        this@RecipeEditActivity,
-                                        "Este producto ya está en la sección.",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    return@setOnClickListener
-                                }
-
-                                // Add the product to the section's list
-                                val addedProductView = LayoutInflater.from(this@RecipeEditActivity)
-                                    .inflate(R.layout.item_added_product, productContainer, false)
-
-                                val addedProductName =
-                                    addedProductView.findViewById<TextView>(R.id.addedProductName)
-                                val productQuantity =
-                                    addedProductView.findViewById<EditText>(R.id.productQuantity)
-                                val removeProductButton =
-                                    addedProductView.findViewById<Button>(R.id.removeProductButton)
-
-                                addedProductName.text = product.value
-                                productQuantity.setText("1")
-
-                                removeProductButton.setOnClickListener {
-                                    productContainer.removeView(addedProductView)
-                                    section.products =
-                                        section.products.filterNot { it.productId == product.key }
-                                }
-
-                                section.products += RecipeProduct(
-                                    productId = product.key,
-                                    quantity = 1.0
-                                )
-                                productContainer.addView(addedProductView)
-
-                                // Remove the product row from search results after adding
-                                searchResultsContainer.removeView(productView)
-                            }
-
-                            searchResultsContainer.addView(productView) // Add the search result to the container
-                        }
+                        showProductSearchPopup(productSearchBar, filteredProducts, section)
                     }
                 }
 
                 override fun afterTextChanged(s: Editable?) {}
             })
 
-            // Handle section removal
             removeSectionButton.setOnClickListener {
                 selectedSections.remove(section)
                 updateSectionsUI()
             }
 
             productContainer.removeAllViews()
-
-            // Load pre-existing products for the section
             for (product in section.products) {
-                val productView = LayoutInflater.from(this)
-                    .inflate(R.layout.item_added_product, productContainer, false)
-                val productNameView = productView.findViewById<TextView>(R.id.addedProductName)
-                val productQuantity = productView.findViewById<EditText>(R.id.productQuantity)
-                val removeProductButton = productView.findViewById<Button>(R.id.removeProductButton)
-
-                productNameView.text = allProducts[product.productId] ?: "Producto desconocido"
-                productQuantity.setText(product.quantity.toString())
-
-                removeProductButton.setOnClickListener {
-                    productContainer.removeView(productView)
-                    section.products =
-                        section.products.filterNot { it.productId == product.productId }
+                val productEntry = allProducts[product.productId]
+                if (productEntry != null) {
+                    addProductToUI(
+                        productContainer,
+                        section,
+                        product.productId,
+                        productEntry.first,
+                        productEntry.second,
+                        product.quantity
+                    )
+                } else {
+                    addProductToUI(
+                        productContainer,
+                        section,
+                        product.productId,
+                        "Producto desconocido",
+                        0.0,
+                        product.quantity
+                    )
                 }
-
-                productContainer.addView(productView)
             }
             binding.sectionsContainer.addView(sectionView)
         }
     }
+
+    private fun showProductSearchPopup(
+        anchor: View,
+        products: List<Map.Entry<String, Pair<String, Double>>>,
+        section: RecipeSection
+    ) {
+        val productSearchAdapter =
+            ArrayAdapter(this, android.R.layout.simple_list_item_1, products.map { it.value.first })
+        val popupWindow = ListPopupWindow(this).apply {
+            setAnchorView(anchor)
+            setAdapter(productSearchAdapter)
+            setOnItemClickListener { _, _, position, _ ->
+                val selectedProduct = products[position]
+                section.products += RecipeProduct(selectedProduct.key, 1.0)
+                updateSectionsUI()
+                dismiss()
+            }
+        }
+        popupWindow.show()
+    }
+
+    private fun addProductToUI(
+        productContainer: LinearLayout,
+        section: RecipeSection,
+        productId: String,
+        productName: String,
+        productCost: Double,
+        quantity: Double
+    ) {
+        val productView = LayoutInflater.from(this)
+            .inflate(R.layout.item_added_product_recipe_edit, productContainer, false)
+        val productNameView = productView.findViewById<TextView>(R.id.addedProductName)
+        val productCostView = productView.findViewById<TextView>(R.id.addedProductCost)
+        val productQuantityInput = productView.findViewById<EditText>(R.id.productQuantity)
+        val removeProductButton = productView.findViewById<Button>(R.id.removeProductButton)
+
+        productNameView.text = productName
+        productCostView.text = productCost.toString()
+        productQuantityInput.setText(quantity.toString())
+
+        productQuantityInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val updatedQuantity = s.toString().toDoubleOrNull() ?: 1.0
+                section.products.find { it.productId == productId }?.quantity = updatedQuantity
+                Log.d(
+                    "RecipeEditActivity",
+                    "Cantidad actualizada para $productName: $updatedQuantity"
+                )
+            }
+
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        removeProductButton.setOnClickListener {
+            productContainer.removeView(productView)
+            section.products = section.products.filterNot { it.productId == productId }
+            updateSectionsUI()
+        }
+
+        productContainer.addView(productView)
+    }
+
 
     private fun saveRecipe() {
         validateFields { isValid ->

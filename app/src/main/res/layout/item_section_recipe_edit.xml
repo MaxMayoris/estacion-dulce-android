@@ -37,12 +37,6 @@
         android:orientation="horizontal"
         android:paddingVertical="8dp">
 
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_search"
-            android:contentDescription="Buscar" />
-
         <EditText
             android:id="@+id/productSearchBar"
             android:layout_width="0dp"
