@@ -1,0 +1,53 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:gravity="center_vertical">
+
+    <!-- Product Name -->
+    <TextView
+        android:id="@+id/addedProductName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="2"
+        android:text="Producto"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:padding="8dp"
+        android:textSize="14sp"
+        android:textColor="@android:color/black" />
+
+    <!-- Product Cost -->
+    <TextView
+        android:id="@+id/addedProductCost"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Costo"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:padding="8dp"
+        android:textSize="14sp"
+        android:textColor="@android:color/black"
+        android:gravity="center" />
+
+    <!-- Quantity Input -->
+    <EditText
+        android:id="@+id/productQuantity"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:hint="1"
+        android:inputType="numberDecimal"
+        android:padding="8dp" />
+
+    <!-- Remove Button -->
+    <Button
+        android:id="@+id/removeProductButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Quitar"
+        android:textAllCaps="false"
+        android:padding="8dp" />
+</LinearLayout>

@@ -6,6 +6,6 @@ import kotlinx.parcelize.Parcelize
 @Parcelize
 data class RecipeProduct(
     val productId: String = "",
-    val quantity: Double = 0.0
+    var quantity: Double = 0.0
 ) : Parcelable
 

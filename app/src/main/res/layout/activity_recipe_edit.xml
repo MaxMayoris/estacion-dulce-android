@@ -72,6 +72,8 @@
                     android:id="@+id/recipeCostInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:clickable="false"
+                    android:focusable="false"
                     android:hint="Ingrese el costo"
                     android:inputType="numberDecimal" />
             </LinearLayout>
@@ -96,6 +98,8 @@
                     android:id="@+id/recipeSuggestedPriceInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:clickable="false"
+                    android:focusable="false"
                     android:hint="Ingrese el precio sugerido"
                     android:inputType="numberDecimal" />
             </LinearLayout>
@@ -190,8 +194,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingTop="8dp"
-                android:visibility="gone">
-            </LinearLayout>
+                android:visibility="gone"></LinearLayout>
         </LinearLayout>
 
 
