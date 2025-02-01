@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/infoCard"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_margin="16dp"
+    card_view:cardCornerRadius="8dp"
+    card_view:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- App version text (UI in Spanish) -->
+        <TextView
+            android:id="@+id/appVersionText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Versión: 1.0.0"
+            android:textSize="16sp"
+            android:textColor="@android:color/black" />
+
+        <!-- Developer credit text (UI in Spanish) -->
+        <TextView
+            android:id="@+id/developerText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Desarrollado por Maksee"
+            android:textSize="14sp"
+            android:textColor="@android:color/black"
+            android:layout_marginTop="8dp" />
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

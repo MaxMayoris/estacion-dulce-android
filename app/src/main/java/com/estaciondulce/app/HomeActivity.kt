@@ -1,7 +1,8 @@
 package com.estaciondulce.app
 
+import android.annotation.SuppressLint
 import android.os.Bundle
-import android.util.Log
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.estaciondulce.app.fragments.ProductFragment
@@ -15,6 +16,7 @@ class HomeActivity : AppCompatActivity() {
     private val personFragment = PersonFragment()
     private val transactionFragment = TransactionFragment()
 
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
@@ -31,22 +33,27 @@ class HomeActivity : AppCompatActivity() {
                     loadFragment(homeFragment)
                     true
                 }
+
                 R.id.nav_product -> {
                     loadFragment(productFragment)
                     true
                 }
+
                 R.id.nav_recipe -> {
                     loadFragment(recipeFragment)
                     true
                 }
+
                 R.id.nav_person -> {
                     loadFragment(personFragment)
                     true
                 }
+
                 R.id.nav_transaction -> {
                     loadFragment(transactionFragment)
                     true
                 }
+
                 else -> false
             }
         }
@@ -54,7 +61,6 @@ class HomeActivity : AppCompatActivity() {
 
     // Function to load fragments into the container
     private fun loadFragment(fragment: Fragment) {
-        Log.d("HomeActivity", "Loading fragment: ${fragment::class.java.simpleName}")
         val fragmentTransaction = supportFragmentManager.beginTransaction()
 
         // Check if the fragment is already added
