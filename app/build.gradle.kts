@@ -40,6 +40,8 @@ android {
         }
         create("prod") {
             dimension = "environment"
+            applicationIdSuffix = ".prod"
+            versionNameSuffix = "-prod"
         }
     }
 
@@ -84,9 +86,10 @@ dependencies {
     // AndroidX and Material Components
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.material)
+    implementation(libs.androidx.cardview)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.navigation.fragment)
+    implementation(libs.material)
     implementation(libs.flexbox)
 
     // Test Dependencies
