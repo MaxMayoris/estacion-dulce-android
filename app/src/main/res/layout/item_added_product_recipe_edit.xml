@@ -1,9 +1,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:padding="8dp"
-    android:gravity="center_vertical">
+    android:padding="8dp">
 
     <!-- Product Name -->
     <TextView
@@ -11,12 +11,12 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="2"
-        android:text="Producto"
         android:ellipsize="end"
         android:maxLines="1"
         android:padding="8dp"
-        android:textSize="14sp"
-        android:textColor="@android:color/black" />
+        android:text="Producto"
+        android:textColor="@android:color/black"
+        android:textSize="14sp" />
 
     <!-- Product Cost -->
     <TextView
@@ -24,30 +24,29 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:text="Costo"
         android:ellipsize="end"
+        android:gravity="center"
         android:maxLines="1"
         android:padding="8dp"
-        android:textSize="14sp"
+        android:text="Costo"
         android:textColor="@android:color/black"
-        android:gravity="center" />
+        android:textSize="14sp" />
 
-    <!-- Quantity Input -->
-    <EditText
+    <!-- Quantity Container -->
+    <LinearLayout
         android:id="@+id/productQuantity"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:hint="1"
-        android:inputType="numberDecimal"
-        android:padding="8dp" />
+        android:orientation="horizontal"
+        android:padding="8dp">
+        <!-- This container will be populated with the custom quantity control in code -->
+    </LinearLayout>
 
     <!-- Remove Button -->
-    <Button
+    <ImageButton
         android:id="@+id/removeProductButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Quitar"
-        android:textAllCaps="false"
         android:padding="8dp" />
+
 </LinearLayout>
