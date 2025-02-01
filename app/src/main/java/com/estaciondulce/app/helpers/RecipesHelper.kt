@@ -84,6 +84,25 @@ class RecipesHelper(
         )
     }
 
+    fun listenToRecipes(
+        onUpdate: (List<Recipe>) -> Unit,
+        onError: (Exception) -> Unit
+    ): com.google.firebase.firestore.ListenerRegistration {
+        return db.collection("recipes")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onError(error)
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val recipes = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(Recipe::class.java)?.copy(id = doc.id)
+                    }
+                    onUpdate(recipes)
+                }
+            }
+    }
+
     fun isRecipeNameUnique(name: String, currentRecipeId: String?, onComplete: (Boolean) -> Unit) {
         db.collection("recipes")
             .whereEqualTo("name", name)
@@ -96,6 +115,45 @@ class RecipesHelper(
                 onComplete(false)
                 e.printStackTrace()
             }
+    }
+
+    fun updateParentRecipesCosts(
+        updatedRecipeId: String,
+        allProducts: Map<String, Pair<String, Double>>,
+        allRecipes: MutableMap<String, Recipe>, // debe ser mutable para actualizar la caché local
+        onComplete: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        // Fetch all recipes from Firestore
+        db.collection("recipes")
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                // List to hold update tasks
+                val updateTasks = mutableListOf<Task<Void>>()
+                for (document in querySnapshot.documents) {
+                    // Convert document to a Recipe object and assign its id
+                    val parentRecipe = document.toObject(Recipe::class.java)?.copy(id = document.id)
+                    // Check if this parent recipe uses the updated recipe as nested
+                    if (parentRecipe != null && parentRecipe.recipes.any { it.recipeId == updatedRecipeId }) {
+                        // Recalculate cost using the helper function
+                        val (newCost, newSuggestedPrice) = calculateCostAndSuggestedPrice(parentRecipe, allProducts, allRecipes)
+                        val updateData = mapOf(
+                            "cost" to newCost,
+                            "suggestedPrice" to newSuggestedPrice
+                        )
+                        // Update Firestore document and add to list of tasks
+                        val updateTask = db.collection("recipes").document(document.id).update(updateData)
+                        updateTasks.add(updateTask)
+                        // Optionally update the local cache:
+                        allRecipes[parentRecipe.id] = parentRecipe.copy(cost = newCost, suggestedPrice = newSuggestedPrice)
+                    }
+                }
+                // Wait for all update tasks to complete
+                Tasks.whenAll(updateTasks)
+                    .addOnSuccessListener { onComplete() }
+                    .addOnFailureListener { onError(it) }
+            }
+            .addOnFailureListener { onError(it) }
     }
 
     fun calculateCostAndSuggestedPrice(
@@ -119,8 +177,8 @@ class RecipesHelper(
             }
         }
         val units = if (recipe.unit > 0) recipe.unit else 1.0
-        val costPerUnit = totalCost / units
+        val costPerUnit = totalCost / units.toDouble()
         val suggestedPrice = costPerUnit * 1.6
-        return Pair(totalCost, suggestedPrice)
+        return Pair(costPerUnit, suggestedPrice)
     }
 }
