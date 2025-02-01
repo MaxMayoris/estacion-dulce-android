@@ -19,31 +19,31 @@ class CustomLoader(context: Context) {
     private val loadingText: TextView
 
     init {
-        // Initialize the dialog with the custom layout
+        // Inflate the custom loader layout
         val view = LayoutInflater.from(context).inflate(R.layout.custom_loader, null)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         dialog.setContentView(view)
         dialog.setCancelable(false) // Prevent closing while loading
+
+        // Set the window background to transparent so no black background shows
         dialog.window?.apply {
-            setBackgroundDrawable(ColorDrawable(Color.BLACK)) // Full black background
-            setFlags(
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_DIM_BEHIND,
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or WindowManager.LayoutParams.FLAG_DIM_BEHIND
-            )
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            // Remove dimming if desired (or adjust the dim amount)
+            clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
         }
 
-        // Get references to UI components
+        // Get UI elements
         logo = dialog.findViewById(R.id.loaderLogo)
         loadingText = dialog.findViewById(R.id.loaderText)
 
-        // Add rotation animation to the logo
+        // Set up the rotation animation for the logo
         val rotation = ObjectAnimator.ofFloat(logo, "rotation", 0f, 360f)
-        rotation.duration = 1000 // 1 second
+        rotation.duration = 1000 // 1 second per rotation
         rotation.repeatCount = ObjectAnimator.INFINITE
         rotation.start()
     }
 
-    // Show the loader
+    // Show the loader with an optional message override
     fun show(loadingMessage: String? = null) {
         loadingMessage?.let { setLoadingText(it) }
         if (!dialog.isShowing) {

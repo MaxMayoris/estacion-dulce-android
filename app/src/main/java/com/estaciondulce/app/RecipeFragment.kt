@@ -3,6 +3,8 @@ package com.estaciondulce.app
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -23,8 +25,9 @@ class RecipeFragment : Fragment() {
     private var _binding: FragmentRecipeBinding? = null
     private val binding get() = _binding!!
 
-    private val categoriesHelper = CategoriesHelper() // Helper for categories
-    private val recipesHelper = RecipesHelper() // Helper for recipes
+    // Helpers for categories and recipes
+    private val categoriesHelper = CategoriesHelper()
+    private val recipesHelper = RecipesHelper()
 
     private val recipeList = mutableListOf<Recipe>()
     private val categoriesMap = mutableMapOf<String, String>() // Map of category ID to name
@@ -34,8 +37,7 @@ class RecipeFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentRecipeBinding.inflate(inflater, container, false)
         return binding.root
@@ -43,19 +45,46 @@ class RecipeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         loader = CustomLoader(requireContext())
+
+        // Listen to real-time updates for recipes
+        recipesHelper.listenToRecipes(
+            onUpdate = { recipes ->
+                recipeList.clear()
+                recipeList.addAll(recipes)
+                // Call setupTableView with full list initially
+                setupTableView(recipeList)
+            },
+            onError = { error ->
+                Log.e("RecipeFragment", "Listen failed.", error)
+            }
+        )
 
         loader.show()
         fetchData {
-            setupTableView()
+            setupTableView(recipeList)
             loader.hide()
         }
 
         binding.addRecipeButton.setOnClickListener {
             val intent = Intent(requireContext(), RecipeEditActivity::class.java)
-            startActivityForResult(intent, EDIT_RECIPE_REQUEST_CODE) // Launch RecipeEditActivity
+            startActivityForResult(intent, EDIT_RECIPE_REQUEST_CODE)
         }
+
+        // Add a TextWatcher to the search bar to filter recipes
+        binding.searchBar.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) { }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s.toString().trim()
+                val filteredList = if (query.isEmpty()) {
+                    recipeList
+                } else {
+                    recipeList.filter { it.name.contains(query, ignoreCase = true) }
+                }
+                setupTableView(filteredList)
+            }
+            override fun afterTextChanged(s: Editable?) { }
+        })
     }
 
     private fun fetchData(onComplete: () -> Unit) {
@@ -63,16 +92,13 @@ class RecipeFragment : Fragment() {
         var recipesLoaded = false
 
         fun checkAllDataLoaded() {
-            if (categoriesLoaded && recipesLoaded) {
-                onComplete()
-            }
+            if (categoriesLoaded && recipesLoaded) onComplete()
         }
 
-        // Fetch recipes
         recipesHelper.fetchRecipes(
             onSuccess = { recipes ->
                 recipeList.clear()
-                recipeList.addAll(recipes) // Use the full Recipe objects
+                recipeList.addAll(recipes)
                 recipesLoaded = true
                 checkAllDataLoaded()
             },
@@ -83,7 +109,6 @@ class RecipeFragment : Fragment() {
             }
         )
 
-        // Fetch categories
         categoriesHelper.fetchCategories(
             onSuccess = {
                 categoriesMap.putAll(it)
@@ -92,27 +117,30 @@ class RecipeFragment : Fragment() {
             },
             onError = { e ->
                 Log.e("RecipeFragment", "Error fetching categories: ${e.message}")
-                categoriesLoaded = true // Allow progress even if categories fail
+                categoriesLoaded = true
                 checkAllDataLoaded()
             }
         )
     }
 
-    private fun setupTableView() {
-        val sortedList = recipeList.sortedBy { it.name }
+    // Modified setupTableView accepts an optional list parameter.
+    private fun setupTableView(list: List<Recipe> = recipeList) {
+        val sortedList = list.sortedBy { it.name }
         binding.recipeTable.setupTable(
-            columnHeaders = listOf("Nombre", "Costo", "Precio Venta", "Categorías"),
+            columnHeaders = listOf("Nombre", "Costo", "Precio Venta", "Rendimiento"),
             data = sortedList,
             adapter = RecipeAdapter(
                 recipeList = sortedList,
                 onRowClick = { recipe -> editRecipe(recipe) },
                 onDeleteClick = { recipe -> deleteRecipe(recipe) }
             ) { recipe ->
+                val rendimiento = if (recipe.cost > 0)
+                    ((recipe.salePrice - recipe.cost) / recipe.cost) * 100 else 0.0
                 listOf(
-                    recipe.name,              // Nombre
-                    recipe.cost,              // Costo
-                    recipe.salePrice,         // Precio Venta
-                    recipe.categories.joinToString(", ") { categoriesMap[it] ?: "Unknown" } // Categorías
+                    recipe.name,               // Nombre
+                    recipe.cost,               // Costo
+                    recipe.salePrice,          // Precio Venta
+                    String.format("%.1f%%", rendimiento)  // Rendimiento
                 )
             },
             pageSize = 10,
@@ -122,7 +150,11 @@ class RecipeFragment : Fragment() {
                     0 -> recipe.name
                     1 -> recipe.cost
                     2 -> recipe.salePrice
-                    3 -> recipe.categories.joinToString(", ") { categoriesMap[it] ?: "Unknown" }
+                    3 -> {
+                        val rendimiento = if (recipe.cost > 0)
+                            ((recipe.salePrice - recipe.cost) / recipe.cost) * 100 else 0.0
+                        String.format("%.1f%%", rendimiento)
+                    }
                     else -> null
                 }
             }
@@ -130,12 +162,12 @@ class RecipeFragment : Fragment() {
     }
 
     private fun editRecipe(recipe: Recipe) {
-        val intent = Intent(requireContext(), RecipeEditActivity::class.java)
-        intent.putExtra("recipe", recipe) // Pass the recipe as Parcelable
-        intent.putExtra("categoriesMap", HashMap(categoriesMap))
-        val recipesMap = HashMap(recipeList.associateBy { it.id }) // Map recipe ID to Recipe object
-        intent.putExtra("recipesMap", recipesMap)
-        startActivityForResult(intent, EDIT_RECIPE_REQUEST_CODE) // Launch RecipeEditActivity
+        val intent = Intent(requireContext(), RecipeEditActivity::class.java).apply {
+            putExtra("recipe", recipe) // Pass the recipe as Parcelable
+            putExtra("categoriesMap", HashMap(categoriesMap))
+            putExtra("recipesMap", HashMap(recipeList.associateBy { it.id }))
+        }
+        startActivityForResult(intent, EDIT_RECIPE_REQUEST_CODE)
     }
 
     private fun deleteRecipe(recipe: Recipe) {
@@ -147,7 +179,7 @@ class RecipeFragment : Fragment() {
                     recipeId = recipe.id,
                     onSuccess = {
                         recipeList.remove(recipe)
-                        setupTableView() // Refresh the table
+                        setupTableView(recipeList)
                         Toast.makeText(requireContext(), "Receta eliminada correctamente.", Toast.LENGTH_SHORT).show()
                     },
                     onError = { e ->
@@ -162,23 +194,17 @@ class RecipeFragment : Fragment() {
         dialog.show()
     }
 
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-
         if (requestCode == EDIT_RECIPE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             val updatedRecipe = data?.getParcelableExtra<Recipe>("updatedRecipe") ?: return
-
-            // Update the recipe in the list
             val index = recipeList.indexOfFirst { it.id == updatedRecipe.id }
             if (index != -1) {
                 recipeList[index] = updatedRecipe // Update the existing recipe
             } else {
                 recipeList.add(updatedRecipe) // Add the new recipe
             }
-
-            // Refresh the table view
-            setupTableView()
+            setupTableView(recipeList)
         }
     }
 

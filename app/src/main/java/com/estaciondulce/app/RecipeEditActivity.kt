@@ -7,6 +7,7 @@ import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.*
@@ -69,6 +70,18 @@ class RecipeEditActivity : AppCompatActivity() {
             allCategories.putAll(it)
             setupCategorySelector()
         }
+
+        binding.recipeUnitInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val unitValue = s.toString().toDoubleOrNull() ?: 1.0
+                if (unitValue < 1.0) {
+                    binding.recipeUnitInput.setText("1")
+                }
+                updateCosts()
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
 
         loader.show()
         fetchAllData {
@@ -157,7 +170,7 @@ class RecipeEditActivity : AppCompatActivity() {
     }
 
     private fun updateCosts() {
-        val units = binding.recipeUnitInput.text.toString().toDoubleOrNull() ?: 1.0
+        val units = binding.recipeUnitInput.text.toString().toIntOrNull() ?: 1
         val updatedRecipe = Recipe(
             id = recipe?.id ?: "",
             name = binding.recipeNameInput.text.toString(),
@@ -181,8 +194,7 @@ class RecipeEditActivity : AppCompatActivity() {
 
     private fun updateNestedRecipesUI() {
         binding.selectedRecipeContainer.removeAllViews()
-        binding.selectedRecipeContainer.visibility =
-            if (selectedRecipes.isNotEmpty()) View.VISIBLE else View.GONE
+        binding.selectedRecipeContainer.visibility = if (selectedRecipes.isNotEmpty()) View.VISIBLE else View.GONE
 
         for (nested in selectedRecipes) {
             val recipeData = allRecipes[nested.recipeId]
@@ -196,7 +208,6 @@ class RecipeEditActivity : AppCompatActivity() {
                     setPadding(8, 8, 8, 8)
                     tag = recipeData.id
                 }
-
                 val nameView = TextView(this).apply {
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2f)
                     text = recipeData.name
@@ -204,7 +215,6 @@ class RecipeEditActivity : AppCompatActivity() {
                     textSize = 14f
                     setTextColor(ContextCompat.getColor(context, android.R.color.black))
                 }
-
                 val costView = TextView(this).apply {
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                     text = String.format("%.2f", recipeData.cost)
@@ -212,18 +222,14 @@ class RecipeEditActivity : AppCompatActivity() {
                     textSize = 14f
                     setTextColor(ContextCompat.getColor(context, android.R.color.black))
                 }
-
                 val quantityControl = createQuantityControl(nested.quantity) { newQuantity ->
                     nested.quantity = newQuantity
                     updateCosts()
                 }
-
                 val scale = resources.displayMetrics.density
                 val deleteSize = (30 * scale + 0.5f).toInt()
                 val deleteButton = ImageButton(this).apply {
-                    layoutParams = LinearLayout.LayoutParams(deleteSize, deleteSize).apply {
-                        setMargins(8, 0, 0, 0)
-                    }
+                    layoutParams = LinearLayout.LayoutParams(deleteSize, deleteSize).apply { setMargins(8, 0, 0, 0) }
                     setBackgroundColor(ContextCompat.getColor(this@RecipeEditActivity, R.color.purple_700))
                     setImageDrawable(ContextCompat.getDrawable(this@RecipeEditActivity, R.drawable.ic_delete))
                     imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this@RecipeEditActivity, android.R.color.white))
@@ -238,7 +244,6 @@ class RecipeEditActivity : AppCompatActivity() {
                         updateCosts()
                     }
                 }
-
                 recipeRow.addView(nameView)
                 recipeRow.addView(costView)
                 recipeRow.addView(quantityControl)
@@ -286,7 +291,6 @@ class RecipeEditActivity : AppCompatActivity() {
 
     private fun displaySelectedRecipe(recipe: Recipe) {
         binding.selectedRecipeContainer.visibility = View.VISIBLE
-
         val existingRow = binding.selectedRecipeContainer.findViewWithTag<LinearLayout>(recipe.id)
         if (existingRow != null) {
             Toast.makeText(this, "Esta receta ya fue añadida.", Toast.LENGTH_SHORT).show()
@@ -324,17 +328,12 @@ class RecipeEditActivity : AppCompatActivity() {
             updateCosts()
         }
         val scale = resources.displayMetrics.density
-        val deleteSize = (30 * scale + 0.5f).toInt()
-        val deleteButton = ImageButton(this).apply {
-            layoutParams = LinearLayout.LayoutParams(deleteSize, deleteSize).apply {
-                setMargins(8, 0, 0, 0)
-            }
-            setBackgroundColor(ContextCompat.getColor(this@RecipeEditActivity, R.color.purple_700))
-            setImageDrawable(ContextCompat.getDrawable(this@RecipeEditActivity, R.drawable.ic_delete))
-            imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this@RecipeEditActivity, android.R.color.white))
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
-            adjustViewBounds = true
-            setPadding(0, 0, 0, 0)
+        val deleteSize = (40 * scale + 0.5f).toInt()
+        val deleteButton = Button(this).apply {
+            layoutParams = LinearLayout.LayoutParams(deleteSize, deleteSize).apply { setMargins(8, 0, 0, 0) }
+            text = ""
+            background = ContextCompat.getDrawable(context, R.color.purple_700)
+            setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_delete, 0, 0, 0)
         }
         deleteButton.setOnClickListener {
             showConfirmationDialog("¿Está seguro de eliminar la receta ${recipe.name}?") {
@@ -349,8 +348,7 @@ class RecipeEditActivity : AppCompatActivity() {
         recipeRow.addView(deleteButton)
         binding.selectedRecipeContainer.addView(recipeRow)
         if (selectedRecipes.none { it.recipeId == recipe.id }) {
-            val newRecipeNested = RecipeNested(recipeId = recipe.id, quantity = 1.0)
-            selectedRecipes.add(newRecipeNested)
+            selectedRecipes.add(RecipeNested(recipeId = recipe.id, quantity = 1.0))
         }
         updateCosts()
         binding.recipeSearchBar.text.clear()
@@ -360,7 +358,6 @@ class RecipeEditActivity : AppCompatActivity() {
         val categoryNames = allCategories.values.toList()
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, categoryNames)
         binding.categorySelector.adapter = adapter
-
         binding.categorySelector.onItemSelectedListener =
             object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -402,7 +399,6 @@ class RecipeEditActivity : AppCompatActivity() {
         val sectionNames = allSections.values.toList()
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, sectionNames)
         binding.sectionSelector.adapter = adapter
-
         binding.sectionSelector.onItemSelectedListener =
             object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -416,8 +412,7 @@ class RecipeEditActivity : AppCompatActivity() {
                         Toast.makeText(this@RecipeEditActivity, "Esta sección ya fue añadida.", Toast.LENGTH_SHORT).show()
                         return
                     }
-                    val newSection = RecipeSection(id = selectedId, name = selectedName, products = listOf())
-                    selectedSections.add(newSection)
+                    selectedSections.add(RecipeSection(id = selectedId, name = selectedName, products = listOf()))
                     updateSectionsUI()
                 }
                 override fun onNothingSelected(parent: AdapterView<*>?) {}
@@ -516,8 +511,7 @@ class RecipeEditActivity : AppCompatActivity() {
 
         val scale = resources.displayMetrics.density
         val deleteSize = (40 * scale + 0.5f).toInt()
-        val params = LinearLayout.LayoutParams(deleteSize, deleteSize)
-        removeProductButton.layoutParams = params
+        removeProductButton.layoutParams = LinearLayout.LayoutParams(deleteSize, deleteSize)
         removeProductButton.setBackgroundColor(ContextCompat.getColor(this, R.color.purple_700))
         removeProductButton.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_delete))
         removeProductButton.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, android.R.color.white))
@@ -538,11 +532,9 @@ class RecipeEditActivity : AppCompatActivity() {
     private fun createQuantityControl(initialValue: Double, onQuantityChanged: (Double) -> Unit): LinearLayout {
         val container = LinearLayout(this)
         container.orientation = LinearLayout.HORIZONTAL
-        container.layoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ).apply { setMargins(4, 0, 4, 0) }
-
+        container.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            setMargins(4, 0, 4, 0)
+        }
         val scale = resources.displayMetrics.density
         val buttonSize = (30 * scale + 0.5f).toInt()
         val desiredTextSize = 12f
@@ -559,11 +551,8 @@ class RecipeEditActivity : AppCompatActivity() {
             setText(initialValue.toInt().toString())
             textSize = desiredTextSize
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
-            gravity = android.view.Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
             minHeight = (40 * scale + 0.5f).toInt()
         }
 
@@ -615,22 +604,19 @@ class RecipeEditActivity : AppCompatActivity() {
     private fun saveRecipe() {
         validateFields { isValid ->
             if (!isValid) return@validateFields
-
             loader.show()
-
             val updatedRecipe = Recipe(
                 id = recipe?.id ?: "",
                 name = binding.recipeNameInput.text.toString(),
                 cost = binding.recipeCostInput.text.toString().toDoubleOrNull() ?: 0.0,
                 suggestedPrice = binding.recipeSuggestedPriceInput.text.toString().toDoubleOrNull() ?: 0.0,
                 salePrice = binding.recipeSalePriceInput.text.toString().toDoubleOrNull() ?: 0.0,
-                unit = binding.recipeUnitInput.text.toString().toDoubleOrNull() ?: 1.0,
+                unit =  binding.recipeUnitInput.text.toString().toIntOrNull() ?: 1,
                 onSale = binding.recipeOnSaleCheckbox.isChecked,
                 categories = selectedCategories.toList(),
                 sections = selectedSections,
                 recipes = selectedRecipes
             )
-
             if (updatedRecipe.id.isEmpty()) {
                 recipesHelper.addRecipe(
                     recipe = updatedRecipe,
@@ -645,12 +631,29 @@ class RecipeEditActivity : AppCompatActivity() {
                     }
                 )
             } else {
+                // For updating an existing recipe:
                 recipesHelper.updateRecipe(
                     recipeId = updatedRecipe.id,
                     recipe = updatedRecipe,
                     onSuccess = {
-                        loader.hide()
-                        sendResultAndFinish(updatedRecipe)
+                        // Actualiza el caché local con la receta actualizada
+                        allRecipes[updatedRecipe.id] = updatedRecipe
+
+                        // Ahora actualiza las recetas padres que usan esta receta anidada.
+                        recipesHelper.updateParentRecipesCosts(
+                            updatedRecipeId = updatedRecipe.id,
+                            allProducts = allProducts,
+                            allRecipes = allRecipes,
+                            onComplete = {
+                                loader.hide()
+                                sendResultAndFinish(updatedRecipe)
+                            },
+                            onError = { error ->
+                                loader.hide()
+                                Toast.makeText(this, "Error al actualizar recetas anidadas.", Toast.LENGTH_SHORT).show()
+                                error.printStackTrace()
+                            }
+                        )
                     },
                     onError = { e ->
                         loader.hide()
@@ -658,6 +661,7 @@ class RecipeEditActivity : AppCompatActivity() {
                         e.printStackTrace()
                     }
                 )
+
             }
         }
     }
@@ -720,7 +724,7 @@ class RecipeEditActivity : AppCompatActivity() {
         finish()
     }
 
-    // Show a confirmation dialog with a dynamic message.
+    // Shows a confirmation dialog.
     private fun showConfirmationDialog(message: String, onConfirmed: () -> Unit) {
         AlertDialog.Builder(this)
             .setTitle("Confirmación")

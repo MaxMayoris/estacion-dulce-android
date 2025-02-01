@@ -116,11 +116,16 @@ class ProductFragment : Fragment() {
             onSuccess = { newProduct ->
                 productList.add(newProduct)
                 setupTableView() // Refresh the table
-                Toast.makeText(requireContext(), "Producto añadido correctamente.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    requireContext(),
+                    "Producto añadido correctamente.",
+                    Toast.LENGTH_SHORT
+                ).show()
             },
             onError = { e ->
                 Log.e("ProductFragment", "Error adding product: ${e.message}")
-                Toast.makeText(requireContext(), "Error al añadir el producto.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Error al añadir el producto.", Toast.LENGTH_SHORT)
+                    .show()
             }
         )
     }
@@ -128,7 +133,12 @@ class ProductFragment : Fragment() {
     private fun editProduct(product: Product) {
         ProductBottomSheet(product, onSave = { updatedProduct ->
             // Check if the new name already exists (excluding the current product)
-            if (productList.any { it.name.equals(updatedProduct.name, ignoreCase = true) && it.id != product.id }) {
+            if (productList.any {
+                    it.name.equals(
+                        updatedProduct.name,
+                        ignoreCase = true
+                    ) && it.id != product.id
+                }) {
                 showErrorDialog("A product with the name '${updatedProduct.name}' already exists.")
                 return@ProductBottomSheet
             }
@@ -142,11 +152,19 @@ class ProductFragment : Fragment() {
                         productList[index] = updatedProduct.copy(id = product.id)
                         setupTableView()
                     }
-                    Toast.makeText(requireContext(), "Producto actualizado correctamente.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        requireContext(),
+                        "Producto actualizado correctamente.",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 },
                 onError = { e ->
                     Log.e("ProductFragment", "Error updating product: ${e.message}")
-                    Toast.makeText(requireContext(), "Error al actualizar el producto.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        requireContext(),
+                        "Error al actualizar el producto.",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             )
         }).show(childFragmentManager, "EditProduct")
@@ -162,11 +180,19 @@ class ProductFragment : Fragment() {
                     onSuccess = {
                         productList.remove(product)
                         setupTableView() // Refresh the table
-                        Toast.makeText(requireContext(), "Producto eliminado correctamente.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            requireContext(),
+                            "Producto eliminado correctamente.",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     },
                     onError = { e ->
                         Log.e("ProductFragment", "Error deleting product: ${e.message}")
-                        Toast.makeText(requireContext(), "Error al eliminar el producto.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            requireContext(),
+                            "Error al eliminar el producto.",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 )
             }
@@ -194,7 +220,8 @@ class ProductFragment : Fragment() {
                 onRowClick = { product -> editProduct(product) },
                 onDeleteClick = { product -> deleteProduct(product) },
                 attributeGetter = { product ->
-                    val measureName = measuresMap[product.measure]?.name ?: "Desconocido" // Use name instead of unit
+                    val measureName = measuresMap[product.measure]?.name
+                        ?: "Desconocido" // Use name instead of unit
                     listOf(product.name, product.quantity, product.cost, measureName)
                 }
             ),
@@ -205,7 +232,8 @@ class ProductFragment : Fragment() {
                     0 -> product.name
                     1 -> product.quantity
                     2 -> product.cost
-                    3 -> measuresMap[product.measure]?.name ?: "Desconocido" // Use name instead of unit
+                    3 -> measuresMap[product.measure]?.name
+                        ?: "Desconocido" // Use name instead of unit
                     else -> null
                 }
             }
@@ -224,7 +252,8 @@ class ProductFragment : Fragment() {
                 onRowClick = { product -> editProduct(product) },
                 onDeleteClick = { product -> deleteProduct(product) },
                 attributeGetter = { product ->
-                    val measureName = measuresMap[product.measure]?.name ?: "Desconocido" // Use name instead of unit
+                    val measureName = measuresMap[product.measure]?.name
+                        ?: "Desconocido" // Use name instead of unit
                     listOf(product.name, product.quantity, product.cost, measureName)
                 }
             ),
@@ -235,7 +264,8 @@ class ProductFragment : Fragment() {
                     0 -> product.name
                     1 -> product.quantity
                     2 -> product.cost
-                    3 -> measuresMap[product.measure]?.name ?: "Desconocido" // Use name instead of unit
+                    3 -> measuresMap[product.measure]?.name
+                        ?: "Desconocido" // Use name instead of unit
                     else -> null
                 }
             }
