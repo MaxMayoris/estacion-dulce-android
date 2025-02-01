@@ -46,12 +46,13 @@
                 android:text="En venta" />
         </LinearLayout>
 
-        <!-- Costs in a Single Row -->
+        <!-- Datos de costo y precios en dos filas -->
+        <!-- Primera fila: Costo y Precio sugerido -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
 
             <!-- Costo -->
             <LinearLayout
@@ -72,8 +73,8 @@
                     android:id="@+id/recipeCostInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:clickable="false"
-                    android:focusable="false"
+                    android:focusableInTouchMode="true"
+                    android:enabled="false"
                     android:hint="Ingrese el costo"
                     android:inputType="numberDecimal" />
             </LinearLayout>
@@ -98,17 +99,24 @@
                     android:id="@+id/recipeSuggestedPriceInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:clickable="false"
-                    android:focusable="false"
+                    android:focusableInTouchMode="true"
+                    android:enabled="false"
                     android:hint="Ingrese el precio sugerido"
                     android:inputType="numberDecimal" />
             </LinearLayout>
+        </LinearLayout>
+
+        <!-- Segunda fila: Precio de venta y Unidades x Receta -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
 
             <!-- Precio de venta -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
@@ -126,6 +134,30 @@
                     android:layout_height="wrap_content"
                     android:hint="Ingrese el precio de venta"
                     android:inputType="numberDecimal" />
+            </LinearLayout>
+
+            <!-- Unidades x Receta -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:text="Unidades x Receta"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/recipeUnitInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="1"
+                    android:inputType="number" />
             </LinearLayout>
         </LinearLayout>
 
@@ -194,9 +226,8 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingTop="8dp"
-                android:visibility="gone"></LinearLayout>
+                android:visibility="gone" />
         </LinearLayout>
-
 
         <!-- Sections Title -->
         <TextView

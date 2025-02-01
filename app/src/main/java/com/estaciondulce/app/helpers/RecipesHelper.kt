@@ -1,6 +1,10 @@
 package com.estaciondulce.app.helpers
 
+import com.estaciondulce.app.models.Product
 import com.estaciondulce.app.models.Recipe
+import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 
 class RecipesHelper(
@@ -44,7 +48,12 @@ class RecipesHelper(
         )
     }
 
-    fun updateRecipe(recipeId: String, recipe: Recipe, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+    fun updateRecipe(
+        recipeId: String,
+        recipe: Recipe,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
         val recipeData = mapOf(
             "name" to recipe.name,
             "cost" to recipe.cost,
@@ -87,5 +96,31 @@ class RecipesHelper(
                 onComplete(false)
                 e.printStackTrace()
             }
+    }
+
+    fun calculateCostAndSuggestedPrice(
+        recipe: Recipe,
+        allProducts: Map<String, Pair<String, Double>>,
+        allRecipes: Map<String, Recipe>
+    ): Pair<Double, Double> {
+        var totalCost = 0.0
+
+        // Sumar costo de recetas anidadas
+        for (nestedRecipe in recipe.recipes) {
+            val recipeCost = allRecipes[nestedRecipe.recipeId]?.cost ?: 0.0
+            totalCost += recipeCost * nestedRecipe.quantity
+        }
+
+        // Sumar costo de productos en secciones
+        for (section in recipe.sections) {
+            for (product in section.products) {
+                val productCost = allProducts[product.productId]?.second ?: 0.0
+                totalCost += productCost * product.quantity
+            }
+        }
+        val units = if (recipe.unit > 0) recipe.unit else 1.0
+        val costPerUnit = totalCost / units
+        val suggestedPrice = costPerUnit * 1.6
+        return Pair(totalCost, suggestedPrice)
     }
 }
