@@ -12,7 +12,7 @@ import com.google.firebase.auth.FirebaseAuth
 class LoginActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth // Firebase Authentication instance
 
-    private val skipLoginForDebug = false // Set to true for debugging
+    private val skipLoginForDebug = true // Set to true for debugging
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

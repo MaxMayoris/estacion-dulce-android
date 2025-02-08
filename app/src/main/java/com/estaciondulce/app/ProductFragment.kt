@@ -1,5 +1,7 @@
 package com.estaciondulce.app.fragments
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -8,8 +10,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
-import com.estaciondulce.app.ProductBottomSheet
+import com.estaciondulce.app.ProductEditActivity
 import com.estaciondulce.app.adapters.ProductAdapter
 import com.estaciondulce.app.databinding.FragmentProductBinding
 import com.estaciondulce.app.helpers.MeasuresHelper
@@ -30,6 +33,22 @@ class ProductFragment : Fragment() {
     private val measuresMap = mutableMapOf<String, Measure>()
     private lateinit var loader: CustomLoader
 
+    // Register the ActivityResultLauncher to launch ProductEditActivity and receive a result
+    private val productEditActivityLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        Log.d("ProductFragment", "ProductEditActivity result code: ${result.resultCode}")
+        if (result.resultCode == Activity.RESULT_OK) {
+            // Refresh data after adding or editing a product
+            Log.d("ProductFragment", "Refreshing product data after successful edit/add.")
+            fetchData {
+                setupTableView()
+            }
+        } else {
+            Log.e("ProductFragment", "ProductEditActivity did not return RESULT_OK")
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -39,9 +58,7 @@ class ProductFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        // Initialize the loader
         loader = CustomLoader(requireContext())
-
         super.onViewCreated(view, savedInstanceState)
 
         loader.show()
@@ -50,20 +67,38 @@ class ProductFragment : Fragment() {
             loader.hide()
         }
 
+        // When clicking the add button, launch ProductEditActivity in "Add" mode
         binding.addProductButton.setOnClickListener {
-            ProductBottomSheet(onSave = { newProduct ->
-                addProduct(newProduct)
-            }).show(childFragmentManager, "AddProduct")
+            Log.d("ProductFragment", "Add button clicked. Launching ProductEditActivity in Add mode.")
+            openProductEditActivity(null)
         }
 
         binding.searchBar.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
                 filterProducts(s.toString())
             }
-
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) { }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { }
         })
+    }
+
+    /**
+     * Launches ProductEditActivity.
+     * If [product] is null, the activity will be in "Add" mode.
+     * If [product] is not null, it will be passed as an extra for editing.
+     */
+    private fun openProductEditActivity(product: Product? = null) {
+        val intent = Intent(requireContext(), ProductEditActivity::class.java)
+        if (product != null) {
+            intent.putExtra("PRODUCT", product)
+        }
+        // Convert measuresMap (Map<String, Measure>) to Map<String, String> (id -> name)
+        val measuresStringMap = measuresMap.mapValues { it.value.name }
+        intent.putExtra("MEASURES_MAP", HashMap(measuresStringMap))
+        // Convert productList to a map of id -> name
+        val productsNamesMap = HashMap(productList.associate { it.id to it.name })
+        intent.putExtra("PRODUCTS_LIST", productsNamesMap)
+        productEditActivityLauncher.launch(intent)
     }
 
     private fun fetchData(onComplete: () -> Unit) {
@@ -76,29 +111,29 @@ class ProductFragment : Fragment() {
             }
         }
 
-        // Fetch measures
+        // Fetch measures from Firestore or your data source
         measuresHelper.fetchMeasures(
             onSuccess = { measures ->
                 measures.forEach { measure ->
                     measuresMap[measure.id] = measure
                 }
-                Log.d("ProductFragment", "Measures Loaded: $measuresMap")
+                Log.d("ProductFragment", "Measures loaded: $measuresMap")
                 measuresLoaded = true
                 checkAllDataLoaded()
             },
             onError = { e ->
                 Log.e("ProductFragment", "Error fetching measures: ${e.message}")
-                measuresLoaded = true // Allow progress even if fetching fails
+                measuresLoaded = true
                 checkAllDataLoaded()
             }
         )
 
-        // Fetch products
+        // Fetch products from Firestore or your data source
         productsHelper.fetchProducts(
             onSuccess = { products ->
                 productList.clear()
-                productList.addAll(products) // Add the List<Product> directly
-                Log.d("ProductFragment", "Products Loaded: $productList")
+                productList.addAll(products)
+                Log.d("ProductFragment", "Products loaded: $productList")
                 productsLoaded = true
                 checkAllDataLoaded()
             },
@@ -110,76 +145,16 @@ class ProductFragment : Fragment() {
         )
     }
 
-    private fun addProduct(product: Product) {
-        productsHelper.addProduct(
-            product = product,
-            onSuccess = { newProduct ->
-                productList.add(newProduct)
-                setupTableView() // Refresh the table
-                Toast.makeText(
-                    requireContext(),
-                    "Producto añadido correctamente.",
-                    Toast.LENGTH_SHORT
-                ).show()
-            },
-            onError = { e ->
-                Log.e("ProductFragment", "Error adding product: ${e.message}")
-                Toast.makeText(requireContext(), "Error al añadir el producto.", Toast.LENGTH_SHORT)
-                    .show()
-            }
-        )
-    }
-
-    private fun editProduct(product: Product) {
-        ProductBottomSheet(product, onSave = { updatedProduct ->
-            // Check if the new name already exists (excluding the current product)
-            if (productList.any {
-                    it.name.equals(
-                        updatedProduct.name,
-                        ignoreCase = true
-                    ) && it.id != product.id
-                }) {
-                showErrorDialog("A product with the name '${updatedProduct.name}' already exists.")
-                return@ProductBottomSheet
-            }
-
-            productsHelper.updateProduct(
-                productId = product.id,
-                product = updatedProduct,
-                onSuccess = {
-                    val index = productList.indexOfFirst { it.id == product.id }
-                    if (index != -1) {
-                        productList[index] = updatedProduct.copy(id = product.id)
-                        setupTableView()
-                    }
-                    Toast.makeText(
-                        requireContext(),
-                        "Producto actualizado correctamente.",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                },
-                onError = { e ->
-                    Log.e("ProductFragment", "Error updating product: ${e.message}")
-                    Toast.makeText(
-                        requireContext(),
-                        "Error al actualizar el producto.",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            )
-        }).show(childFragmentManager, "EditProduct")
-    }
-
     private fun deleteProduct(product: Product) {
         val dialog = android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Confirmar Eliminación")
-            .setMessage("¿Está seguro de que desea eliminar el producto '${product.name}'?")
-            .setPositiveButton("Eliminar") { _, _ ->
+            .setTitle("Confirm Deletion")
+            .setMessage("Are you sure you want to delete the product '${product.name}'?")
+            .setPositiveButton("Delete") { _, _ ->
                 productsHelper.deleteProduct(
                     productId = product.id,
                     onSuccess = {
                         productList.remove(product)
-                        setupTableView() // Refresh the table
+                        setupTableView()
                         Toast.makeText(
                             requireContext(),
                             "Producto eliminado correctamente.",
@@ -196,7 +171,7 @@ class ProductFragment : Fragment() {
                     }
                 )
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton("Cancel", null)
             .create()
         dialog.show()
     }
@@ -217,11 +192,16 @@ class ProductFragment : Fragment() {
             data = sortedList,
             adapter = ProductAdapter(
                 productList = sortedList,
-                onRowClick = { product -> editProduct(product) },
-                onDeleteClick = { product -> deleteProduct(product) },
+                // When clicking a row, launch ProductEditActivity in "Edit" mode
+                onRowClick = { product ->
+                    Log.d("ProductFragment", "Row clicked. Editing product with id: ${product.id}")
+                    openProductEditActivity(product)
+                },
+                onDeleteClick = { product ->
+                    deleteProduct(product)
+                },
                 attributeGetter = { product ->
-                    val measureName = measuresMap[product.measure]?.name
-                        ?: "Desconocido" // Use name instead of unit
+                    val measureName = measuresMap[product.measure]?.name ?: "Desconocido"
                     listOf(product.name, product.quantity, product.cost, measureName)
                 }
             ),
@@ -232,8 +212,7 @@ class ProductFragment : Fragment() {
                     0 -> product.name
                     1 -> product.quantity
                     2 -> product.cost
-                    3 -> measuresMap[product.measure]?.name
-                        ?: "Desconocido" // Use name instead of unit
+                    3 -> measuresMap[product.measure]?.name ?: "Desconocido"
                     else -> null
                 }
             }
@@ -249,11 +228,14 @@ class ProductFragment : Fragment() {
             data = filteredList,
             adapter = ProductAdapter(
                 productList = filteredList,
-                onRowClick = { product -> editProduct(product) },
-                onDeleteClick = { product -> deleteProduct(product) },
+                onRowClick = { product ->
+                    openProductEditActivity(product)
+                },
+                onDeleteClick = { product ->
+                    deleteProduct(product)
+                },
                 attributeGetter = { product ->
-                    val measureName = measuresMap[product.measure]?.name
-                        ?: "Desconocido" // Use name instead of unit
+                    val measureName = measuresMap[product.measure]?.name ?: "Desconocido"
                     listOf(product.name, product.quantity, product.cost, measureName)
                 }
             ),
@@ -264,8 +246,7 @@ class ProductFragment : Fragment() {
                     0 -> product.name
                     1 -> product.quantity
                     2 -> product.cost
-                    3 -> measuresMap[product.measure]?.name
-                        ?: "Desconocido" // Use name instead of unit
+                    3 -> measuresMap[product.measure]?.name ?: "Desconocido"
                     else -> null
                 }
             }

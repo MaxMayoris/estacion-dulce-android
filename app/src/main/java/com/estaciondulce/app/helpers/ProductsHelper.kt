@@ -36,7 +36,6 @@ class ProductsHelper(private val genericHelper: GenericHelper = GenericHelper())
         )
     }
 
-
     fun updateProduct(productId: String, product: Product, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         val productData = mapOf(
             "name" to product.name,
