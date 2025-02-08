@@ -91,6 +91,8 @@ dependencies {
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.material)
     implementation(libs.flexbox)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.ktx)
 
     // Test Dependencies
     testImplementation(libs.junit)

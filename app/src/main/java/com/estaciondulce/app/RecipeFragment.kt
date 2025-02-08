@@ -1,131 +1,83 @@
-package com.estaciondulce.app
+package com.estaciondulce.app.fragments
 
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
+import com.estaciondulce.app.RecipeEditActivity
 import com.estaciondulce.app.adapters.RecipeAdapter
 import com.estaciondulce.app.databinding.FragmentRecipeBinding
-import com.estaciondulce.app.helpers.CategoriesHelper
 import com.estaciondulce.app.helpers.RecipesHelper
 import com.estaciondulce.app.models.Recipe
-import com.estaciondulce.app.utils.CustomLoader
+import com.estaciondulce.app.repository.FirestoreRepository
+import com.google.android.material.snackbar.Snackbar
 
 class RecipeFragment : Fragment() {
 
-    private lateinit var loader: CustomLoader
-
     private var _binding: FragmentRecipeBinding? = null
     private val binding get() = _binding!!
-
-    // Helpers for categories and recipes
-    private val categoriesHelper = CategoriesHelper()
     private val recipesHelper = RecipesHelper()
 
-    private val recipeList = mutableListOf<Recipe>()
-    private val categoriesMap = mutableMapOf<String, String>() // Map of category ID to name
+    // Global repository providing LiveData for recipes and categories.
+    private val repository = FirestoreRepository
 
     companion object {
         const val EDIT_RECIPE_REQUEST_CODE = 1001
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View {
+        inflater: android.view.LayoutInflater,
+        container: android.view.ViewGroup?,
+        savedInstanceState: Bundle?
+    ): android.view.View? {
         _binding = FragmentRecipeBinding.inflate(inflater, container, false)
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    override fun onViewCreated(view: android.view.View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        loader = CustomLoader(requireContext())
 
-        // Listen to real-time updates for recipes
-        recipesHelper.listenToRecipes(
-            onUpdate = { recipes ->
-                recipeList.clear()
-                recipeList.addAll(recipes)
-                // Call setupTableView with full list initially
-                setupTableView(recipeList)
-            },
-            onError = { error ->
-                Log.e("RecipeFragment", "Listen failed.", error)
+        // Observe the global recipes LiveData.
+        repository.recipesLiveData.observe(viewLifecycleOwner, Observer { recipes ->
+            setupTableView(recipes)
+        })
+
+        // Optionally observe categories if needed (for example, if categories affect the UI).
+        repository.categoriesLiveData.observe(viewLifecycleOwner, Observer {
+            // Refresh the table when categories change.
+            repository.recipesLiveData.value?.let { recipes ->
+                setupTableView(recipes)
             }
-        )
-
-        loader.show()
-        fetchData {
-            setupTableView(recipeList)
-            loader.hide()
-        }
+        })
 
         binding.addRecipeButton.setOnClickListener {
             val intent = Intent(requireContext(), RecipeEditActivity::class.java)
             startActivityForResult(intent, EDIT_RECIPE_REQUEST_CODE)
         }
 
-        // Add a TextWatcher to the search bar to filter recipes
+        // Add a TextWatcher to the search bar to filter recipes.
         binding.searchBar.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) { }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 val query = s.toString().trim()
-                val filteredList = if (query.isEmpty()) {
-                    recipeList
-                } else {
-                    recipeList.filter { it.name.contains(query, ignoreCase = true) }
-                }
+                val recipes = repository.recipesLiveData.value ?: emptyList()
+                val filteredList = if (query.isEmpty()) recipes
+                else recipes.filter { it.name.contains(query, ignoreCase = true) }
                 setupTableView(filteredList)
             }
-            override fun afterTextChanged(s: Editable?) { }
+            override fun afterTextChanged(s: Editable?) {}
         })
     }
 
-    private fun fetchData(onComplete: () -> Unit) {
-        var categoriesLoaded = false
-        var recipesLoaded = false
-
-        fun checkAllDataLoaded() {
-            if (categoriesLoaded && recipesLoaded) onComplete()
-        }
-
-        recipesHelper.fetchRecipes(
-            onSuccess = { recipes ->
-                recipeList.clear()
-                recipeList.addAll(recipes)
-                recipesLoaded = true
-                checkAllDataLoaded()
-            },
-            onError = { e ->
-                Log.e("RecipeFragment", "Error fetching recipes: ${e.message}")
-                recipesLoaded = true
-                checkAllDataLoaded()
-            }
-        )
-
-        categoriesHelper.fetchCategories(
-            onSuccess = {
-                categoriesMap.putAll(it)
-                categoriesLoaded = true
-                checkAllDataLoaded()
-            },
-            onError = { e ->
-                Log.e("RecipeFragment", "Error fetching categories: ${e.message}")
-                categoriesLoaded = true
-                checkAllDataLoaded()
-            }
-        )
-    }
-
-    // Modified setupTableView accepts an optional list parameter.
-    private fun setupTableView(list: List<Recipe> = recipeList) {
-        val sortedList = list.sortedBy { it.name }
+    /**
+     * Sets up the table view using the provided list of recipes.
+     * The table shows "Nombre", "Costo", "Precio Venta" and "Rendimiento".
+     */
+    private fun setupTableView(recipes: List<Recipe>) {
+        val sortedList = recipes.sortedBy { it.name }
         binding.recipeTable.setupTable(
             columnHeaders = listOf("Nombre", "Costo", "Precio Venta", "Rendimiento"),
             data = sortedList,
@@ -134,13 +86,14 @@ class RecipeFragment : Fragment() {
                 onRowClick = { recipe -> editRecipe(recipe) },
                 onDeleteClick = { recipe -> deleteRecipe(recipe) }
             ) { recipe ->
+                // Calculate "rendimiento": ((salePrice - cost)/cost)*100, formatted as percentage.
                 val rendimiento = if (recipe.cost > 0)
                     ((recipe.salePrice - recipe.cost) / recipe.cost) * 100 else 0.0
                 listOf(
-                    recipe.name,               // Nombre
-                    recipe.cost,               // Costo
-                    recipe.salePrice,          // Precio Venta
-                    String.format("%.1f%%", rendimiento)  // Rendimiento
+                    recipe.name,
+                    recipe.cost,
+                    recipe.salePrice,
+                    String.format("%.2f%%", rendimiento)
                 )
             },
             pageSize = 10,
@@ -161,15 +114,20 @@ class RecipeFragment : Fragment() {
         )
     }
 
+    /**
+     * Launches RecipeEditActivity for editing a recipe.
+     * Data for categories and recipes are available globally so no need to pass them via Intent.
+     */
     private fun editRecipe(recipe: Recipe) {
         val intent = Intent(requireContext(), RecipeEditActivity::class.java).apply {
-            putExtra("recipe", recipe) // Pass the recipe as Parcelable
-            putExtra("categoriesMap", HashMap(categoriesMap))
-            putExtra("recipesMap", HashMap(recipeList.associateBy { it.id }))
+            putExtra("recipe", recipe)
         }
         startActivityForResult(intent, EDIT_RECIPE_REQUEST_CODE)
     }
 
+    /**
+     * Deletes a recipe using the repository's helper function.
+     */
     private fun deleteRecipe(recipe: Recipe) {
         val dialog = android.app.AlertDialog.Builder(requireContext())
             .setTitle("Confirmar Eliminación")
@@ -178,13 +136,12 @@ class RecipeFragment : Fragment() {
                 recipesHelper.deleteRecipe(
                     recipeId = recipe.id,
                     onSuccess = {
-                        recipeList.remove(recipe)
-                        setupTableView(recipeList)
-                        Toast.makeText(requireContext(), "Receta eliminada correctamente.", Toast.LENGTH_SHORT).show()
+                        Snackbar.make(binding.root, "Receta eliminada correctamente.", Snackbar.LENGTH_LONG)
+                            .show()
                     },
                     onError = { e ->
-                        Log.e("RecipeFragment", "Error deleting recipe: ${e.message}")
-                        Toast.makeText(requireContext(), "Error al eliminar la receta.", Toast.LENGTH_SHORT).show()
+                        Snackbar.make(binding.root, "Error al eliminar la receta.", Snackbar.LENGTH_LONG)
+                            .show()
                     }
                 )
             }
@@ -197,14 +154,7 @@ class RecipeFragment : Fragment() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == EDIT_RECIPE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            val updatedRecipe = data?.getParcelableExtra<Recipe>("updatedRecipe") ?: return
-            val index = recipeList.indexOfFirst { it.id == updatedRecipe.id }
-            if (index != -1) {
-                recipeList[index] = updatedRecipe // Update the existing recipe
-            } else {
-                recipeList.add(updatedRecipe) // Add the new recipe
-            }
-            setupTableView(recipeList)
+            // Global LiveData will update automatically.
         }
     }
 

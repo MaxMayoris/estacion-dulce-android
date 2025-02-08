@@ -2,10 +2,13 @@ package com.estaciondulce.app
 
 import android.annotation.SuppressLint
 import android.os.Bundle
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import com.estaciondulce.app.fragments.ProductFragment
+import com.estaciondulce.app.fragments.RecipeFragment
+import com.estaciondulce.app.repository.FirestoreRepository
+import com.estaciondulce.app.utils.CustomLoader
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class HomeActivity : AppCompatActivity() {
@@ -15,11 +18,25 @@ class HomeActivity : AppCompatActivity() {
     private val recipeFragment = RecipeFragment()
     private val personFragment = PersonFragment()
     private val transactionFragment = TransactionFragment()
+    private lateinit var loader: CustomLoader
 
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
+        loader = CustomLoader(this)
+        loader.show()
+
+        // Start listening to Firestore changes when the app loads.
+        FirestoreRepository.startListeners()
+
+        // Observe the global LiveData objects for recipes, products, and measures.
+        val dataLoadedObserver = Observer<Any> {
+            checkDataLoaded()
+        }
+        FirestoreRepository.recipesLiveData.observe(this, dataLoadedObserver)
+        FirestoreRepository.productsLiveData.observe(this, dataLoadedObserver)
+        FirestoreRepository.measuresLiveData.observe(this, dataLoadedObserver)
 
         val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
 
@@ -56,6 +73,20 @@ class HomeActivity : AppCompatActivity() {
 
                 else -> false
             }
+        }
+    }
+
+    /**
+     * Checks if all required data (recipes, products, measures) is loaded.
+     * Hides the loader when all data is available.
+     */
+    private fun checkDataLoaded() {
+        val recipesLoaded = FirestoreRepository.recipesLiveData.value?.isNotEmpty() ?: false
+        val productsLoaded = FirestoreRepository.productsLiveData.value?.isNotEmpty() ?: false
+        val measuresLoaded = FirestoreRepository.measuresLiveData.value?.isNotEmpty() ?: false
+
+        if (recipesLoaded && productsLoaded && measuresLoaded) {
+            loader.hide()
         }
     }
 

@@ -8,18 +8,20 @@ import android.widget.ArrayAdapter
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import com.estaciondulce.app.databinding.ActivityProductEditBinding
-import com.estaciondulce.app.helpers.MeasuresHelper
 import com.estaciondulce.app.helpers.ProductsHelper
+import com.estaciondulce.app.helpers.RecipesHelper
+import com.estaciondulce.app.models.Measure
 import com.estaciondulce.app.models.Product
+import com.estaciondulce.app.repository.FirestoreRepository
 import com.google.android.material.snackbar.Snackbar
 
 class ProductEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProductEditBinding
     private val productsHelper = ProductsHelper()
-    private val measuresHelper = MeasuresHelper()
-    private val measuresListMap = mutableMapOf<String, String>()
-    private var productsListMap: HashMap<String, String> = hashMapOf()
+    private val recipesHelper = RecipesHelper()
+    // Reference the global repository to access LiveData.
+    private val repository = FirestoreRepository
     private var currentProduct: Product? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,22 +31,15 @@ class ProductEditActivity : AppCompatActivity() {
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         currentProduct = intent.getParcelableExtra("PRODUCT")
-        supportActionBar?.title = if (currentProduct != null) "Editar Producto" else "Agregar Producto"
+        supportActionBar?.title =
+            if (currentProduct != null) "Editar Producto" else "Agregar Producto"
 
-        // Attempt to receive MEASURES_MAP from the fragment; otherwise, fetch via helper.
-        val passedMeasures = intent.getSerializableExtra("MEASURES_MAP") as? Map<String, String>
-        if (passedMeasures != null) {
-            measuresListMap.putAll(passedMeasures)
-            setupMeasureSpinner()
-        } else {
-            fetchMeasures()
-        }
-        // Receive the products list (only id and name) from the fragment.
-        val passedProductsMap = intent.getSerializableExtra("PRODUCTS_LIST") as? HashMap<String, String>
-        if (passedProductsMap != null) {
-            productsListMap.putAll(passedProductsMap)
+        // Observe the global measures LiveData and update the spinner when available.
+        repository.measuresLiveData.observe(this) { measures ->
+            setupMeasureSpinner(measures)
         }
 
+        // If editing, pre-populate the fields.
         currentProduct?.let { product ->
             binding.productNameInput.setText(product.name)
             binding.productStockInput.setText(product.quantity.toString())
@@ -63,71 +58,76 @@ class ProductEditActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            android.R.id.home -> { finish(); true }
+            android.R.id.home -> {
+                finish()
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
 
-    // Fetches the list of measures using the MeasuresHelper.
-    private fun fetchMeasures() {
-        measuresHelper.fetchMeasures(
-            onSuccess = { measuresList ->
-                for (measure in measuresList) {
-                    measuresListMap[measure.id] = measure.name
-                }
-                setupMeasureSpinner()
-            },
-            onError = {
-                Snackbar.make(binding.root, "Error al obtener las medidas.", Snackbar.LENGTH_LONG).show()
-            }
-        )
-    }
-
-    // Sets up the spinner with the list of measures.
-    private fun setupMeasureSpinner() {
-        val measureNames = measuresListMap.values.toMutableList()
+    /**
+     * Sets up the measure spinner using the global measures LiveData.
+     *
+     * @param measures The list of Measure objects.
+     */
+    private fun setupMeasureSpinner(measures: List<Measure>) {
+        val measureNames = measures.map { it.name }
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, measureNames)
         binding.measureDropdown.adapter = adapter
 
-        currentProduct?.measure?.let { measureId ->
-            val measureName = measuresListMap[measureId]
-            val position = measureNames.indexOf(measureName)
-            if (position != -1) {
+        // If editing, set the spinner's selection to the product's current measure.
+        currentProduct?.measure?.let { productMeasureId ->
+            val measure = measures.find { it.id == productMeasureId }
+            val position = measureNames.indexOf(measure?.name ?: "")
+            if (position >= 0) {
                 binding.measureDropdown.setSelection(position)
             }
         }
 
         binding.measureDropdown.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
-                // No additional action required when a measure is selected.
+            override fun onItemSelected(
+                parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long
+            ) {
+                // No additional action required.
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) { }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
     }
 
-    // Helper function to adjust the value of an EditText by a given delta.
+    /**
+     * Helper function to adjust the numeric value of an EditText by a given delta.
+     */
     private fun adjustValue(editText: EditText, delta: Double) {
         val currentVal = editText.text.toString().toDoubleOrNull() ?: 0.0
         val newVal = (currentVal + delta).coerceAtLeast(0.0)
-        editText.setText(String.format("%.3f", newVal))
+        editText.setText(String.format("%.2f", newVal))
     }
 
-    // Checks if the product name is unique (case-insensitive), excluding a given product ID if provided.
+    /**
+     * Checks if the product name is unique (case-insensitive), excluding a given product ID if provided.
+     * It uses the global products LiveData.
+     */
     private fun isUniqueProductName(name: String, excludingId: String? = null): Boolean {
-        return productsListMap.none { (id, productName) ->
-            productName.equals(name, ignoreCase = true) && id != excludingId
-        }
+        return repository.productsLiveData.value?.none { product ->
+            product.name.equals(name, ignoreCase = true) && product.id != excludingId
+        } ?: true
     }
 
-    // Validates the input fields and shows a Snackbar if any validation fails.
+    /**
+     * Validates the input fields and shows a Snackbar if any validation fails.
+     */
     private fun validateInputs(): Boolean {
         val productName = binding.productNameInput.text.toString().trim()
         if (productName.isEmpty()) {
-            Snackbar.make(binding.root, "El nombre del producto es obligatorio.", Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root, "El nombre del producto es obligatorio.", Snackbar.LENGTH_LONG)
+                .show()
             return false
         }
         if (!isUniqueProductName(productName, currentProduct?.id)) {
-            Snackbar.make(binding.root, "El nombre del producto ya existe.", Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root, "El nombre del producto ya existe.", Snackbar.LENGTH_LONG)
+                .show()
             return false
         }
         val stock = binding.productStockInput.text.toString().toDoubleOrNull() ?: -1.0
@@ -142,11 +142,13 @@ class ProductEditActivity : AppCompatActivity() {
         }
         val minQty = binding.productMinimumQuantityInput.text.toString().toDoubleOrNull() ?: -1.0
         if (minQty <= 0) {
-            Snackbar.make(binding.root, "La cantidad mínima no puede ser menor a 0.", Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root, "La cantidad mínima no puede ser menor a 0.", Snackbar.LENGTH_LONG)
+                .show()
             return false
         }
         val measureName = binding.measureDropdown.selectedItem?.toString()
-        val measureId = measuresListMap.entries.find { it.value == measureName }?.key
+        // Use the global LiveData to get the measure id by matching the measure name.
+        val measureId = repository.measuresLiveData.value?.find { it.name == measureName }?.id
         if (measureId.isNullOrEmpty()) {
             Snackbar.make(binding.root, "Debe seleccionar una medida.", Snackbar.LENGTH_LONG).show()
             return false
@@ -154,25 +156,38 @@ class ProductEditActivity : AppCompatActivity() {
         return true
     }
 
-    // Extracts a Product object from the input fields.
+    /**
+     * Extracts a Product object from the input fields.
+     */
     private fun getProductFromInputs(): Product {
         val name = binding.productNameInput.text.toString().trim()
         val stock = binding.productStockInput.text.toString().toDoubleOrNull() ?: 0.0
         val cost = binding.productCostInput.text.toString().toDoubleOrNull() ?: 0.0
         val minQty = binding.productMinimumQuantityInput.text.toString().toDoubleOrNull() ?: 0.0
+
+        // Round values to 2 decimals:
+        val roundedStock = Math.round(stock * 100.0) / 100.0
+        val roundedCost = Math.round(cost * 100.0) / 100.0
+        val roundedMinQty = Math.round(minQty * 100.0) / 100.0
+
         val measureName = binding.measureDropdown.selectedItem?.toString()
-        val measureId = measuresListMap.entries.find { it.value == measureName }?.key.orEmpty()
+        // Look up the measure id using global LiveData.
+        val measureId = repository.measuresLiveData.value?.find { it.name == measureName }?.id.orEmpty()
+
         return Product(
             id = currentProduct?.id ?: "",
             name = name,
-            quantity = stock,
-            cost = cost,
-            minimumQuantity = minQty,
+            quantity = roundedStock,
+            cost = roundedCost,
+            minimumQuantity = roundedMinQty,
             measure = measureId
         )
     }
 
-    // Saves the product by adding a new product or updating an existing one.
+    /**
+     * Saves the product by either adding a new product or updating an existing one,
+     * using ProductsHelper. Global LiveData updates will reflect the changes.
+     */
     private fun saveProduct() {
         if (!validateInputs()) return
         val productToSave = getProductFromInputs()
@@ -180,7 +195,8 @@ class ProductEditActivity : AppCompatActivity() {
             productsHelper.addProduct(
                 product = productToSave,
                 onSuccess = {
-                    Snackbar.make(binding.root, "Producto añadido correctamente.", Snackbar.LENGTH_LONG).show()
+                    Snackbar.make(binding.root, "Producto añadido correctamente.", Snackbar.LENGTH_LONG)
+                        .show()
                     setResult(Activity.RESULT_OK)
                     finish()
                 },
@@ -193,6 +209,7 @@ class ProductEditActivity : AppCompatActivity() {
                 productId = currentProduct!!.id,
                 product = productToSave,
                 onSuccess = {
+                    recipesHelper.updateAffectedRecipes(currentProduct!!.id)
                     Snackbar.make(binding.root, "Producto actualizado correctamente.", Snackbar.LENGTH_LONG).show()
                     setResult(Activity.RESULT_OK)
                     finish()
@@ -201,6 +218,7 @@ class ProductEditActivity : AppCompatActivity() {
                     Snackbar.make(binding.root, "Error al actualizar el producto.", Snackbar.LENGTH_LONG).show()
                 }
             )
+
         }
     }
 }
