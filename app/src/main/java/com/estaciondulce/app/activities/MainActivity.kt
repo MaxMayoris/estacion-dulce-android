@@ -1,12 +1,13 @@
-package com.estaciondulce.app
+package com.estaciondulce.app.activities
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import com.estaciondulce.app.R
 
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main) // Make sure to create this layout
+        setContentView(R.layout.activity_main)
     }
 }

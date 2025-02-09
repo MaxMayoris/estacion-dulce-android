@@ -1,50 +1,8 @@
 package com.estaciondulce.app.helpers
 
-import com.estaciondulce.app.models.Identifiable
 import com.google.firebase.firestore.FirebaseFirestore
 
 class GenericHelper(private val db: FirebaseFirestore = FirebaseFirestore.getInstance()) {
-
-    // Fetch collection as generic objects
-    fun <T> fetchCollection(
-        collectionName: String,
-        mapToEntity: (id: String, data: Map<String, Any?>) -> T,
-        onSuccess: (List<T>) -> Unit,
-        onError: (Exception) -> Unit
-    ) {
-        db.collection(collectionName)
-            .get()
-            .addOnSuccessListener { documents ->
-                val entities = documents.mapNotNull { document ->
-                    mapToEntity(document.id, document.data)
-                }
-                onSuccess(entities)
-            }
-            .addOnFailureListener { e ->
-                onError(e)
-            }
-    }
-
-    fun <T> fetchCollectionWithToObject(
-        collectionName: String,
-        clazz: Class<T>,
-        onSuccess: (List<T>) -> Unit,
-        onError: (Exception) -> Unit
-    ) where T : Identifiable {
-        db.collection(collectionName)
-            .get()
-            .addOnSuccessListener { documents ->
-                val entities = documents.mapNotNull { document ->
-                    document.toObject(clazz).apply {
-                        this.id = document.id // Assign the document ID
-                    }
-                }
-                onSuccess(entities)
-            }
-            .addOnFailureListener { e ->
-                onError(e)
-            }
-    }
 
     // Add a document to a collection
     fun addDocument(

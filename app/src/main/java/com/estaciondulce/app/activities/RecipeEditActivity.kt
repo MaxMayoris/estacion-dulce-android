@@ -1,6 +1,7 @@
-package com.estaciondulce.app
+package com.estaciondulce.app.activities
 
 import RecipeSection
+import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.res.ColorStateList
@@ -13,6 +14,7 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
+import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.ActivityRecipeEditBinding
 import com.estaciondulce.app.helpers.RecipesHelper
 import com.estaciondulce.app.models.Recipe
@@ -21,19 +23,18 @@ import com.estaciondulce.app.models.RecipeProduct
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomLoader
 
+/**
+ * Activity for adding or editing a recipe.
+ */
 class RecipeEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityRecipeEditBinding
     private lateinit var loader: CustomLoader
     private var recipe: Recipe? = null
-
     private val recipesHelper = RecipesHelper()
-
     private val selectedSections = mutableListOf<RecipeSection>()
     private val selectedCategories = mutableSetOf<String>()
     private val selectedRecipes = mutableListOf<RecipeNested>()
-
-    // Global repository for LiveData (categories, products, recipes)
     private val repository = FirestoreRepository
 
     override fun onSupportNavigateUp(): Boolean {
@@ -41,6 +42,11 @@ class RecipeEditActivity : AppCompatActivity() {
         return true
     }
 
+    /**
+     * Initializes the activity, sets up LiveData observers, pre-populates fields if editing,
+     * and configures UI event listeners.
+     */
+    @SuppressLint("DefaultLocale")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityRecipeEditBinding.inflate(layoutInflater)
@@ -51,7 +57,6 @@ class RecipeEditActivity : AppCompatActivity() {
         supportActionBar?.title = if (intent.hasExtra("recipe")) "Editar Receta" else "Agregar Receta"
         recipe = intent.getParcelableExtra("recipe")
 
-        // Transform the categories list (from LiveData) into a Map<String, String>
         repository.categoriesLiveData.observe(this, Observer { categoriesList ->
             val categoriesMap = categoriesList.associate { it.id to it.name }
             setupCategorySelector(categoriesMap)
@@ -65,7 +70,6 @@ class RecipeEditActivity : AppCompatActivity() {
             binding.recipeSalePriceInput.setText(String.format("%.2f", r.salePrice))
             binding.recipeOnSaleCheckbox.isChecked = r.onSale
             binding.recipeUnitInput.setText(r.unit.toString())
-
             selectedSections.clear()
             selectedCategories.clear()
             selectedSections.addAll(r.sections.filter { it.products.isNotEmpty() })
@@ -93,6 +97,9 @@ class RecipeEditActivity : AppCompatActivity() {
         loader.hide()
     }
 
+    /**
+     * Configures the category selector using the provided categories map.
+     */
     private fun setupCategorySelector(categoriesMap: Map<String, String>) {
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, categoriesMap.values.toList())
         binding.categorySelector.adapter = adapter
@@ -111,6 +118,9 @@ class RecipeEditActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Updates the category tags UI.
+     */
     private fun updateCategoryTags() {
         binding.categoryTagsContainer.removeAllViews()
         if (selectedCategories.isEmpty()) {
@@ -134,6 +144,9 @@ class RecipeEditActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Updates the UI for the selected sections.
+     */
     private fun updateSectionsUI() {
         binding.sectionsContainer.removeAllViews()
         binding.sectionsTitle.visibility = if (selectedSections.isNotEmpty()) View.VISIBLE else View.GONE
@@ -145,7 +158,6 @@ class RecipeEditActivity : AppCompatActivity() {
             val removeSectionButton = sectionView.findViewById<Button>(R.id.removeSectionButton)
             sectionView.tag = section.id
             sectionName.text = section.name
-
             productSearchBar.addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) { }
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -160,7 +172,6 @@ class RecipeEditActivity : AppCompatActivity() {
                 }
                 override fun afterTextChanged(s: Editable?) { }
             })
-
             removeSectionButton.setOnClickListener {
                 showConfirmationDialog("¿Está seguro de eliminar la sección ${section.name}?") {
                     selectedSections.remove(section)
@@ -168,7 +179,6 @@ class RecipeEditActivity : AppCompatActivity() {
                     updateCosts()
                 }
             }
-
             productContainer.removeAllViews()
             for (product in section.products) {
                 val productEntry = repository.productsLiveData.value?.find { it.id == product.productId }
@@ -182,6 +192,9 @@ class RecipeEditActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Displays a product search popup anchored to the given view.
+     */
     private fun showProductSearchPopup(anchor: View, products: List<Map.Entry<String, Pair<String, Double>>>, section: RecipeSection) {
         val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, products.map { it.value.first })
         val popup = ListPopupWindow(this).apply {
@@ -204,6 +217,9 @@ class RecipeEditActivity : AppCompatActivity() {
         popup.show()
     }
 
+    /**
+     * Adds a product view to the specified container.
+     */
     private fun addProductToUI(
         productContainer: LinearLayout,
         section: RecipeSection,
@@ -242,16 +258,19 @@ class RecipeEditActivity : AppCompatActivity() {
         productContainer.addView(productView)
     }
 
+    /**
+     * Creates a quantity control view that increments/decrements by 1.0.
+     * The control allows input of decimals and ensures spacing between buttons.
+     */
     private fun createQuantityControl(initialValue: Double, onQuantityChanged: (Double) -> Unit): LinearLayout {
         val container = LinearLayout(this)
         container.orientation = LinearLayout.HORIZONTAL
         container.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-            setMargins(4, 0, 4, 0)
+            setMargins(8, 0, 8, 0)
         }
         val scale = resources.displayMetrics.density
-        val buttonSize = (30 * scale + 0.5f).toInt()
-        val desiredTextSize = 12f
-
+        val buttonSize = (40 * scale + 0.5f).toInt()
+        val desiredTextSize = 14f
         val decrementButton = Button(this).apply {
             text = "-"
             textSize = desiredTextSize
@@ -259,12 +278,12 @@ class RecipeEditActivity : AppCompatActivity() {
             setBackgroundColor(ContextCompat.getColor(context, R.color.purple_200))
         }
         val quantityEditText = EditText(this).apply {
-            setText(initialValue.toInt().toString())
+            setText(String.format("%.2f", initialValue))
             textSize = desiredTextSize
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
             gravity = android.view.Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            minHeight = (40 * scale + 0.5f).toInt()
+            minWidth = (60 * scale + 0.5f).toInt()
         }
         val incrementButton = Button(this).apply {
             text = "+"
@@ -276,37 +295,117 @@ class RecipeEditActivity : AppCompatActivity() {
         container.addView(quantityEditText)
         container.addView(incrementButton)
         decrementButton.setOnClickListener {
-            val current = quantityEditText.text.toString().toIntOrNull() ?: 1
+            val current = quantityEditText.text.toString().toDoubleOrNull() ?: 0.0
+            val newVal = (current - 1.0).coerceAtLeast(0.0)
+            quantityEditText.setText(String.format("%.2f", newVal))
+            onQuantityChanged(newVal)
+        }
+        incrementButton.setOnClickListener {
+            val current = quantityEditText.text.toString().toDoubleOrNull() ?: 0.0
+            val newVal = current + 1.0
+            quantityEditText.setText(String.format("%.2f", newVal))
+            onQuantityChanged(newVal)
+        }
+        quantityEditText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) { }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val value = s.toString().toDoubleOrNull() ?: 0.0
+                if (value < 0.0) {
+                    quantityEditText.setText("0.00")
+                    onQuantityChanged(0.0)
+                } else {
+                    onQuantityChanged(value)
+                }
+            }
+            override fun afterTextChanged(s: Editable?) { }
+        })
+        return container
+    }
+
+    /**
+     * Creates a quantity control view that increments/decrements by 1.
+     * The control allows input of decimals and ensures spacing between buttons.
+     */
+    private fun createIntegerQuantityControl(initialValue: Int, onQuantityChanged: (Int) -> Unit): LinearLayout {
+        val container = LinearLayout(this)
+        container.orientation = LinearLayout.HORIZONTAL
+        container.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { setMargins(8, 0, 8, 0) }
+
+        val scale = resources.displayMetrics.density
+        val buttonSize = (40 * scale + 0.5f).toInt()
+        val desiredTextSize = 14f
+
+        val decrementButton = Button(this).apply {
+            text = "-"
+            textSize = desiredTextSize
+            layoutParams = LinearLayout.LayoutParams(buttonSize, buttonSize)
+            setBackgroundColor(ContextCompat.getColor(context, R.color.purple_200))
+        }
+
+        val quantityEditText = EditText(this).apply {
+            setText(initialValue.toString())
+            textSize = desiredTextSize
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            gravity = android.view.Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            minWidth = (60 * scale + 0.5f).toInt()
+        }
+
+        val incrementButton = Button(this).apply {
+            text = "+"
+            textSize = desiredTextSize
+            layoutParams = LinearLayout.LayoutParams(buttonSize, buttonSize)
+            setBackgroundColor(ContextCompat.getColor(context, R.color.purple_200))
+        }
+
+        container.addView(decrementButton)
+        container.addView(quantityEditText)
+        container.addView(incrementButton)
+
+        decrementButton.setOnClickListener {
+            val current = quantityEditText.text.toString().toIntOrNull() ?: 0
             if (current > 1) {
                 val newVal = current - 1
                 quantityEditText.setText(newVal.toString())
-                onQuantityChanged(newVal.toDouble())
+                onQuantityChanged(newVal)
             }
         }
+
         incrementButton.setOnClickListener {
-            val current = quantityEditText.text.toString().toIntOrNull() ?: 1
+            val current = quantityEditText.text.toString().toIntOrNull() ?: 0
             val newVal = current + 1
             quantityEditText.setText(newVal.toString())
-            onQuantityChanged(newVal.toDouble())
+            onQuantityChanged(newVal)
         }
+
         quantityEditText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 val value = s.toString().toIntOrNull() ?: 1
                 if (value < 1) {
                     quantityEditText.setText("1")
-                    onQuantityChanged(1.0)
+                    onQuantityChanged(1)
                 } else {
-                    onQuantityChanged(value.toDouble())
+                    onQuantityChanged(value)
                 }
             }
             override fun afterTextChanged(s: Editable?) {}
         })
+
         return container
     }
 
+    /**
+     * Updates the recipe cost and suggested price based on current inputs,
+     * rounding the values to 2 decimals.
+     */
     private fun updateCosts() {
-        val units = binding.recipeUnitInput.text.toString().toIntOrNull() ?: 1
         val productsMap = repository.productsLiveData.value?.associate { it.id to Pair(it.name, it.cost) } ?: emptyMap()
         val recipesMap = repository.recipesLiveData.value?.associateBy { it.id }?.toMutableMap() ?: mutableMapOf()
         val updatedRecipe = Recipe(
@@ -315,7 +414,7 @@ class RecipeEditActivity : AppCompatActivity() {
             cost = binding.recipeCostInput.text.toString().toDoubleOrNull() ?: 0.0,
             suggestedPrice = binding.recipeSuggestedPriceInput.text.toString().toDoubleOrNull() ?: 0.0,
             salePrice = binding.recipeSalePriceInput.text.toString().toDoubleOrNull() ?: 0.0,
-            unit = units,
+            unit = binding.recipeUnitInput.text.toString().toIntOrNull() ?: 1,
             onSale = binding.recipeOnSaleCheckbox.isChecked,
             categories = selectedCategories.toList(),
             sections = selectedSections,
@@ -326,6 +425,9 @@ class RecipeEditActivity : AppCompatActivity() {
         binding.recipeSuggestedPriceInput.setText(String.format("%.2f", suggestedPrice))
     }
 
+    /**
+     * Sets up the recipe search bar with a popup for selecting recipes.
+     */
     private fun setupRecipeSearchBar() {
         val recipeSearchAdapter = ArrayAdapter<String>(this, android.R.layout.simple_list_item_1)
         val popupWindow = ListPopupWindow(this).apply {
@@ -340,7 +442,7 @@ class RecipeEditActivity : AppCompatActivity() {
             }
         }
         binding.recipeSearchBar.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) { }
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 val query = s.toString().trim()
                 if (query.length >= 3) {
@@ -351,12 +453,17 @@ class RecipeEditActivity : AppCompatActivity() {
                         recipeSearchAdapter.notifyDataSetChanged()
                         if (filtered.isNotEmpty()) popupWindow.show() else popupWindow.dismiss()
                     }
-                } else popupWindow.dismiss()
+                } else {
+                    popupWindow.dismiss()
+                }
             }
-            override fun afterTextChanged(s: Editable?) {}
+            override fun afterTextChanged(s: Editable?) { }
         })
     }
 
+    /**
+     * Updates the UI for nested recipes.
+     */
     private fun updateNestedRecipesUI() {
         binding.selectedRecipeContainer.removeAllViews()
         binding.selectedRecipeContainer.visibility = if (selectedRecipes.isNotEmpty()) View.VISIBLE else View.GONE
@@ -384,10 +491,11 @@ class RecipeEditActivity : AppCompatActivity() {
                         textSize = 14f
                         setTextColor(ContextCompat.getColor(context, android.R.color.black))
                     }
-                    val quantityControl = createQuantityControl(nested.quantity) { newQuantity ->
+                    val quantityControl = createIntegerQuantityControl(nested.quantity) { newQuantity ->
                         nested.quantity = newQuantity
                         updateCosts()
                     }
+
                     val scale = resources.displayMetrics.density
                     val deleteSize = (40 * scale + 0.5f).toInt()
                     val deleteButton = Button(this).apply {
@@ -413,6 +521,9 @@ class RecipeEditActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Displays the selected recipe in the nested recipes container.
+     */
     private fun displaySelectedRecipe(recipe: Recipe) {
         binding.selectedRecipeContainer.visibility = View.VISIBLE
         if (binding.selectedRecipeContainer.findViewWithTag<LinearLayout>(recipe.id) != null) {
@@ -439,10 +550,12 @@ class RecipeEditActivity : AppCompatActivity() {
             textSize = 14f
             setTextColor(ContextCompat.getColor(context, android.R.color.black))
         }
-        val quantityControl = createQuantityControl(1.0) { newQuantity ->
-            val nested = selectedRecipes.find { it.recipeId == recipe.id } ?: RecipeNested(recipeId = recipe.id, quantity = 1.0)
+        val quantityControl = createIntegerQuantityControl(1) { newQuantity ->
+            val nested = selectedRecipes.find { it.recipeId == recipe.id } ?: RecipeNested(recipeId = recipe.id, quantity = 1)
             nested.quantity = newQuantity
-            if (!selectedRecipes.contains(nested)) selectedRecipes.add(nested)
+            if (!selectedRecipes.contains(nested)) {
+                selectedRecipes.add(nested)
+            }
             updateCosts()
         }
         val scale = resources.displayMetrics.density
@@ -466,12 +579,15 @@ class RecipeEditActivity : AppCompatActivity() {
         recipeRow.addView(deleteButton)
         binding.selectedRecipeContainer.addView(recipeRow)
         if (selectedRecipes.none { it.recipeId == recipe.id }) {
-            selectedRecipes.add(RecipeNested(recipeId = recipe.id, quantity = 1.0))
+            selectedRecipes.add(RecipeNested(recipeId = recipe.id, quantity = 1))
         }
         updateCosts()
         binding.recipeSearchBar.text.clear()
     }
 
+    /**
+     * Saves the recipe by adding or updating it using RecipesHelper.
+     */
     private fun saveRecipe() {
         validateFields { isValid ->
             if (!isValid) return@validateFields
@@ -531,6 +647,9 @@ class RecipeEditActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Validates the input fields and calls the provided callback with the result.
+     */
     private fun validateFields(onValidationComplete: (Boolean) -> Unit) {
         val name = binding.recipeNameInput.text.toString().trim()
         val cost = binding.recipeCostInput.text.toString().trim()
@@ -581,12 +700,18 @@ class RecipeEditActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Sends the updated recipe as result and finishes the activity.
+     */
     private fun sendResultAndFinish(updatedRecipe: Recipe) {
         val resultIntent = Intent().apply { putExtra("updatedRecipe", updatedRecipe) }
         setResult(RESULT_OK, resultIntent)
         finish()
     }
 
+    /**
+     * Displays a confirmation dialog with the given message.
+     */
     private fun showConfirmationDialog(message: String, onConfirmed: () -> Unit) {
         AlertDialog.Builder(this)
             .setTitle("Confirmación")

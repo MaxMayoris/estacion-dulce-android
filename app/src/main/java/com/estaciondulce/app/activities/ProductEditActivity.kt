@@ -1,4 +1,4 @@
-package com.estaciondulce.app
+package com.estaciondulce.app.activities
 
 import android.app.Activity
 import android.os.Bundle
@@ -10,20 +10,24 @@ import androidx.appcompat.app.AppCompatActivity
 import com.estaciondulce.app.databinding.ActivityProductEditBinding
 import com.estaciondulce.app.helpers.ProductsHelper
 import com.estaciondulce.app.helpers.RecipesHelper
-import com.estaciondulce.app.models.Measure
 import com.estaciondulce.app.models.Product
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.google.android.material.snackbar.Snackbar
 
+/**
+ * Activity to add or update a product.
+ */
 class ProductEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProductEditBinding
     private val productsHelper = ProductsHelper()
     private val recipesHelper = RecipesHelper()
-    // Reference the global repository to access LiveData.
     private val repository = FirestoreRepository
     private var currentProduct: Product? = null
 
+    /**
+     * Initializes the activity, sets up LiveData observers, and pre-populates fields if editing.
+     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityProductEditBinding.inflate(layoutInflater)
@@ -31,15 +35,12 @@ class ProductEditActivity : AppCompatActivity() {
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         currentProduct = intent.getParcelableExtra("PRODUCT")
-        supportActionBar?.title =
-            if (currentProduct != null) "Editar Producto" else "Agregar Producto"
+        supportActionBar?.title = if (currentProduct != null) "Editar Producto" else "Agregar Producto"
 
-        // Observe the global measures LiveData and update the spinner when available.
         repository.measuresLiveData.observe(this) { measures ->
             setupMeasureSpinner(measures)
         }
 
-        // If editing, pre-populate the fields.
         currentProduct?.let { product ->
             binding.productNameInput.setText(product.name)
             binding.productStockInput.setText(product.quantity.toString())
@@ -47,7 +48,6 @@ class ProductEditActivity : AppCompatActivity() {
             binding.productMinimumQuantityInput.setText(product.minimumQuantity.toString())
         }
 
-        // Set listeners for the increment/decrement buttons.
         binding.stockDecrementButton.setOnClickListener { adjustValue(binding.productStockInput, -1.0) }
         binding.stockIncrementButton.setOnClickListener { adjustValue(binding.productStockInput, 1.0) }
         binding.minQtyDecrementButton.setOnClickListener { adjustValue(binding.productMinimumQuantityInput, -1.0) }
@@ -56,48 +56,38 @@ class ProductEditActivity : AppCompatActivity() {
         binding.saveProductButton.setOnClickListener { saveProduct() }
     }
 
+    /**
+     * Handles action bar item selection.
+     */
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            android.R.id.home -> {
-                finish()
-                true
-            }
+            android.R.id.home -> { finish(); true }
             else -> super.onOptionsItemSelected(item)
         }
     }
 
     /**
-     * Sets up the measure spinner using the global measures LiveData.
-     *
-     * @param measures The list of Measure objects.
+     * Configures the measure spinner using the provided list of Measure objects.
      */
-    private fun setupMeasureSpinner(measures: List<Measure>) {
+    private fun setupMeasureSpinner(measures: List<com.estaciondulce.app.models.Measure>) {
         val measureNames = measures.map { it.name }
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, measureNames)
         binding.measureDropdown.adapter = adapter
 
-        // If editing, set the spinner's selection to the product's current measure.
         currentProduct?.measure?.let { productMeasureId ->
             val measure = measures.find { it.id == productMeasureId }
             val position = measureNames.indexOf(measure?.name ?: "")
-            if (position >= 0) {
-                binding.measureDropdown.setSelection(position)
-            }
+            if (position >= 0) binding.measureDropdown.setSelection(position)
         }
 
         binding.measureDropdown.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long
-            ) {
-                // No additional action required.
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
+            override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long) { }
+            override fun onNothingSelected(parent: AdapterView<*>?) { }
         }
     }
 
     /**
-     * Helper function to adjust the numeric value of an EditText by a given delta.
+     * Adjusts the numeric value in the given EditText by a delta and rounds to two decimals.
      */
     private fun adjustValue(editText: EditText, delta: Double) {
         val currentVal = editText.text.toString().toDoubleOrNull() ?: 0.0
@@ -106,8 +96,7 @@ class ProductEditActivity : AppCompatActivity() {
     }
 
     /**
-     * Checks if the product name is unique (case-insensitive), excluding a given product ID if provided.
-     * It uses the global products LiveData.
+     * Checks if the product name is unique (ignoring case) using global products LiveData.
      */
     private fun isUniqueProductName(name: String, excludingId: String? = null): Boolean {
         return repository.productsLiveData.value?.none { product ->
@@ -116,18 +105,18 @@ class ProductEditActivity : AppCompatActivity() {
     }
 
     /**
-     * Validates the input fields and shows a Snackbar if any validation fails.
+     * Validates the input fields and displays a Snackbar if validation fails.
+     *
+     * @return True if all inputs are valid.
      */
     private fun validateInputs(): Boolean {
         val productName = binding.productNameInput.text.toString().trim()
         if (productName.isEmpty()) {
-            Snackbar.make(binding.root, "El nombre del producto es obligatorio.", Snackbar.LENGTH_LONG)
-                .show()
+            Snackbar.make(binding.root, "El nombre del producto es obligatorio.", Snackbar.LENGTH_LONG).show()
             return false
         }
         if (!isUniqueProductName(productName, currentProduct?.id)) {
-            Snackbar.make(binding.root, "El nombre del producto ya existe.", Snackbar.LENGTH_LONG)
-                .show()
+            Snackbar.make(binding.root, "El nombre del producto ya existe.", Snackbar.LENGTH_LONG).show()
             return false
         }
         val stock = binding.productStockInput.text.toString().toDoubleOrNull() ?: -1.0
@@ -142,12 +131,10 @@ class ProductEditActivity : AppCompatActivity() {
         }
         val minQty = binding.productMinimumQuantityInput.text.toString().toDoubleOrNull() ?: -1.0
         if (minQty <= 0) {
-            Snackbar.make(binding.root, "La cantidad mínima no puede ser menor a 0.", Snackbar.LENGTH_LONG)
-                .show()
+            Snackbar.make(binding.root, "La cantidad mínima no puede ser menor a 0.", Snackbar.LENGTH_LONG).show()
             return false
         }
         val measureName = binding.measureDropdown.selectedItem?.toString()
-        // Use the global LiveData to get the measure id by matching the measure name.
         val measureId = repository.measuresLiveData.value?.find { it.name == measureName }?.id
         if (measureId.isNullOrEmpty()) {
             Snackbar.make(binding.root, "Debe seleccionar una medida.", Snackbar.LENGTH_LONG).show()
@@ -157,7 +144,9 @@ class ProductEditActivity : AppCompatActivity() {
     }
 
     /**
-     * Extracts a Product object from the input fields.
+     * Extracts a Product object from the input fields, rounding numeric values to two decimals.
+     *
+     * @return A Product object with values from the input fields.
      */
     private fun getProductFromInputs(): Product {
         val name = binding.productNameInput.text.toString().trim()
@@ -165,13 +154,11 @@ class ProductEditActivity : AppCompatActivity() {
         val cost = binding.productCostInput.text.toString().toDoubleOrNull() ?: 0.0
         val minQty = binding.productMinimumQuantityInput.text.toString().toDoubleOrNull() ?: 0.0
 
-        // Round values to 2 decimals:
         val roundedStock = Math.round(stock * 100.0) / 100.0
         val roundedCost = Math.round(cost * 100.0) / 100.0
         val roundedMinQty = Math.round(minQty * 100.0) / 100.0
 
         val measureName = binding.measureDropdown.selectedItem?.toString()
-        // Look up the measure id using global LiveData.
         val measureId = repository.measuresLiveData.value?.find { it.name == measureName }?.id.orEmpty()
 
         return Product(
@@ -185,8 +172,7 @@ class ProductEditActivity : AppCompatActivity() {
     }
 
     /**
-     * Saves the product by either adding a new product or updating an existing one,
-     * using ProductsHelper. Global LiveData updates will reflect the changes.
+     * Saves the product by adding or updating it using ProductsHelper.
      */
     private fun saveProduct() {
         if (!validateInputs()) return
@@ -195,8 +181,7 @@ class ProductEditActivity : AppCompatActivity() {
             productsHelper.addProduct(
                 product = productToSave,
                 onSuccess = {
-                    Snackbar.make(binding.root, "Producto añadido correctamente.", Snackbar.LENGTH_LONG)
-                        .show()
+                    Snackbar.make(binding.root, "Producto añadido correctamente.", Snackbar.LENGTH_LONG).show()
                     setResult(Activity.RESULT_OK)
                     finish()
                 },
@@ -218,7 +203,6 @@ class ProductEditActivity : AppCompatActivity() {
                     Snackbar.make(binding.root, "Error al actualizar el producto.", Snackbar.LENGTH_LONG).show()
                 }
             )
-
         }
     }
 }
