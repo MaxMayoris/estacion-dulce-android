@@ -11,8 +11,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 
 object FirestoreRepository {
-
-    // Firestore instance
     @SuppressLint("StaticFieldLeak")
     private val firestore = FirebaseFirestore.getInstance()
 

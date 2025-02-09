@@ -1,24 +1,26 @@
-package com.estaciondulce.app
+package com.estaciondulce.app.fragments
 
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import com.estaciondulce.app.R
 
-class HomeFragment : Fragment(R.layout.fragment_home) {
-
+/**
+ * A simple [Fragment] subclass.
+ * Use the [PersonFragment.newInstance] factory method to
+ * create an instance of this fragment.
+ */
+class PersonFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Busca el TextView dentro de la vista inflada del fragmento
         val tvVersion = view.findViewById<TextView>(R.id.appVersionText)
 
-        // Obtén la versión de la app
         val versionName = requireActivity().packageManager
             .getPackageInfo(requireActivity().packageName, 0)
             .versionName
 
-        // Asigna la versión al TextView
         tvVersion.text = "Versión: $versionName"
     }
 }

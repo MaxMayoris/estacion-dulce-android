@@ -1,10 +1,14 @@
-package com.estaciondulce.app
+package com.estaciondulce.app.activities
 
 import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
+import com.estaciondulce.app.R
+import com.estaciondulce.app.fragments.TransactionFragment
+import com.estaciondulce.app.fragments.HomeFragment
+import com.estaciondulce.app.fragments.PersonFragment
 import com.estaciondulce.app.fragments.ProductFragment
 import com.estaciondulce.app.fragments.RecipeFragment
 import com.estaciondulce.app.repository.FirestoreRepository
@@ -20,6 +24,10 @@ class HomeActivity : AppCompatActivity() {
     private val transactionFragment = TransactionFragment()
     private lateinit var loader: CustomLoader
 
+    /**
+     * Initializes the activity, sets up Firestore listeners,
+     * observes global LiveData, and configures the bottom navigation.
+     */
     @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,48 +35,39 @@ class HomeActivity : AppCompatActivity() {
         loader = CustomLoader(this)
         loader.show()
 
-        // Start listening to Firestore changes when the app loads.
         FirestoreRepository.startListeners()
 
-        // Observe the global LiveData objects for recipes, products, and measures.
-        val dataLoadedObserver = Observer<Any> {
-            checkDataLoaded()
-        }
+        val dataLoadedObserver = Observer<Any> { checkDataLoaded() }
         FirestoreRepository.recipesLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.productsLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.measuresLiveData.observe(this, dataLoadedObserver)
+        FirestoreRepository.categoriesLiveData.observe(this, dataLoadedObserver)
+        FirestoreRepository.sectionsLiveData.observe(this, dataLoadedObserver)
 
-        val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
-
-        // Set the default fragment
+        val bottomNavigationView =
+            findViewById<BottomNavigationView>(R.id.bottomNavigationView)
         loadFragment(homeFragment)
 
-        // Handle navigation item clicks
         bottomNavigationView.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
-                    loadFragment(homeFragment)
-                    true
+                    loadFragment(homeFragment); true
                 }
 
                 R.id.nav_product -> {
-                    loadFragment(productFragment)
-                    true
+                    loadFragment(productFragment); true
                 }
 
                 R.id.nav_recipe -> {
-                    loadFragment(recipeFragment)
-                    true
+                    loadFragment(recipeFragment); true
                 }
 
                 R.id.nav_person -> {
-                    loadFragment(personFragment)
-                    true
+                    loadFragment(personFragment); true
                 }
 
                 R.id.nav_transaction -> {
-                    loadFragment(transactionFragment)
-                    true
+                    loadFragment(transactionFragment); true
                 }
 
                 else -> false
@@ -77,34 +76,32 @@ class HomeActivity : AppCompatActivity() {
     }
 
     /**
-     * Checks if all required data (recipes, products, measures) is loaded.
-     * Hides the loader when all data is available.
+     * Checks if recipes, products, and measures are loaded and hides the loader if so.
      */
     private fun checkDataLoaded() {
         val recipesLoaded = FirestoreRepository.recipesLiveData.value?.isNotEmpty() ?: false
         val productsLoaded = FirestoreRepository.productsLiveData.value?.isNotEmpty() ?: false
         val measuresLoaded = FirestoreRepository.measuresLiveData.value?.isNotEmpty() ?: false
+        val categoriesLoaded = FirestoreRepository.categoriesLiveData.value?.isNotEmpty() ?: false
+        val sectionsLoaded = FirestoreRepository.sectionsLiveData.value?.isNotEmpty() ?: false
 
-        if (recipesLoaded && productsLoaded && measuresLoaded) {
+        if (recipesLoaded && productsLoaded && measuresLoaded && categoriesLoaded && sectionsLoaded) {
             loader.hide()
         }
     }
 
-    // Function to load fragments into the container
+    /**
+     * Loads the specified fragment into the home container.
+     */
     private fun loadFragment(fragment: Fragment) {
-        val fragmentTransaction = supportFragmentManager.beginTransaction()
-
-        // Check if the fragment is already added
+        val transaction = supportFragmentManager.beginTransaction()
         if (supportFragmentManager.fragments.contains(fragment)) {
-            // Show the fragment if already added
-            supportFragmentManager.fragments.forEach { fragmentTransaction.hide(it) }
-            fragmentTransaction.show(fragment)
+            supportFragmentManager.fragments.forEach { transaction.hide(it) }
+            transaction.show(fragment)
         } else {
-            // Add and show the fragment
-            supportFragmentManager.fragments.forEach { fragmentTransaction.hide(it) }
-            fragmentTransaction.add(R.id.homeFragmentContainer, fragment)
+            supportFragmentManager.fragments.forEach { transaction.hide(it) }
+            transaction.add(R.id.homeFragmentContainer, fragment)
         }
-
-        fragmentTransaction.commit()
+        transaction.commit()
     }
 }

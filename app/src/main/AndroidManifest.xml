@@ -19,7 +19,7 @@
 
         <!-- Declare LoginActivity -->
         <activity
-            android:name=".LoginActivity"
+            android:name=".activities.LoginActivity"
             android:exported="true">
             <!-- Set LoginActivity as the Launcher Activity -->
             <intent-filter>
@@ -27,11 +27,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".HomeActivity" />
-        <activity android:name=".ProductEditActivity" />
-        <activity android:name=".RecipeEditActivity" />
-
-
+        <activity android:name=".activities.HomeActivity" />
+        <activity android:name=".activities.ProductEditActivity" />
+        <activity android:name=".activities.RecipeEditActivity" />
     </application>
 
 </manifest>

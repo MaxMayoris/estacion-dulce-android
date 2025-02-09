@@ -2,7 +2,6 @@ package com.estaciondulce.app.customviews
 
 import android.content.Context
 import android.util.AttributeSet
-import android.util.Log
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -42,10 +41,12 @@ class TableView<T> @JvmOverloads constructor(
         nextButton = findViewById(R.id.nextButton)
         pageIndicator = findViewById(R.id.pageIndicator)
         recyclerView.layoutManager = LinearLayoutManager(context)
-
         setupPaginationControls()
     }
 
+    /**
+     * Configures the table with headers, data, adapter, and pagination.
+     */
     fun setupTable(
         columnHeaders: List<String>,
         data: List<T>,
@@ -61,48 +62,46 @@ class TableView<T> @JvmOverloads constructor(
 
         generateHeaders(columnHeaders)
         recyclerView.adapter = paginatedAdapter
-        Log.d("TableView", "Adapter attached with item count: ${paginatedAdapter?.itemCount}")
-
         showPage(0)
     }
 
+    /**
+     * Sets up pagination controls.
+     */
     private fun setupPaginationControls() {
         previousButton.setOnClickListener {
-            if (currentPage > 0) {
-                showPage(currentPage - 1)
-            }
+            if (currentPage > 0) showPage(currentPage - 1)
         }
-
         nextButton.setOnClickListener {
-            if (currentPage < totalPages - 1) {
-                showPage(currentPage + 1)
-            }
+            if (currentPage < totalPages - 1) showPage(currentPage + 1)
         }
     }
 
+    /**
+     * Displays a page of data.
+     */
     private fun showPage(page: Int) {
         currentPage = page
         val start = currentPage * pageSize
         val end = (start + pageSize).coerceAtMost(originalData.size)
         val pageData = originalData.subList(start, end)
-
         if (paginatedAdapter is TableAdapter<*>) {
             (paginatedAdapter as TableAdapter<T>).updateData(pageData)
         }
-
-        // Update page indicator and button visibility
         pageIndicator.text = "Page ${currentPage + 1} of $totalPages"
         previousButton.visibility = if (currentPage > 0) VISIBLE else GONE
         nextButton.visibility = if (currentPage < totalPages - 1) VISIBLE else GONE
     }
 
+    /**
+     * Generates header views.
+     */
     private fun generateHeaders(columnHeaders: List<String>) {
-        // Initialize headers if they don't exist
         if (headerContainer.childCount == 0) {
             columnHeaders.forEachIndexed { index, header ->
                 val textView = TextView(context).apply {
                     layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply {
-                        weight = 1f // Equal distribution
+                        weight = 1f
                     }
                     setPadding(16, 16, 16, 16)
                     setBackgroundColor(context.getColor(R.color.purple_700))
@@ -113,8 +112,7 @@ class TableView<T> @JvmOverloads constructor(
                 }
                 headerContainer.addView(textView)
             }
-
-            // Add blank delete column header
+            // Add blank header for delete column.
             val deleteHeader = TextView(context).apply {
                 layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply {
                     weight = 1f
@@ -126,8 +124,6 @@ class TableView<T> @JvmOverloads constructor(
             }
             headerContainer.addView(deleteHeader)
         }
-
-        // Update existing headers
         columnHeaders.forEachIndexed { index, header ->
             val textView = headerContainer.getChildAt(index) as? TextView ?: return@forEachIndexed
             val isSortedColumn = index == sortedColumnIndex
@@ -139,12 +135,13 @@ class TableView<T> @JvmOverloads constructor(
             textView.text = "$header$directionIndicator"
             textView.setTypeface(null, if (isSortedColumn) Typeface.BOLD else Typeface.NORMAL)
         }
-
-        // Update the delete column header
         val deleteHeader = headerContainer.getChildAt(columnHeaders.size) as? TextView
         deleteHeader?.text = ""
     }
 
+    /**
+     * Sorts the table by a given column.
+     */
     private fun sortByColumn(columnIndex: Int) {
         if (sortedColumnIndex == columnIndex) {
             sortedColumnDirection = !sortedColumnDirection
@@ -152,13 +149,10 @@ class TableView<T> @JvmOverloads constructor(
             sortedColumnIndex = columnIndex
             sortedColumnDirection = true
         }
-
         val valueGetter = columnValueGetter ?: return
-
         originalData = originalData.sortedWith(Comparator { a, b ->
-            val aValue = valueGetter(a, columnIndex) as? Comparable<Any> // Safely cast to Comparable
-            val bValue = valueGetter(b, columnIndex) as? Comparable<Any> // Safely cast to Comparable
-
+            val aValue = valueGetter(a, columnIndex) as? Comparable<Any>
+            val bValue = valueGetter(b, columnIndex) as? Comparable<Any>
             when {
                 aValue == null && bValue == null -> 0
                 aValue == null -> if (sortedColumnDirection) -1 else 1
@@ -166,11 +160,10 @@ class TableView<T> @JvmOverloads constructor(
                 else -> if (sortedColumnDirection) aValue.compareTo(bValue) else bValue.compareTo(aValue)
             }
         })
-
-        val columnHeaders = (0 until headerContainer.childCount).map { index ->
+        val headers = (0 until headerContainer.childCount).map { index ->
             (headerContainer.getChildAt(index) as TextView).text.toString().removeSuffix(" ▲").removeSuffix(" ▼")
         }
-        generateHeaders(columnHeaders)
+        generateHeaders(headers)
         showPage(0)
     }
 }
