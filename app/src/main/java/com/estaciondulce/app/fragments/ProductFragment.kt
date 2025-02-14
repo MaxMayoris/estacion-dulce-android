@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Observer
 import com.estaciondulce.app.activities.ProductEditActivity
 import com.estaciondulce.app.adapters.ProductAdapter
 import com.estaciondulce.app.databinding.FragmentProductBinding
@@ -22,19 +21,7 @@ class ProductFragment : Fragment() {
 
     private var _binding: FragmentProductBinding? = null
     private val binding get() = _binding!!
-
     private val repository = FirestoreRepository
-
-    /**
-     * Launcher for ProductEditActivity.
-     */
-    private val productEditActivityLauncher = registerForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            // Global LiveData updates automatically.
-        }
-    }
 
     override fun onCreateView(
         inflater: android.view.LayoutInflater,
@@ -51,15 +38,15 @@ class ProductFragment : Fragment() {
     override fun onViewCreated(view: android.view.View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        repository.productsLiveData.observe(viewLifecycleOwner, Observer { products ->
+        repository.productsLiveData.observe(viewLifecycleOwner) { products ->
             setupTableView(products)
-        })
+        }
 
-        repository.measuresLiveData.observe(viewLifecycleOwner, Observer {
+        repository.measuresLiveData.observe(viewLifecycleOwner) {
             repository.productsLiveData.value?.let { products ->
                 setupTableView(products)
             }
-        })
+        }
 
         binding.addProductButton.setOnClickListener {
             openProductEditActivity(null)
@@ -69,8 +56,9 @@ class ProductFragment : Fragment() {
             override fun afterTextChanged(s: Editable?) {
                 filterProducts(s.toString())
             }
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) { }
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
     }
 
@@ -83,6 +71,17 @@ class ProductFragment : Fragment() {
             intent.putExtra("PRODUCT", product)
         }
         productEditActivityLauncher.launch(intent)
+    }
+
+    /**
+     * Launcher for ProductEditActivity.
+     */
+    private val productEditActivityLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            // Global LiveData updates automatically.
+        }
     }
 
     /**
@@ -133,15 +132,31 @@ class ProductFragment : Fragment() {
      * Deletes a product using ProductsHelper.
      */
     private fun deleteProduct(product: Product) {
-        ProductsHelper().deleteProduct(
-            productId = product.id,
-            onSuccess = {
-                Snackbar.make(binding.root, "Producto eliminado correctamente.", Snackbar.LENGTH_LONG).show()
-            },
-            onError = {
-                Snackbar.make(binding.root, "Error al eliminar el producto.", Snackbar.LENGTH_LONG).show()
+        val dialog = android.app.AlertDialog.Builder(requireContext())
+            .setTitle("Confirmar Eliminación")
+            .setMessage("¿Está seguro de que desea eliminar el producto '${product.name}'?")
+            .setPositiveButton("Eliminar") { _, _ ->
+                ProductsHelper().deleteProduct(
+                    productId = product.id,
+                    onSuccess = {
+                        Snackbar.make(
+                            binding.root,
+                            "Producto eliminado correctamente.",
+                            Snackbar.LENGTH_LONG
+                        ).show()
+                    },
+                    onError = {
+                        Snackbar.make(
+                            binding.root,
+                            "Error al eliminar el producto.",
+                            Snackbar.LENGTH_LONG
+                        ).show()
+                    }
+                )
             }
-        )
+            .setNegativeButton("Cancelar", null)
+            .create()
+        dialog.show()
     }
 
     override fun onDestroyView() {

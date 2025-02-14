@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import androidx.lifecycle.MutableLiveData
 import com.estaciondulce.app.models.Category
 import com.estaciondulce.app.models.Measure
+import com.estaciondulce.app.models.Person
 import com.estaciondulce.app.models.Product
 import com.estaciondulce.app.models.Recipe
 import com.estaciondulce.app.models.Section
@@ -20,6 +21,7 @@ object FirestoreRepository {
     val measuresLiveData = MutableLiveData<List<Measure>>()
     val categoriesLiveData = MutableLiveData<List<Category>>()
     val sectionsLiveData = MutableLiveData<List<Section>>()
+    val personsLiveData = MutableLiveData<List<Person>>()
 
     // Listener registrations (to remove them later if needed)
     private var productsListener: ListenerRegistration? = null
@@ -27,6 +29,7 @@ object FirestoreRepository {
     private var measuresListener: ListenerRegistration? = null
     private var categoriesListener: ListenerRegistration? = null
     private var sectionsListener: ListenerRegistration? = null
+    private var personsListener: ListenerRegistration? = null
 
     /**
      * Starts snapshot listeners for collections.
@@ -95,6 +98,18 @@ object FirestoreRepository {
                 sectionsLiveData.postValue(sections)
             }
 
+        // Listen to the "persons" collection.
+        personsListener = firestore.collection("persons")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    return@addSnapshotListener
+                }
+                val persons = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(Person::class.java)?.apply { id = doc.id }
+                } ?: emptyList()
+                personsLiveData.postValue(persons)
+            }
+
     }
 
     /**
@@ -104,5 +119,8 @@ object FirestoreRepository {
         productsListener?.remove()
         recipesListener?.remove()
         measuresListener?.remove()
+        categoriesListener?.remove()
+        sectionsListener?.remove()
+        personsListener?.remove()
     }
 }

@@ -30,6 +30,7 @@
         <activity android:name=".activities.HomeActivity" />
         <activity android:name=".activities.ProductEditActivity" />
         <activity android:name=".activities.RecipeEditActivity" />
+        <activity android:name=".activities.PersonEditActivity" />
     </application>
 
 </manifest>
