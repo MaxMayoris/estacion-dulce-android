@@ -6,8 +6,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import com.estaciondulce.app.R
-import com.estaciondulce.app.fragments.TransactionFragment
 import com.estaciondulce.app.fragments.HomeFragment
+import com.estaciondulce.app.fragments.MovementFragment
 import com.estaciondulce.app.fragments.PersonFragment
 import com.estaciondulce.app.fragments.ProductFragment
 import com.estaciondulce.app.fragments.RecipeFragment
@@ -21,7 +21,7 @@ class HomeActivity : AppCompatActivity() {
     private val productFragment = ProductFragment()
     private val recipeFragment = RecipeFragment()
     private val personFragment = PersonFragment()
-    private val transactionFragment = TransactionFragment()
+    private val movementFragment = MovementFragment()
     private lateinit var loader: CustomLoader
 
     /**
@@ -43,6 +43,9 @@ class HomeActivity : AppCompatActivity() {
         FirestoreRepository.measuresLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.categoriesLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.sectionsLiveData.observe(this, dataLoadedObserver)
+        FirestoreRepository.personsLiveData.observe(this, dataLoadedObserver)
+        FirestoreRepository.movementsLiveData.observe(this, dataLoadedObserver)
+        FirestoreRepository.addressesLiveData.observe(this, dataLoadedObserver)
 
         val bottomNavigationView =
             findViewById<BottomNavigationView>(R.id.bottomNavigationView)
@@ -66,8 +69,8 @@ class HomeActivity : AppCompatActivity() {
                     loadFragment(personFragment); true
                 }
 
-                R.id.nav_transaction -> {
-                    loadFragment(transactionFragment); true
+                R.id.nav_movement -> {
+                    loadFragment(movementFragment); true
                 }
 
                 else -> false
@@ -76,7 +79,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     /**
-     * Checks if recipes, products, and measures are loaded and hides the loader if so.
+     * Checks if data are loaded and hides the loader if so.
      */
     private fun checkDataLoaded() {
         val recipesLoaded = FirestoreRepository.recipesLiveData.value?.isNotEmpty() ?: false
@@ -84,8 +87,11 @@ class HomeActivity : AppCompatActivity() {
         val measuresLoaded = FirestoreRepository.measuresLiveData.value?.isNotEmpty() ?: false
         val categoriesLoaded = FirestoreRepository.categoriesLiveData.value?.isNotEmpty() ?: false
         val sectionsLoaded = FirestoreRepository.sectionsLiveData.value?.isNotEmpty() ?: false
+        val personsLoaded = FirestoreRepository.personsLiveData.value?.isNotEmpty() ?: false
+        val movementsLoaded = FirestoreRepository.movementsLiveData.value?.isNotEmpty() ?: false
+        val addressesLoaded = FirestoreRepository.addressesLiveData.value?.isNotEmpty() ?: false
 
-        if (recipesLoaded && productsLoaded && measuresLoaded && categoriesLoaded && sectionsLoaded) {
+        if (recipesLoaded && productsLoaded && measuresLoaded && categoriesLoaded && sectionsLoaded && personsLoaded && movementsLoaded && addressesLoaded) {
             loader.hide()
         }
     }

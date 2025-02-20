@@ -22,7 +22,7 @@
         android:title="Personas" />
 
     <item
-        android:id="@+id/nav_transaction"
+        android:id="@+id/nav_movement"
         android:icon="@drawable/ic_sale"
         android:title="Movimientos" />
 

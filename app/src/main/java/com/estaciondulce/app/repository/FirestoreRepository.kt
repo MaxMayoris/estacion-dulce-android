@@ -2,8 +2,10 @@ package com.estaciondulce.app.repository
 
 import android.annotation.SuppressLint
 import androidx.lifecycle.MutableLiveData
+import com.estaciondulce.app.models.Address
 import com.estaciondulce.app.models.Category
 import com.estaciondulce.app.models.Measure
+import com.estaciondulce.app.models.Movement
 import com.estaciondulce.app.models.Person
 import com.estaciondulce.app.models.Product
 import com.estaciondulce.app.models.Recipe
@@ -22,6 +24,8 @@ object FirestoreRepository {
     val categoriesLiveData = MutableLiveData<List<Category>>()
     val sectionsLiveData = MutableLiveData<List<Section>>()
     val personsLiveData = MutableLiveData<List<Person>>()
+    val movementsLiveData = MutableLiveData<List<Movement>>()
+    val addressesLiveData = MutableLiveData<List<Address>>()
 
     // Listener registrations (to remove them later if needed)
     private var productsListener: ListenerRegistration? = null
@@ -30,6 +34,8 @@ object FirestoreRepository {
     private var categoriesListener: ListenerRegistration? = null
     private var sectionsListener: ListenerRegistration? = null
     private var personsListener: ListenerRegistration? = null
+    private var movementsListener: ListenerRegistration? = null
+    private var addressesListener: ListenerRegistration? = null
 
     /**
      * Starts snapshot listeners for collections.
@@ -110,6 +116,30 @@ object FirestoreRepository {
                 personsLiveData.postValue(persons)
             }
 
+        // Listen to the "movements" collection.
+        movementsListener = firestore.collection("movements")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    return@addSnapshotListener
+                }
+                val movements = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(Movement::class.java)?.apply { id = doc.id }
+                } ?: emptyList()
+                movementsLiveData.postValue(movements)
+            }
+
+        // Listen to the "addresses" collection.
+        addressesListener = firestore.collection("addresses")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    return@addSnapshotListener
+                }
+                val addresses = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(Address::class.java)?.apply { id = doc.id }
+                } ?: emptyList()
+                addressesLiveData.postValue(addresses)
+            }
+
     }
 
     /**
@@ -122,5 +152,6 @@ object FirestoreRepository {
         categoriesListener?.remove()
         sectionsListener?.remove()
         personsListener?.remove()
+        movementsListener?.remove()
     }
 }

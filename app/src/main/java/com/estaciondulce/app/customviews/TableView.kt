@@ -115,7 +115,7 @@ class TableView<T> @JvmOverloads constructor(
             // Add blank header for delete column.
             val deleteHeader = TextView(context).apply {
                 layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply {
-                    weight = 1f
+                    weight = 0.3f
                 }
                 setPadding(16, 16, 16, 16)
                 setBackgroundColor(context.getColor(R.color.purple_700))
