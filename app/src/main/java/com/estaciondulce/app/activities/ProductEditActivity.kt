@@ -35,7 +35,8 @@ class ProductEditActivity : AppCompatActivity() {
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         currentProduct = intent.getParcelableExtra("PRODUCT")
-        supportActionBar?.title = if (currentProduct != null) "Editar Producto" else "Agregar Producto"
+        supportActionBar?.title =
+            if (currentProduct != null) "Editar Producto" else "Agregar Producto"
 
         repository.measuresLiveData.observe(this) { measures ->
             setupMeasureSpinner(measures)
@@ -48,10 +49,30 @@ class ProductEditActivity : AppCompatActivity() {
             binding.productMinimumQuantityInput.setText(product.minimumQuantity.toString())
         }
 
-        binding.stockDecrementButton.setOnClickListener { adjustValue(binding.productStockInput, -1.0) }
-        binding.stockIncrementButton.setOnClickListener { adjustValue(binding.productStockInput, 1.0) }
-        binding.minQtyDecrementButton.setOnClickListener { adjustValue(binding.productMinimumQuantityInput, -1.0) }
-        binding.minQtyIncrementButton.setOnClickListener { adjustValue(binding.productMinimumQuantityInput, 1.0) }
+        binding.stockDecrementButton.setOnClickListener {
+            adjustValue(
+                binding.productStockInput,
+                -1.0
+            )
+        }
+        binding.stockIncrementButton.setOnClickListener {
+            adjustValue(
+                binding.productStockInput,
+                1.0
+            )
+        }
+        binding.minQtyDecrementButton.setOnClickListener {
+            adjustValue(
+                binding.productMinimumQuantityInput,
+                -1.0
+            )
+        }
+        binding.minQtyIncrementButton.setOnClickListener {
+            adjustValue(
+                binding.productMinimumQuantityInput,
+                1.0
+            )
+        }
 
         binding.saveProductButton.setOnClickListener { saveProduct() }
     }
@@ -61,7 +82,10 @@ class ProductEditActivity : AppCompatActivity() {
      */
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            android.R.id.home -> { finish(); true }
+            android.R.id.home -> {
+                finish(); true
+            }
+
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -71,7 +95,8 @@ class ProductEditActivity : AppCompatActivity() {
      */
     private fun setupMeasureSpinner(measures: List<com.estaciondulce.app.models.Measure>) {
         val measureNames = measures.map { it.name }
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, measureNames)
+        val adapter =
+            ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, measureNames)
         binding.measureDropdown.adapter = adapter
 
         currentProduct?.measure?.let { productMeasureId ->
@@ -80,10 +105,18 @@ class ProductEditActivity : AppCompatActivity() {
             if (position >= 0) binding.measureDropdown.setSelection(position)
         }
 
-        binding.measureDropdown.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long) { }
-            override fun onNothingSelected(parent: AdapterView<*>?) { }
-        }
+        binding.measureDropdown.onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: android.view.View?,
+                    position: Int,
+                    id: Long
+                ) {
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
     }
 
     /**
@@ -112,26 +145,37 @@ class ProductEditActivity : AppCompatActivity() {
     private fun validateInputs(): Boolean {
         val productName = binding.productNameInput.text.toString().trim()
         if (productName.isEmpty()) {
-            Snackbar.make(binding.root, "El nombre del producto es obligatorio.", Snackbar.LENGTH_LONG).show()
+            Snackbar.make(
+                binding.root,
+                "El nombre del producto es obligatorio.",
+                Snackbar.LENGTH_LONG
+            ).show()
             return false
         }
         if (!isUniqueProductName(productName, currentProduct?.id)) {
-            Snackbar.make(binding.root, "El nombre del producto ya existe.", Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root, "El nombre del producto ya existe.", Snackbar.LENGTH_LONG)
+                .show()
             return false
         }
         val stock = binding.productStockInput.text.toString().toDoubleOrNull() ?: -1.0
         if (stock < 0) {
-            Snackbar.make(binding.root, "El stock no puede ser menor a 0.", Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root, "El stock no puede ser menor a 0.", Snackbar.LENGTH_LONG)
+                .show()
             return false
         }
         val cost = binding.productCostInput.text.toString().toDoubleOrNull() ?: -1.0
         if (cost <= 0) {
-            Snackbar.make(binding.root, "El costo no puede ser menor a 0.", Snackbar.LENGTH_LONG).show()
+            Snackbar.make(binding.root, "El costo no puede ser menor a 0.", Snackbar.LENGTH_LONG)
+                .show()
             return false
         }
         val minQty = binding.productMinimumQuantityInput.text.toString().toDoubleOrNull() ?: -1.0
         if (minQty <= 0) {
-            Snackbar.make(binding.root, "La cantidad mínima no puede ser menor a 0.", Snackbar.LENGTH_LONG).show()
+            Snackbar.make(
+                binding.root,
+                "La cantidad mínima no puede ser menor a 0.",
+                Snackbar.LENGTH_LONG
+            ).show()
             return false
         }
         val measureName = binding.measureDropdown.selectedItem?.toString()
@@ -159,7 +203,8 @@ class ProductEditActivity : AppCompatActivity() {
         val roundedMinQty = Math.round(minQty * 100.0) / 100.0
 
         val measureName = binding.measureDropdown.selectedItem?.toString()
-        val measureId = repository.measuresLiveData.value?.find { it.name == measureName }?.id.orEmpty()
+        val measureId =
+            repository.measuresLiveData.value?.find { it.name == measureName }?.id.orEmpty()
 
         return Product(
             id = currentProduct?.id ?: "",
@@ -181,12 +226,20 @@ class ProductEditActivity : AppCompatActivity() {
             productsHelper.addProduct(
                 product = productToSave,
                 onSuccess = {
-                    Snackbar.make(binding.root, "Producto añadido correctamente.", Snackbar.LENGTH_LONG).show()
+                    Snackbar.make(
+                        binding.root,
+                        "Producto añadido correctamente.",
+                        Snackbar.LENGTH_LONG
+                    ).show()
                     setResult(Activity.RESULT_OK)
                     finish()
                 },
                 onError = {
-                    Snackbar.make(binding.root, "Error al añadir el producto.", Snackbar.LENGTH_LONG).show()
+                    Snackbar.make(
+                        binding.root,
+                        "Error al añadir el producto.",
+                        Snackbar.LENGTH_LONG
+                    ).show()
                 }
             )
         } else {
@@ -194,13 +247,32 @@ class ProductEditActivity : AppCompatActivity() {
                 productId = currentProduct!!.id,
                 product = productToSave,
                 onSuccess = {
-                    recipesHelper.updateAffectedRecipes(currentProduct!!.id)
-                    Snackbar.make(binding.root, "Producto actualizado correctamente.", Snackbar.LENGTH_LONG).show()
-                    setResult(Activity.RESULT_OK)
-                    finish()
+                    RecipesHelper().updateCascadeAffectedRecipesFromProduct(
+                        currentProduct!!.id,
+                        onComplete = {
+                            Snackbar.make(
+                                binding.root,
+                                "Producto actualizado correctamente.",
+                                Snackbar.LENGTH_LONG
+                            ).show()
+                            setResult(Activity.RESULT_OK)
+                            finish()
+                        },
+                        onError = { exception ->
+                            Snackbar.make(
+                                binding.root,
+                                "Error en actualización en cascada: ${exception.message}",
+                                Snackbar.LENGTH_LONG
+                            ).show()
+                        }
+                    )
                 },
                 onError = {
-                    Snackbar.make(binding.root, "Error al actualizar el producto.", Snackbar.LENGTH_LONG).show()
+                    Snackbar.make(
+                        binding.root,
+                        "Error al actualizar el producto.",
+                        Snackbar.LENGTH_LONG
+                    ).show()
                 }
             )
         }
