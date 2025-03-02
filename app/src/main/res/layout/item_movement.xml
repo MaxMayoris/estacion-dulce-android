@@ -16,16 +16,42 @@
         android:text="Nombre del Ítem"
         android:textSize="16sp" />
 
-    <!-- Quantity (editable) -->
-    <EditText
-        android:id="@+id/quantityEditText"
+    <!-- Quantity with decrement and increment buttons -->
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:hint="Cantidad"
-        android:inputType="numberDecimal"
-        android:padding="4dp"
-        android:textSize="16sp" />
+        android:layout_weight="2"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+    <Button
+            android:id="@+id/decrementButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="-"
+            android:textSize="20sp"
+            android:backgroundTint="@color/purple_200" />
+
+        <EditText
+            android:id="@+id/quantityEditText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minWidth="40dp"
+            android:hint="Cantidad"
+            android:inputType="numberDecimal"
+            android:padding="4dp"
+            android:textSize="16sp" />
+
+
+        <Button
+            android:id="@+id/incrementButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="+"
+            android:textSize="20sp"
+            android:backgroundTint="@color/purple_200" />
+    </LinearLayout>
 
     <!-- Cost (editable) -->
     <EditText
@@ -47,5 +73,4 @@
         android:contentDescription="Eliminar ítem"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:scaleType="centerInside" />
-
 </LinearLayout>
