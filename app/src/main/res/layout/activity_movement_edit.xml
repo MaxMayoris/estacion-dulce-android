@@ -14,47 +14,49 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
 
-            <!-- Fecha -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical">
+
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
                     android:text="Fecha"
                     android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
+                    android:textStyle="bold" />
+
                 <EditText
                     android:id="@+id/dateInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Selecciona la fecha"
-                    android:focusable="false"
                     android:clickable="true"
+                    android:focusable="false"
+                    android:hint="Selecciona la fecha"
                     android:padding="12dp"
                     android:textSize="16sp" />
             </LinearLayout>
 
-            <!-- Persona -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:layout_marginStart="8dp">
+                android:orientation="vertical">
+
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
                     android:text="Persona"
                     android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
+                    android:textStyle="bold" />
+
                 <Spinner
                     android:id="@+id/personSpinner"
                     android:layout_width="match_parent"
@@ -66,42 +68,44 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
 
-            <!-- Tipo de Movimiento -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical">
+
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
                     android:text="Tipo de Movimiento"
                     android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
+                    android:textStyle="bold" />
+
                 <Spinner
                     android:id="@+id/movementTypeSpinner"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
             </LinearLayout>
 
-            <!-- Monto Total -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:layout_marginStart="8dp">
+                android:orientation="vertical">
+
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
                     android:text="Monto Total"
                     android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
+                    android:textStyle="bold" />
+
                 <EditText
                     android:id="@+id/totalAmountInput"
                     android:layout_width="match_parent"
@@ -113,14 +117,31 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Items Section -->
-        <TextView
+        <!-- Row: Título Ítems y Botón Agregar -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Ítems"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="4dp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:id="@+id/itemsHeader"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Detalle de Ítems"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/addItemButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="+"
+                android:textAllCaps="false" />
+        </LinearLayout>
 
         <!-- RecyclerView for movement items -->
         <androidx.recyclerview.widget.RecyclerView
@@ -129,44 +150,91 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp" />
 
-        <!-- Botón para Agregar Ítem -->
-        <Button
-            android:id="@+id/addItemButton"
+        <!-- Row: Shipping (only for sale movements) -->
+        <LinearLayout
+            android:id="@+id/shippingRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Agregar Ítem"
-            android:textAllCaps="false"
-            android:layout_marginBottom="16dp" />
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:layout_marginBottom="8dp">
 
-        <!-- Costo de Envío (visible solo si es Venta) -->
-        <TextView
-            android:id="@+id/shippingCostLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Costo de Envío"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="4dp"
-            android:visibility="gone" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
-        <EditText
-            android:id="@+id/shippingCostInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Ingrese el costo de envío"
-            android:inputType="numberDecimal"
-            android:padding="12dp"
-            android:textSize="16sp"
-            android:layout_marginBottom="16dp"
-            android:visibility="gone" />
+                <TextView
+                    android:id="@+id/shippingLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tiene Envío?"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-        <!-- Botón para Guardar Movimiento -->
+                <CheckBox
+                    android:id="@+id/shippingCheckBox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false"
+                    android:layout_marginStart="8dp" />
+
+                <TextView
+                    android:id="@+id/shippingCostLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Costo:"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginStart="16dp" />
+
+                <EditText
+                    android:id="@+id/shippingCostInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Ingrese el costo de envío"
+                    android:inputType="numberDecimal"
+                    android:padding="12dp"
+                    android:textSize="16sp"
+                    android:layout_marginStart="8dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="8dp">
+
+                <TextView
+                    android:id="@+id/shippingAddressLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Dirección:"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/shippingAddressInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Ingrese la dirección"
+                    android:inputType="text"
+                    android:padding="12dp"
+                    android:textSize="16sp"
+                    android:layout_marginStart="8dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Button to save movement -->
         <Button
             android:id="@+id/saveMovementButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Guardar Movimiento"
+            android:text="Guardar"
             android:textAllCaps="false" />
-
     </LinearLayout>
 </ScrollView>

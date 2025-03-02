@@ -7,6 +7,7 @@ import kotlinx.parcelize.Parcelize
 data class MovementItem(
     val collection: String = "",
     val collectionId: String = "",
+    var customName: String? = null,
     var cost: Double = 0.0,
     var quantity: Double = 0.0
 ) : Parcelable

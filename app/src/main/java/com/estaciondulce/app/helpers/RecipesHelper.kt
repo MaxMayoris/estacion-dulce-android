@@ -200,4 +200,68 @@ class RecipesHelper(
             String.format("%.2f", suggestedPrice).toDouble()
         )
     }
+
+    fun updateCascadeAffectedRecipesFromProduct(productId: String, onComplete: () -> Unit, onError: (Exception) -> Unit) {
+        val db = FirebaseFirestore.getInstance()
+        // Primero, actualizamos las recetas que usan directamente el producto.
+        updateAffectedRecipes(productId)
+
+        // Obtenemos el estado actual de las recetas y productos (asegúrate de que tus LiveData estén actualizadas)
+        val allProducts: Map<String, Pair<String, Double>> =
+            FirestoreRepository.productsLiveData.value?.associate { it.id to Pair(it.name, it.cost) } ?: emptyMap()
+        val allRecipesList = FirestoreRepository.recipesLiveData.value ?: emptyList()
+        val allRecipes: Map<String, Recipe> = allRecipesList.associateBy { it.id }
+
+        // Función auxiliar: obtiene las recetas que usan una receta (anidada)
+        fun getRecipesUsingRecipe(recipeId: String): List<Recipe> {
+            return allRecipesList.filter { parent ->
+                parent.recipes.any { nested -> nested.recipeId == recipeId }
+            }
+        }
+
+        // Usamos un algoritmo BFS para recorrer la jerarquía de recetas afectadas.
+        val processed = mutableSetOf<String>()
+        val queue = ArrayDeque<Recipe>()
+
+        // Comenzamos con las recetas directamente afectadas por el producto.
+        val directAffected = allRecipesList.filter { recipe ->
+            recipe.sections.any { section ->
+                section.products.any { it.productId == productId }
+            } || recipe.recipes.any { it.recipeId == productId }
+        }
+        queue.addAll(directAffected)
+
+        fun processQueue() {
+            if (queue.isEmpty()) {
+                onComplete()
+                return
+            }
+            val currentRecipe = queue.removeFirst()
+            if (processed.contains(currentRecipe.id)) {
+                processQueue()
+                return
+            }
+            processed.add(currentRecipe.id)
+            // Recalcular el costo y precio sugerido para currentRecipe.
+            val (newCost, newSuggestedPrice) = calculateCostAndSuggestedPrice(currentRecipe, allProducts, allRecipes)
+            db.collection("recipes").document(currentRecipe.id)
+                .update(mapOf("cost" to newCost, "suggestedPrice" to newSuggestedPrice))
+                .addOnSuccessListener {
+                    // Luego, buscamos las recetas que usan currentRecipe y las agregamos a la cola.
+                    val parentRecipes = getRecipesUsingRecipe(currentRecipe.id)
+                    parentRecipes.forEach { parent ->
+                        if (!processed.contains(parent.id)) {
+                            queue.add(parent)
+                        }
+                    }
+                    // Procesa el siguiente elemento.
+                    processQueue()
+                }
+                .addOnFailureListener { exception ->
+                    onError(exception)
+                }
+        }
+
+        processQueue()
+    }
 }

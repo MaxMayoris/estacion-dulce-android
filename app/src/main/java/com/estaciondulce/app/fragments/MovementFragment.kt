@@ -34,7 +34,6 @@ class MovementFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Observe movimientos y personas para unir la información al mostrarlos
         repository.movementsLiveData.observe(viewLifecycleOwner) { movements ->
             setupTableView(movements)
         }
@@ -84,7 +83,7 @@ class MovementFragment : Fragment() {
      * The table displays Fecha, Nombre (obtained via personId), Monto, and Tipo (Compra o Venta).
      */
     private fun setupTableView(movements: List<Movement>) {
-        val sortedList = movements.sortedBy { it.date }
+        val sortedList = movements.sortedByDescending { it.date }
         binding.movementTable.setupTable(
             columnHeaders = listOf("Fecha", "Nombre", "Monto", "Tipo"),
             data = sortedList,
@@ -94,11 +93,9 @@ class MovementFragment : Fragment() {
                 onDeleteClick = { movement -> deleteMovement(movement) }
             ) { movement ->
                 val dateString = android.text.format.DateFormat.format("yyyy-MM-dd", movement.date).toString()
-                // Lookup the person's name from personsLiveData using personId
                 val personName = repository.personsLiveData.value?.find { it.id == movement.personId }?.let {
                     "${it.name} ${it.lastName}"
                 } ?: "Desconocido"
-                // Display "Compra" for PURCHASE and "Venta" for SALE
                 val movementTypeDisplay = when (movement.type) {
                     EMovementType.PURCHASE -> "Compra"
                     EMovementType.SALE -> "Venta"

@@ -19,17 +19,45 @@ class MovementItemsAdapter(
     inner class ViewHolder(val binding: ItemMovementBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: MovementItem, position: Int) {
-            // Use the callback to display the name
+            // Mostrar el nombre usando el callback (incluye la lógica para productos, recetas y personalizados)
             binding.itemNameTextView.text = getDisplayName(item.collection, item.collectionId)
+            // Mostrar cantidad y costo actual
             binding.quantityEditText.setText(item.quantity.toString())
             binding.costEditText.setText(item.cost.toString())
+
+            // Listener para incrementar la cantidad en 1.0
+            binding.incrementButton.setOnClickListener {
+                item.quantity += 1.0
+                binding.quantityEditText.setText(item.quantity.toString())
+                onItemChanged()
+            }
+
+            // Listener para decrementar la cantidad en 1.0, sólo si el nuevo valor es mayor a 0
+            binding.decrementButton.setOnClickListener {
+                // Solo decrementamos si el resultado es > 0.0
+                if (item.quantity - 1.0 > 0.0) {
+                    item.quantity -= 1.0
+                    binding.quantityEditText.setText(item.quantity.toString())
+                    onItemChanged()
+                }
+            }
+
+            // Botón para eliminar el ítem
             binding.deleteItemButton.setOnClickListener {
                 onDeleteClicked(position)
             }
+
+            // TextWatcher para detectar cambios manuales en el campo de cantidad
             binding.quantityEditText.addTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(s: Editable?) {
-                    val newQuantity = s.toString().toDoubleOrNull() ?: 0.0
-                    if (newQuantity != item.quantity) {
+                    val newQuantity = s.toString().toDoubleOrNull()
+                    // Si el valor es nulo o menor o igual a 0, se revierte al último valor válido.
+                    if (newQuantity == null || newQuantity <= 0.0) {
+                        binding.quantityEditText.removeTextChangedListener(this)
+                        binding.quantityEditText.setText(item.quantity.toString())
+                        binding.quantityEditText.setSelection(binding.quantityEditText.text.length)
+                        binding.quantityEditText.addTextChangedListener(this)
+                    } else if (newQuantity != item.quantity) {
                         item.quantity = newQuantity
                         onItemChanged()
                     }
@@ -37,6 +65,8 @@ class MovementItemsAdapter(
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             })
+
+            // TextWatcher para el costo
             binding.costEditText.addTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(s: Editable?) {
                     val newCost = s.toString().toDoubleOrNull() ?: 0.0
@@ -67,3 +97,5 @@ class MovementItemsAdapter(
         notifyDataSetChanged()
     }
 }
+
+

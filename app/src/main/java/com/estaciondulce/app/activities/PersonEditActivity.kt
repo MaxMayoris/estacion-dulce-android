@@ -183,7 +183,6 @@ class PersonEditActivity : AppCompatActivity() {
         val personToSave = getPersonFromInputs()
 
         if (currentPerson == null) {
-            // Agregar nueva persona
             personsHelper.addPerson(
                 person = personToSave,
                 onSuccess = { newPerson ->
@@ -196,7 +195,6 @@ class PersonEditActivity : AppCompatActivity() {
                 }
             )
         } else {
-            // Actualizar persona existente
             personsHelper.updatePerson(
                 personId = currentPerson!!.id,
                 person = personToSave,
