@@ -51,8 +51,9 @@ class MovementFragment : Fragment() {
             override fun afterTextChanged(s: Editable?) {
                 filterMovements(s.toString())
             }
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) { }
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
     }
 
@@ -74,7 +75,7 @@ class MovementFragment : Fragment() {
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // La LiveData global se actualiza automáticamente.
+            // Global LiveData is updated automatically.
         }
     }
 
@@ -92,10 +93,12 @@ class MovementFragment : Fragment() {
                 onRowClick = { movement -> editMovement(movement) },
                 onDeleteClick = { movement -> deleteMovement(movement) }
             ) { movement ->
-                val dateString = android.text.format.DateFormat.format("yyyy-MM-dd", movement.date).toString()
-                val personName = repository.personsLiveData.value?.find { it.id == movement.personId }?.let {
-                    "${it.name} ${it.lastName}"
-                } ?: "Desconocido"
+                val dateString =
+                    android.text.format.DateFormat.format("yyyy-MM-dd", movement.date).toString()
+                val personName =
+                    repository.personsLiveData.value?.find { it.id == movement.personId }?.let {
+                        "${it.name} ${it.lastName}"
+                    } ?: "Desconocido"
                 val movementTypeDisplay = when (movement.type) {
                     EMovementType.PURCHASE -> "Compra"
                     EMovementType.SALE -> "Venta"
@@ -112,16 +115,21 @@ class MovementFragment : Fragment() {
             columnValueGetter = { item, columnIndex ->
                 val movement = item as Movement
                 when (columnIndex) {
-                    0 -> android.text.format.DateFormat.format("yyyy-MM-dd", movement.date).toString()
-                    1 -> repository.personsLiveData.value?.find { it.id == movement.personId }?.let {
-                        "${it.name} ${it.lastName}"
-                    } ?: "Desconocido"
+                    0 -> android.text.format.DateFormat.format("yyyy-MM-dd", movement.date)
+                        .toString()
+
+                    1 -> repository.personsLiveData.value?.find { it.id == movement.personId }
+                        ?.let {
+                            "${it.name} ${it.lastName}"
+                        } ?: "Desconocido"
+
                     2 -> movement.totalAmount
                     3 -> when (movement.type) {
                         EMovementType.PURCHASE -> "Compra"
                         EMovementType.SALE -> "Venta"
                         else -> "No disponible"
                     }
+
                     else -> null
                 }
             }
@@ -135,9 +143,10 @@ class MovementFragment : Fragment() {
     private fun filterMovements(query: String) {
         val movements = repository.movementsLiveData.value ?: emptyList()
         val filteredList = movements.filter { movement ->
-            val personName = repository.personsLiveData.value?.find { it.id == movement.personId }?.let {
-                "${it.name} ${it.lastName}"
-            } ?: ""
+            val personName =
+                repository.personsLiveData.value?.find { it.id == movement.personId }?.let {
+                    "${it.name} ${it.lastName}"
+                } ?: ""
             personName.contains(query, ignoreCase = true)
         }
         setupTableView(filteredList)
@@ -155,10 +164,18 @@ class MovementFragment : Fragment() {
                 MovementsHelper().deleteMovement(
                     movementId = movement.id,
                     onSuccess = {
-                        Snackbar.make(binding.root, "Movimiento eliminado correctamente.", Snackbar.LENGTH_LONG).show()
+                        Snackbar.make(
+                            binding.root,
+                            "Movimiento eliminado correctamente.",
+                            Snackbar.LENGTH_LONG
+                        ).show()
                     },
                     onError = {
-                        Snackbar.make(binding.root, "Error al eliminar el movimiento.", Snackbar.LENGTH_LONG).show()
+                        Snackbar.make(
+                            binding.root,
+                            "Error al eliminar el movimiento.",
+                            Snackbar.LENGTH_LONG
+                        ).show()
                     }
                 )
             }

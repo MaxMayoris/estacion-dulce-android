@@ -1,6 +1,6 @@
 package com.estaciondulce.app.helpers
 
-import com.estaciondulce.app.models.Product
+import android.annotation.SuppressLint
 import com.estaciondulce.app.models.Recipe
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.google.android.gms.tasks.Tasks
@@ -11,9 +11,7 @@ class RecipesHelper(
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
 
-    /**
-     * Adds a new recipe to the "recipes" collection.
-     */
+    /** Adds a new recipe to the "recipes" collection. */
     fun addRecipe(recipe: Recipe, onSuccess: (Recipe) -> Unit, onError: (Exception) -> Unit) {
         val recipeData = mapOf(
             "name" to recipe.name,
@@ -36,10 +34,13 @@ class RecipesHelper(
         )
     }
 
-    /**
-     * Updates an existing recipe document.
-     */
-    fun updateRecipe(recipeId: String, recipe: Recipe, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+    /** Updates an existing recipe document. */
+    fun updateRecipe(
+        recipeId: String,
+        recipe: Recipe,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
         val recipeData = mapOf(
             "name" to recipe.name,
             "cost" to recipe.cost,
@@ -60,9 +61,7 @@ class RecipesHelper(
         )
     }
 
-    /**
-     * Deletes a recipe from the "recipes" collection.
-     */
+    /** Deletes a recipe from the "recipes" collection. */
     fun deleteRecipe(recipeId: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         genericHelper.deleteDocument(
             collectionName = "recipes",
@@ -72,18 +71,18 @@ class RecipesHelper(
         )
     }
 
-    /**
-     * Checks if a recipe name is unique (ignoring case) using the global recipes LiveData.
-     */
+    /** Checks if a recipe name is unique (ignoring case) using the global recipes LiveData. */
     fun isRecipeNameUnique(name: String, currentRecipeId: String?, onComplete: (Boolean) -> Unit) {
         val recipes = FirestoreRepository.recipesLiveData.value ?: emptyList()
-        onComplete(recipes.none { it.name.equals(name, ignoreCase = true) && it.id != currentRecipeId })
+        onComplete(recipes.none {
+            it.name.equals(
+                name,
+                ignoreCase = true
+            ) && it.id != currentRecipeId
+        })
     }
 
-    /**
-     * Recursively updates the costs and suggested prices of all parent recipes that use the updated recipe.
-     * A visited set is used to avoid cycles.
-     */
+    /** Recursively updates the costs and suggested prices of all parent recipes that use the updated recipe. */
     fun updateCascadeCosts(
         updatedRecipe: Recipe,
         allProducts: Map<String, Pair<String, Double>>,
@@ -115,10 +114,7 @@ class RecipesHelper(
         }, onError)
     }
 
-    /**
-     * Updates the cost and suggested price for all parent recipes that use the updated recipe.
-     * The local cache (allRecipes) is updated accordingly.
-     */
+    /** Updates the cost and suggested price for all parent recipes that use the updated recipe. */
     private fun updateParentRecipesCosts(
         updatedRecipe: Recipe,
         allProducts: Map<String, Pair<String, Double>>,
@@ -131,11 +127,17 @@ class RecipesHelper(
         val updateTasks = mutableListOf<com.google.android.gms.tasks.Task<Void>>()
         for (parentRecipe in recipes) {
             if (parentRecipe.recipes.any { it.recipeId == updatedRecipe.id }) {
-                val (newCost, newSuggestedPrice) = calculateCostAndSuggestedPrice(parentRecipe, allProducts, allRecipes)
+                val (newCost, newSuggestedPrice) = calculateCostAndSuggestedPrice(
+                    parentRecipe,
+                    allProducts,
+                    allRecipes
+                )
                 val updateData = mapOf("cost" to newCost, "suggestedPrice" to newSuggestedPrice)
-                val updateTask = db.collection("recipes").document(parentRecipe.id).update(updateData)
+                val updateTask =
+                    db.collection("recipes").document(parentRecipe.id).update(updateData)
                 updateTasks.add(updateTask)
-                allRecipes[parentRecipe.id] = parentRecipe.copy(cost = newCost, suggestedPrice = newSuggestedPrice)
+                allRecipes[parentRecipe.id] =
+                    parentRecipe.copy(cost = newCost, suggestedPrice = newSuggestedPrice)
             }
         }
         Tasks.whenAll(updateTasks)
@@ -143,26 +145,31 @@ class RecipesHelper(
             .addOnFailureListener { onError(it) }
     }
 
-    /**
-     * Updates the cost and suggested price for all recipes that use the specified product.
-     */
-    fun updateAffectedRecipes(productId: String) {
+    /** Updates the cost and suggested price for all recipes that use the specified product. */
+    private fun updateAffectedRecipes(productId: String) {
         val db = FirebaseFirestore.getInstance()
         val affectedRecipes = getRecipesUsingProduct(productId)
         val allProducts: Map<String, Pair<String, Double>> =
-            FirestoreRepository.productsLiveData.value?.associate { it.id to Pair(it.name, it.cost) } ?: emptyMap()
+            FirestoreRepository.productsLiveData.value?.associate {
+                it.id to Pair(
+                    it.name,
+                    it.cost
+                )
+            } ?: emptyMap()
         val allRecipes: Map<String, Recipe> =
             FirestoreRepository.recipesLiveData.value?.associateBy { it.id } ?: emptyMap()
         for (recipe in affectedRecipes) {
-            val (newCost, newSuggestedPrice) = calculateCostAndSuggestedPrice(recipe, allProducts, allRecipes)
+            val (newCost, newSuggestedPrice) = calculateCostAndSuggestedPrice(
+                recipe,
+                allProducts,
+                allRecipes
+            )
             db.collection("recipes").document(recipe.id)
                 .update(mapOf("cost" to newCost, "suggestedPrice" to newSuggestedPrice))
         }
     }
 
-    /**
-     * Returns a list of recipes that reference the specified product.
-     */
+    /** Returns a list of recipes that reference the specified product. */
     private fun getRecipesUsingProduct(productId: String): List<Recipe> {
         val allRecipes = FirestoreRepository.recipesLiveData.value ?: emptyList()
         return allRecipes.filter { recipe ->
@@ -172,10 +179,8 @@ class RecipesHelper(
         }
     }
 
-    /**
-     * Calculates the cost per unit and suggested price for a recipe.
-     * Both values are rounded to 2 decimals.
-     */
+    /** Calculates the cost per unit and suggested price for a recipe. */
+    @SuppressLint("DefaultLocale")
     fun calculateCostAndSuggestedPrice(
         recipe: Recipe,
         allProducts: Map<String, Pair<String, Double>>,
@@ -201,36 +206,36 @@ class RecipesHelper(
         )
     }
 
-    fun updateCascadeAffectedRecipesFromProduct(productId: String, onComplete: () -> Unit, onError: (Exception) -> Unit) {
+    fun updateCascadeAffectedRecipesFromProduct(
+        productId: String,
+        onComplete: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
         val db = FirebaseFirestore.getInstance()
-        // Primero, actualizamos las recetas que usan directamente el producto.
         updateAffectedRecipes(productId)
-
-        // Obtenemos el estado actual de las recetas y productos (asegúrate de que tus LiveData estén actualizadas)
         val allProducts: Map<String, Pair<String, Double>> =
-            FirestoreRepository.productsLiveData.value?.associate { it.id to Pair(it.name, it.cost) } ?: emptyMap()
+            FirestoreRepository.productsLiveData.value?.associate {
+                it.id to Pair(
+                    it.name,
+                    it.cost
+                )
+            } ?: emptyMap()
         val allRecipesList = FirestoreRepository.recipesLiveData.value ?: emptyList()
         val allRecipes: Map<String, Recipe> = allRecipesList.associateBy { it.id }
-
-        // Función auxiliar: obtiene las recetas que usan una receta (anidada)
         fun getRecipesUsingRecipe(recipeId: String): List<Recipe> {
             return allRecipesList.filter { parent ->
                 parent.recipes.any { nested -> nested.recipeId == recipeId }
             }
         }
 
-        // Usamos un algoritmo BFS para recorrer la jerarquía de recetas afectadas.
         val processed = mutableSetOf<String>()
         val queue = ArrayDeque<Recipe>()
-
-        // Comenzamos con las recetas directamente afectadas por el producto.
         val directAffected = allRecipesList.filter { recipe ->
             recipe.sections.any { section ->
                 section.products.any { it.productId == productId }
             } || recipe.recipes.any { it.recipeId == productId }
         }
         queue.addAll(directAffected)
-
         fun processQueue() {
             if (queue.isEmpty()) {
                 onComplete()
@@ -242,26 +247,26 @@ class RecipesHelper(
                 return
             }
             processed.add(currentRecipe.id)
-            // Recalcular el costo y precio sugerido para currentRecipe.
-            val (newCost, newSuggestedPrice) = calculateCostAndSuggestedPrice(currentRecipe, allProducts, allRecipes)
+            val (newCost, newSuggestedPrice) = calculateCostAndSuggestedPrice(
+                currentRecipe,
+                allProducts,
+                allRecipes
+            )
             db.collection("recipes").document(currentRecipe.id)
                 .update(mapOf("cost" to newCost, "suggestedPrice" to newSuggestedPrice))
                 .addOnSuccessListener {
-                    // Luego, buscamos las recetas que usan currentRecipe y las agregamos a la cola.
                     val parentRecipes = getRecipesUsingRecipe(currentRecipe.id)
                     parentRecipes.forEach { parent ->
                         if (!processed.contains(parent.id)) {
                             queue.add(parent)
                         }
                     }
-                    // Procesa el siguiente elemento.
                     processQueue()
                 }
                 .addOnFailureListener { exception ->
                     onError(exception)
                 }
         }
-
         processQueue()
     }
 }
