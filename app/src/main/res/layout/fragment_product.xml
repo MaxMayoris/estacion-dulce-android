@@ -37,11 +37,10 @@
         android:id="@+id/addProductButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:contentDescription="Add Product"
-        app:srcCompat="@drawable/ic_plus"
-        android:tint="@android:color/white"
-        app:backgroundTint="@color/purple_700"
+        android:contentDescription="Agregar Producto"
+        app:srcCompat="@drawable/ic_plus_modern"
+        style="@style/CustomFloatingActionButtonStyle"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_margin="16dp" />
+        android:layout_margin="24dp" />
 </androidx.constraintlayout.widget.ConstraintLayout>

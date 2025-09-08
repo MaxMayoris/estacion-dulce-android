@@ -3,6 +3,9 @@ package com.estaciondulce.app.models
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 
+/**
+ * Product data model with inventory tracking and cost management.
+ */
 @Parcelize
 data class Product(
     override var id: String = "",

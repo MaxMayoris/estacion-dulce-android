@@ -9,6 +9,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.TableRowDynamicBinding
 
+/**
+ * Abstract base adapter for table-style RecyclerView with dynamic columns and alternating row colors.
+ */
 abstract class TableAdapter<T>(
     private var dataList: List<T>,
     private val onRowClick: (T) -> Unit,
@@ -35,14 +38,8 @@ abstract class TableAdapter<T>(
 
     override fun getItemCount(): Int = dataList.size
 
-    /**
-     * Returns the list of cell values for the given item.
-     */
     abstract fun getCellValues(item: T, position: Int): List<Any>
 
-    /**
-     * Binds cell views with one line and ellipsis if the content is too long.
-     */
     protected fun bindRowContent(binding: TableRowDynamicBinding, cellValues: List<Any>) {
         binding.rowContainer.removeAllViews()
         for (value in cellValues) {
@@ -51,20 +48,20 @@ abstract class TableAdapter<T>(
                     is Double -> String.format("%.2f", value)
                     else -> value.toString()
                 }
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                setPadding(8, 8, 8, 8)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+                setPadding(12, 12, 12, 12)
                 textAlignment = TextView.TEXT_ALIGNMENT_CENTER
-                setTextColor(binding.root.context.getColor(android.R.color.white))
-                maxLines = 1
+                gravity = android.view.Gravity.CENTER
+                setTextColor(binding.root.context.getColor(R.color.table_cell_text))
+                maxLines = 2 // Permitir hasta 2 líneas
                 ellipsize = TextUtils.TruncateAt.END
+                textSize = 14f
+                setTypeface(null, android.graphics.Typeface.NORMAL)
             }
             binding.rowContainer.addView(textView)
         }
     }
 
-    /**
-     * Binds the row for a given item. Must be implemented by concrete adapters.
-     */
     abstract fun bindRow(binding: TableRowDynamicBinding, item: T, position: Int)
 
     class DynamicViewHolder<T>(
@@ -76,11 +73,9 @@ abstract class TableAdapter<T>(
         fun bind(item: T, bindRowCallback: (TableRowDynamicBinding, T, Int) -> Unit, position: Int) {
             bindRowCallback(binding, item, position)
             val isEvenRow = position % 2 == 0
-            binding.root.setBackgroundColor(
-                if (isEvenRow)
-                    binding.root.context.getColor(R.color.purple_400)
-                else
-                    binding.root.context.getColor(R.color.purple_200)
+            binding.root.background = binding.root.context.getDrawable(
+                if (isEvenRow) R.drawable.table_row_even_background
+                else R.drawable.table_row_background
             )
             binding.root.setOnClickListener { onRowClick(item) }
             binding.deleteIcon.setOnClickListener { onDeleteClick(item) }

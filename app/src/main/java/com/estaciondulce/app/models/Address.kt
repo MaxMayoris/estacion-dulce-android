@@ -3,6 +3,9 @@ package com.estaciondulce.app.models
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 
+/**
+ * Address data model with geocoding information and structured location data.
+ */
 @Parcelize
 data class Address(
     override var id: String = "",

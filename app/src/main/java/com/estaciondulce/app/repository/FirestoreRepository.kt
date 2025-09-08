@@ -13,11 +13,13 @@ import com.estaciondulce.app.models.Section
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 
+/**
+ * Central repository managing real-time Firestore listeners for all collections.
+ */
 object FirestoreRepository {
     @SuppressLint("StaticFieldLeak")
     private val firestore = FirebaseFirestore.getInstance()
 
-    // LiveData objects for each collection.
     val productsLiveData = MutableLiveData<List<Product>>()
     val recipesLiveData = MutableLiveData<List<Recipe>>()
     val measuresLiveData = MutableLiveData<List<Measure>>()
@@ -27,7 +29,6 @@ object FirestoreRepository {
     val movementsLiveData = MutableLiveData<List<Movement>>()
     val addressesLiveData = MutableLiveData<List<Address>>()
 
-    // Listener registrations (to remove them later if needed)
     private var productsListener: ListenerRegistration? = null
     private var recipesListener: ListenerRegistration? = null
     private var measuresListener: ListenerRegistration? = null
@@ -38,12 +39,10 @@ object FirestoreRepository {
     private var addressesListener: ListenerRegistration? = null
 
     /**
-     * Starts snapshot listeners for collections.
-     * This method fetches the initial data and keeps the local cache updated
-     * in real time.
+     * Starts real-time snapshot listeners for all collections.
+     * Fetches initial data and maintains live updates.
      */
     fun startListeners() {
-        // Listen to the "products" collection.
         productsListener = firestore.collection("products")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -55,7 +54,6 @@ object FirestoreRepository {
                 productsLiveData.postValue(products)
             }
 
-        // Listen to the "recipes" collection.
         recipesListener = firestore.collection("recipes")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -67,8 +65,6 @@ object FirestoreRepository {
                 recipesLiveData.postValue(recipes)
             }
 
-
-        // Listen to the "measures" collection.
         measuresListener = firestore.collection("measures")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -80,7 +76,6 @@ object FirestoreRepository {
                 measuresLiveData.postValue(measures)
             }
 
-        // Listen to the "categories" collection.
         categoriesListener = firestore.collection("categories")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -92,7 +87,6 @@ object FirestoreRepository {
                 categoriesLiveData.postValue(categories)
             }
 
-        // Listen to the "sections" collection.
         sectionsListener = firestore.collection("sections")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -104,7 +98,6 @@ object FirestoreRepository {
                 sectionsLiveData.postValue(sections)
             }
 
-        // Listen to the "persons" collection.
         personsListener = firestore.collection("persons")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -116,7 +109,6 @@ object FirestoreRepository {
                 personsLiveData.postValue(persons)
             }
 
-        // Listen to the "movements" collection.
         movementsListener = firestore.collection("movements")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -128,7 +120,6 @@ object FirestoreRepository {
                 movementsLiveData.postValue(movements)
             }
 
-        // Listen to the "addresses" collection.
         addressesListener = firestore.collection("addresses")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -142,9 +133,6 @@ object FirestoreRepository {
 
     }
 
-    /**
-     * Stops the snapshot listeners.
-     */
     fun stopListeners() {
         productsListener?.remove()
         recipesListener?.remove()

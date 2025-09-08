@@ -2,7 +2,9 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="@color/table_row_even"
+    android:padding="8dp">
 
     <!-- Header Container -->
     <LinearLayout
@@ -10,15 +12,19 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:background="@color/purple_700"
-        android:padding="8dp" />
+        android:background="@drawable/table_header_background"
+        android:padding="12dp"
+        android:layout_marginBottom="8dp" />
 
     <!-- RecyclerView for table rows -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/tableRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp" />
 
     <!-- Pagination Controls -->
     <LinearLayout
@@ -27,28 +33,34 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:padding="8dp">
+        android:background="@drawable/pagination_button_background"
+        android:padding="6dp"
+        android:layout_marginTop="4dp">
 
         <Button
             android:id="@+id/previousButton"
+            style="@style/PaginationButtonStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Prev"
+            android:text="‹"
             android:visibility="gone" />
 
         <TextView
             android:id="@+id/pageIndicator"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:text="Page 1"
-            android:textSize="16sp"
-            android:gravity="center" />
+            android:layout_marginHorizontal="8dp"
+            android:text="Página 1"
+            android:textSize="12sp"
+            android:textColor="@color/pagination_text"
+            android:gravity="center"
+            android:fontFamily="sans-serif-medium" />
 
         <Button
             android:id="@+id/nextButton"
+            style="@style/PaginationButtonStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Next" />
+            android:text="›" />
     </LinearLayout>
 </LinearLayout>

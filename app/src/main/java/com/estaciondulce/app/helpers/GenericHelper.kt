@@ -1,10 +1,13 @@
 package com.estaciondulce.app.helpers
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.DocumentSnapshot
 
+/**
+ * Generic Firestore operations for CRUD operations across collections.
+ */
 class GenericHelper(private val db: FirebaseFirestore = FirebaseFirestore.getInstance()) {
 
-    // Add a document to a collection
     fun addDocument(
         collectionName: String,
         data: Map<String, Any?>,
@@ -14,14 +17,13 @@ class GenericHelper(private val db: FirebaseFirestore = FirebaseFirestore.getIns
         db.collection(collectionName)
             .add(data)
             .addOnSuccessListener { documentReference ->
-                onSuccess(documentReference.id) // Return the document ID
+                onSuccess(documentReference.id)
             }
             .addOnFailureListener { e ->
                 onError(e)
             }
     }
 
-    // Update a document in a collection
     fun updateDocument(
         collectionName: String,
         documentId: String,
@@ -31,12 +33,11 @@ class GenericHelper(private val db: FirebaseFirestore = FirebaseFirestore.getIns
     ) {
         db.collection(collectionName)
             .document(documentId)
-            .set(data)
+            .update(data)
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { e -> onError(e) }
     }
 
-    // Delete a document in a collection
     fun deleteDocument(
         collectionName: String,
         documentId: String,
@@ -48,5 +49,26 @@ class GenericHelper(private val db: FirebaseFirestore = FirebaseFirestore.getIns
             .delete()
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { e -> onError(e) }
+    }
+
+    fun getDocument(
+        collectionName: String,
+        documentId: String,
+        onSuccess: (DocumentSnapshot) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        db.collection(collectionName)
+            .document(documentId)
+            .get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    onSuccess(document)
+                } else {
+                    onError(Exception("Document not found"))
+                }
+            }
+            .addOnFailureListener { e ->
+                onError(e)
+            }
     }
 }

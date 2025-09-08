@@ -11,15 +11,12 @@ android {
         applicationId = "com.estaciondulce.app"
         minSdk = 30
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 4
+        versionName = "2.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // Enable View Binding
-    buildFeatures {
-        viewBinding = true
-    }
+    buildFeatures { viewBinding = true }
 
     signingConfigs {
         create("release") {
@@ -30,7 +27,6 @@ android {
         }
     }
 
-    // Define Product Flavors
     flavorDimensions += "environment"
     productFlavors {
         create("dev") {
@@ -45,7 +41,6 @@ android {
         }
     }
 
-    // Define Build Types
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -60,30 +55,32 @@ android {
         }
     }
 
-    // Java and Kotlin compatibility
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+    kotlinOptions { jvmTarget = "11" }
 }
 
 dependencies {
-    // Firebase BOM for version alignment
+    // Firebase BOM (ya lo tenías)
     implementation(platform(libs.firebase.bom))
 
-    // Firebase Components
+    // Firebase
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.analytics)
+
+    implementation("com.google.firebase:firebase-storage-ktx")
+    implementation("com.google.firebase:firebase-appcheck")
+    debugImplementation("com.google.firebase:firebase-appcheck-debug")
+    releaseImplementation("com.google.firebase:firebase-appcheck-playintegrity")
 
     // Google Play Services
     implementation(libs.play.services.base)
     implementation(libs.play.services.tasks)
 
-    // AndroidX and Material Components
+    // AndroidX / Material
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.cardview)
@@ -91,10 +88,14 @@ dependencies {
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.material)
     implementation(libs.flexbox)
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.core.ktx)
+    // (Tenías core-ktx repetido varias veces; con una alcanza)
 
-    // Test Dependencies
+    // Imágenes
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("androidx.activity:activity-ktx:1.8.2")
+    implementation("androidx.fragment:fragment-ktx:1.6.2")
+
+    // Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

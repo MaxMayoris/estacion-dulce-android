@@ -1,24 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="8dp">
+    android:padding="12dp"
+    android:gravity="center_vertical">
 
-    <!-- Product Name -->
     <TextView
         android:id="@+id/productName"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:text="Producto"
-        android:ellipsize="end"
-        android:maxLines="1" />
+        android:textSize="16sp"
+        android:textColor="@color/text_primary" />
 
-    <!-- Add Product Button -->
-    <Button
-        android:id="@+id/addProductButton"
+    <TextView
+        android:id="@+id/productCost"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Añadir"
-        android:textAllCaps="false" />
+        android:text="Costo"
+        android:textSize="16sp"
+        android:textColor="@color/text_primary"
+        android:layout_marginEnd="16dp" />
+
+    <ImageView
+        android:id="@+id/deleteButton"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_delete"
+        android:background="@drawable/delete_icon_background"
+        android:padding="4dp"
+        android:contentDescription="Eliminar" />
+
 </LinearLayout>

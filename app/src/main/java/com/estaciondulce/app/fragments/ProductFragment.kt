@@ -12,6 +12,7 @@ import com.estaciondulce.app.databinding.FragmentProductBinding
 import com.estaciondulce.app.helpers.ProductsHelper
 import com.estaciondulce.app.models.Product
 import com.estaciondulce.app.repository.FirestoreRepository
+import com.estaciondulce.app.utils.DeleteConfirmationDialog
 import com.google.android.material.snackbar.Snackbar
 
 /**
@@ -132,10 +133,11 @@ class ProductFragment : Fragment() {
      * Deletes a product using ProductsHelper.
      */
     private fun deleteProduct(product: Product) {
-        val dialog = android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Confirmar Eliminación")
-            .setMessage("¿Está seguro de que desea eliminar el producto '${product.name}'?")
-            .setPositiveButton("Eliminar") { _, _ ->
+        DeleteConfirmationDialog.show(
+            context = requireContext(),
+            itemName = product.name,
+            itemType = "producto",
+            onConfirm = {
                 ProductsHelper().deleteProduct(
                     productId = product.id,
                     onSuccess = {
@@ -154,9 +156,7 @@ class ProductFragment : Fragment() {
                     }
                 )
             }
-            .setNegativeButton("Cancelar", null)
-            .create()
-        dialog.show()
+        )
     }
 
     override fun onDestroyView() {

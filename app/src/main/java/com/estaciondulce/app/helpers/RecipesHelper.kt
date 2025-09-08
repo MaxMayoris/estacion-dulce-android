@@ -6,12 +6,14 @@ import com.estaciondulce.app.repository.FirestoreRepository
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.FirebaseFirestore
 
+/**
+ * Handles recipe CRUD operations and cost calculations with cascade updates.
+ */
 class RecipesHelper(
     private val genericHelper: GenericHelper = GenericHelper(),
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
 
-    /** Adds a new recipe to the "recipes" collection. */
     fun addRecipe(recipe: Recipe, onSuccess: (Recipe) -> Unit, onError: (Exception) -> Unit) {
         val recipeData = mapOf(
             "name" to recipe.name,
@@ -20,6 +22,8 @@ class RecipesHelper(
             "salePrice" to recipe.salePrice,
             "onSale" to recipe.onSale,
             "unit" to recipe.unit,
+            "image" to recipe.image,
+            "description" to recipe.description,
             "categories" to recipe.categories,
             "sections" to recipe.sections,
             "recipes" to recipe.recipes
@@ -34,7 +38,6 @@ class RecipesHelper(
         )
     }
 
-    /** Updates an existing recipe document. */
     fun updateRecipe(
         recipeId: String,
         recipe: Recipe,
@@ -48,6 +51,8 @@ class RecipesHelper(
             "salePrice" to recipe.salePrice,
             "onSale" to recipe.onSale,
             "unit" to recipe.unit,
+            "image" to recipe.image,
+            "description" to recipe.description,
             "categories" to recipe.categories,
             "sections" to recipe.sections,
             "recipes" to recipe.recipes
@@ -61,7 +66,6 @@ class RecipesHelper(
         )
     }
 
-    /** Deletes a recipe from the "recipes" collection. */
     fun deleteRecipe(recipeId: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         genericHelper.deleteDocument(
             collectionName = "recipes",
@@ -71,7 +75,6 @@ class RecipesHelper(
         )
     }
 
-    /** Checks if a recipe name is unique (ignoring case) using the global recipes LiveData. */
     fun isRecipeNameUnique(name: String, currentRecipeId: String?, onComplete: (Boolean) -> Unit) {
         val recipes = FirestoreRepository.recipesLiveData.value ?: emptyList()
         onComplete(recipes.none {
@@ -82,7 +85,10 @@ class RecipesHelper(
         })
     }
 
-    /** Recursively updates the costs and suggested prices of all parent recipes that use the updated recipe. */
+    /**
+     * Recursively updates costs and suggested prices of all parent recipes that use the updated recipe.
+     * Prevents infinite loops by tracking visited recipes.
+     */
     fun updateCascadeCosts(
         updatedRecipe: Recipe,
         allProducts: Map<String, Pair<String, Double>>,
@@ -114,7 +120,6 @@ class RecipesHelper(
         }, onError)
     }
 
-    /** Updates the cost and suggested price for all parent recipes that use the updated recipe. */
     private fun updateParentRecipesCosts(
         updatedRecipe: Recipe,
         allProducts: Map<String, Pair<String, Double>>,
@@ -145,7 +150,6 @@ class RecipesHelper(
             .addOnFailureListener { onError(it) }
     }
 
-    /** Updates the cost and suggested price for all recipes that use the specified product. */
     private fun updateAffectedRecipes(productId: String) {
         val db = FirebaseFirestore.getInstance()
         val affectedRecipes = getRecipesUsingProduct(productId)
@@ -169,7 +173,6 @@ class RecipesHelper(
         }
     }
 
-    /** Returns a list of recipes that reference the specified product. */
     private fun getRecipesUsingProduct(productId: String): List<Recipe> {
         val allRecipes = FirestoreRepository.recipesLiveData.value ?: emptyList()
         return allRecipes.filter { recipe ->
@@ -179,7 +182,10 @@ class RecipesHelper(
         }
     }
 
-    /** Calculates the cost per unit and suggested price for a recipe. */
+    /**
+     * Calculates cost per unit and suggested price for a recipe.
+     * Suggested price is 60% markup over cost.
+     */
     @SuppressLint("DefaultLocale")
     fun calculateCostAndSuggestedPrice(
         recipe: Recipe,

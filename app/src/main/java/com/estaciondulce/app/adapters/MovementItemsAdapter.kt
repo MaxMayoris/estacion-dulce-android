@@ -25,23 +25,6 @@ class MovementItemsAdapter(
             binding.quantityEditText.setText(item.quantity.toString())
             binding.costEditText.setText(item.cost.toString())
 
-            // Listener para incrementar la cantidad en 1.0
-            binding.incrementButton.setOnClickListener {
-                item.quantity += 1.0
-                binding.quantityEditText.setText(item.quantity.toString())
-                onItemChanged()
-            }
-
-            // Listener para decrementar la cantidad en 1.0, sólo si el nuevo valor es mayor a 0
-            binding.decrementButton.setOnClickListener {
-                // Solo decrementamos si el resultado es > 0.0
-                if (item.quantity - 1.0 > 0.0) {
-                    item.quantity -= 1.0
-                    binding.quantityEditText.setText(item.quantity.toString())
-                    onItemChanged()
-                }
-            }
-
             // Botón para eliminar el ítem
             binding.deleteItemButton.setOnClickListener {
                 onDeleteClicked(position)
@@ -51,12 +34,14 @@ class MovementItemsAdapter(
             binding.quantityEditText.addTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(s: Editable?) {
                     val newQuantity = s.toString().toDoubleOrNull()
-                    // Si el valor es nulo o menor o igual a 0, se revierte al último valor válido.
+                    // Si el valor es nulo o menor o igual a 0, se establece en 1.0
                     if (newQuantity == null || newQuantity <= 0.0) {
                         binding.quantityEditText.removeTextChangedListener(this)
-                        binding.quantityEditText.setText(item.quantity.toString())
+                        binding.quantityEditText.setText("1.0")
                         binding.quantityEditText.setSelection(binding.quantityEditText.text.length)
                         binding.quantityEditText.addTextChangedListener(this)
+                        item.quantity = 1.0
+                        onItemChanged()
                     } else if (newQuantity != item.quantity) {
                         item.quantity = newQuantity
                         onItemChanged()

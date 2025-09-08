@@ -14,7 +14,8 @@ import com.estaciondulce.app.helpers.MovementsHelper
 import com.estaciondulce.app.models.EMovementType
 import com.estaciondulce.app.models.Movement
 import com.estaciondulce.app.repository.FirestoreRepository
-import com.google.android.material.snackbar.Snackbar
+import com.estaciondulce.app.utils.DeleteConfirmationDialog
+import com.estaciondulce.app.utils.CustomToast
 
 class MovementFragment : Fragment() {
 
@@ -157,30 +158,26 @@ class MovementFragment : Fragment() {
     }
 
     private fun deleteMovement(movement: Movement) {
-        val dialog = android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Confirmar Eliminación")
-            .setMessage("¿Está seguro de que desea eliminar este movimiento?")
-            .setPositiveButton("Eliminar") { _, _ ->
+        val movementType = if (movement.type == EMovementType.PURCHASE) "Compra" else "Venta"
+        val person = repository.personsLiveData.value?.find { it.id == movement.personId }
+        val personName = person?.let { "${it.name} ${it.lastName}" } ?: "Persona desconocida"
+        val formattedAmount = String.format("%.2f", movement.totalAmount)
+        
+        DeleteConfirmationDialog.show(
+            context = requireContext(),
+            itemName = "$movementType de $personName por $${formattedAmount}",
+            itemType = "movimiento",
+            onConfirm = {
                 MovementsHelper().deleteMovement(
                     movementId = movement.id,
                     onSuccess = {
-                        Snackbar.make(
-                            binding.root,
-                            "Movimiento eliminado correctamente.",
-                            Snackbar.LENGTH_LONG
-                        ).show()
+                        CustomToast.showSuccess(requireContext(), "$movementType de $personName eliminada correctamente.")
                     },
                     onError = {
-                        Snackbar.make(
-                            binding.root,
-                            "Error al eliminar el movimiento.",
-                            Snackbar.LENGTH_LONG
-                        ).show()
+                        CustomToast.showError(requireContext(), "Error al eliminar el movimiento.")
                     }
                 )
             }
-            .setNegativeButton("Cancelar", null)
-            .create()
-        dialog.show()
+        )
     }
 }

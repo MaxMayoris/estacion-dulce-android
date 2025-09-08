@@ -13,7 +13,8 @@ import com.estaciondulce.app.databinding.FragmentPersonBinding
 import com.estaciondulce.app.helpers.PersonsHelper
 import com.estaciondulce.app.models.Person
 import com.estaciondulce.app.repository.FirestoreRepository
-import com.google.android.material.snackbar.Snackbar
+import com.estaciondulce.app.utils.DeleteConfirmationDialog
+import com.estaciondulce.app.utils.CustomToast
 
 class PersonFragment : Fragment() {
 
@@ -85,7 +86,7 @@ class PersonFragment : Fragment() {
         val sortedList = persons.sortedBy { it.name }
 
         binding.personTable.setupTable(
-            columnHeaders = listOf("Nombre", "Teléfono", "Tipo"),
+            columnHeaders = listOf("Nombre", "Tipo"),
             data = sortedList,
             adapter = PersonAdapter(
                 personList = sortedList,
@@ -94,7 +95,6 @@ class PersonFragment : Fragment() {
             ) { person ->
                 listOf(
                     "${person.name} ${person.lastName}",
-                    "${person.phoneNumberPrefix}${person.phoneNumberSuffix}",
                     person.type
                 )
             },
@@ -103,8 +103,7 @@ class PersonFragment : Fragment() {
                 val person = item as Person
                 when (columnIndex) {
                     0 -> "${person.name} ${person.lastName}"
-                    1 -> "${person.phoneNumberPrefix}${person.phoneNumberSuffix}"
-                    2 -> person.type
+                    1 -> person.type
                     else -> null
                 }
             }
@@ -130,30 +129,21 @@ class PersonFragment : Fragment() {
     }
 
     private fun deletePerson(person: Person) {
-        val dialog = android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Confirmar Eliminación")
-            .setMessage("¿Está seguro de que desea eliminar a ${person.name} ${person.lastName}?")
-            .setPositiveButton("Eliminar") { _, _ ->
+        DeleteConfirmationDialog.show(
+            context = requireContext(),
+            itemName = "${person.name} ${person.lastName}",
+            itemType = "persona",
+            onConfirm = {
                 PersonsHelper().deletePerson(
                     personId = person.id,
                     onSuccess = {
-                        Snackbar.make(
-                            binding.root,
-                            "Persona eliminada correctamente.",
-                            Snackbar.LENGTH_LONG
-                        ).show()
+                        CustomToast.showSuccess(requireContext(), "Persona eliminada correctamente.")
                     },
-                    onError = {
-                        Snackbar.make(
-                            binding.root,
-                            "Error al eliminar la persona.",
-                            Snackbar.LENGTH_LONG
-                        ).show()
+                    onError = { exception ->
+                        CustomToast.showError(requireContext(), "Error al eliminar la persona: ${exception.message}")
                     }
                 )
             }
-            .setNegativeButton("Cancelar", null)
-            .create()
-        dialog.show()
+        )
     }
 }

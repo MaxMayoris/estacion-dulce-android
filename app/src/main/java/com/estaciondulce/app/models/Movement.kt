@@ -5,6 +5,9 @@ import kotlinx.parcelize.Parcelize
 import kotlinx.parcelize.RawValue
 import java.util.Date
 
+/**
+ * Movement data model representing financial transactions with items and shipping.
+ */
 @Parcelize
 data class Movement(
     override var id: String = "",

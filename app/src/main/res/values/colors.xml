@@ -20,4 +20,41 @@
     <color name="darker_gray">#B0BEC5</color>
     <color name="light_purple">#F3E5F5</color> <!-- Light purple for alternate rows -->
 
+    <!-- New colors for modern login design -->
+    <color name="login_gradient_start">#667eea</color>
+    <color name="login_gradient_end">#764ba2</color>
+    <color name="input_background">#FFFFFF</color>
+    <color name="input_text">#2C3E50</color>
+    <color name="input_hint">#95A5A6</color>
+    <color name="button_gradient_start">#667eea</color>
+    <color name="button_gradient_end">#764ba2</color>
+    <color name="card_background">#FFFFFF</color>
+    <color name="card_elevation">#E8E8E8</color>
+    <color name="text_primary">#2C3E50</color>
+    <color name="text_secondary">#7F8C8D</color>
+
+    <!-- New colors for improved table design -->
+    <color name="table_header_background">#667eea</color>
+    <color name="table_header_text">#FFFFFF</color>
+    <color name="table_row_even">#F8F9FA</color>
+    <color name="table_row_odd">#FFFFFF</color>
+    <color name="table_row_hover">#E3F2FD</color>
+    <color name="table_cell_text">#2C3E50</color>
+    <color name="table_border">#E1E8ED</color>
+    <color name="table_shadow">#1A000000</color>
+    <color name="pagination_background">#F5F7FA</color>
+    <color name="pagination_text">#5A6C7D</color>
+    <color name="delete_icon_color">#E74C3C</color>
+
+    <!-- Toast colors -->
+    <color name="success_green">#4CAF50</color>
+    <color name="success_green_dark">#388E3C</color>
+    <color name="error_red">#F44336</color>
+    <color name="error_red_dark">#D32F2F</color>
+    <color name="info_blue">#2196F3</color>
+    <color name="info_blue_dark">#1976D2</color>
+    <color name="warning_orange">#FF9800</color>
+    <color name="warning_orange_dark">#F57C00</color>
+    <color name="red_500">#F44336</color>
+
 </resources>

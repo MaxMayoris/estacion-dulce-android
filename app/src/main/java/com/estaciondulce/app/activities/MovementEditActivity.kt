@@ -21,7 +21,7 @@ import com.estaciondulce.app.models.MovementItem
 import com.estaciondulce.app.models.Person
 import com.estaciondulce.app.models.Shipment
 import com.estaciondulce.app.repository.FirestoreRepository
-import com.google.android.material.snackbar.Snackbar
+import com.estaciondulce.app.utils.CustomToast
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -51,7 +51,8 @@ class MovementEditActivity : AppCompatActivity() {
         binding = ActivityMovementEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        currentMovement = intent.getParcelableExtra("MOVEMENT")
+        @Suppress("DEPRECATION")
+        currentMovement = intent.getParcelableExtra<Movement>("MOVEMENT")
         supportActionBar?.title =
             if (currentMovement != null) "Editar Movimiento" else "Agregar Movimiento"
         binding.dateInput.setOnClickListener { showDatePickerDialog() }
@@ -85,8 +86,10 @@ class MovementEditActivity : AppCompatActivity() {
             personsList = persons
             setupPersonSpinner(persons)
             currentMovement?.let { movement ->
-                val index = persons.indexOfFirst { it.id == movement.personId }
-                if (index != -1) binding.personSpinner.setSelection(index)
+                val person = persons.find { it.id == movement.personId }
+                if (person != null) {
+                    binding.personSpinner.setText("${person.name} ${person.lastName}", false)
+                }
             }
         }
         setupMovementTypeSpinner()
@@ -94,32 +97,28 @@ class MovementEditActivity : AppCompatActivity() {
             selectedDate = movement.date
             binding.dateInput.setText(formatDate(movement.date))
             binding.totalAmountInput.setText(movement.totalAmount.toString())
-            val movementTypeIndex = when (movement.type) {
-                EMovementType.PURCHASE -> 0
-                EMovementType.SALE -> 1
-                else -> 0
+            val movementTypeText = when (movement.type) {
+                EMovementType.PURCHASE -> "Compra"
+                EMovementType.SALE -> "Venta"
+                else -> "Compra"
             }
-            binding.movementTypeSpinner.setSelection(movementTypeIndex)
+            binding.movementTypeSpinner.setText(movementTypeText, false)
             if (movement.type == EMovementType.SALE) {
                 binding.shippingRow.visibility = View.VISIBLE
                 val shippingCost = movement.shipment?.shippingCost ?: 0.0
                 binding.shippingCostInput.setText(shippingCost.toString())
                 binding.shippingCheckBox.isChecked = shippingCost != 0.0
                 if (binding.shippingCheckBox.isChecked) {
-                    binding.shippingCostLabel.visibility = View.VISIBLE
-                    binding.shippingCostInput.visibility = View.VISIBLE
-                    binding.shippingAddressLabel.visibility = View.VISIBLE
-                    binding.shippingAddressInput.visibility = View.VISIBLE
+                    binding.shippingCostContainer.visibility = View.VISIBLE
+                    binding.shippingAddressContainer.visibility = View.VISIBLE
                     if (movement.shipment?.addressId?.isNotEmpty() == true) {
                         val address =
                             repository.addressesLiveData.value?.find { it.id == movement.shipment.addressId }
                         binding.shippingAddressInput.setText(address?.rawAddress ?: "")
                     }
                 } else {
-                    binding.shippingCostLabel.visibility = View.GONE
-                    binding.shippingCostInput.visibility = View.GONE
-                    binding.shippingAddressLabel.visibility = View.GONE
-                    binding.shippingAddressInput.visibility = View.GONE
+                    binding.shippingCostContainer.visibility = View.GONE
+                    binding.shippingAddressContainer.visibility = View.GONE
                 }
             } else {
                 binding.shippingRow.visibility = View.GONE
@@ -133,42 +132,28 @@ class MovementEditActivity : AppCompatActivity() {
         } ?: run {
             binding.dateInput.setText(formatDate(selectedDate))
         }
-        binding.movementTypeSpinner.onItemSelectedListener =
-            object : AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(
-                    parent: AdapterView<*>?,
-                    view: View?,
-                    position: Int,
-                    id: Long
-                ) {
-                    if (position == 1) {
-                        binding.shippingRow.visibility = View.VISIBLE
-                    } else {
-                        binding.shippingRow.visibility = View.GONE
-                        binding.shippingCostInput.setText("0.0")
-                        binding.shippingAddressInput.setText("")
-                        binding.shippingCheckBox.isChecked = false
-                    }
-                }
-
-                override fun onNothingSelected(parent: AdapterView<*>?) {
-                    binding.shippingRow.visibility = View.GONE
-                    binding.shippingCostInput.setText("0.0")
-                    binding.shippingAddressInput.setText("")
-                    binding.shippingCheckBox.isChecked = false
-                }
+        binding.movementTypeSpinner.setOnItemClickListener { _, _, position, _ ->
+            val movementTypes = listOf("Compra", "Venta")
+            val selectedType = movementTypes.getOrNull(position)
+            if (selectedType == "Venta") {
+                binding.shippingRow.visibility = View.VISIBLE
+            } else {
+                binding.shippingRow.visibility = View.GONE
+                binding.shippingCostInput.setText("0.0")
+                binding.shippingAddressInput.setText("")
+                binding.shippingCheckBox.isChecked = false
             }
+        }
         binding.shippingCheckBox.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                binding.shippingCostLabel.visibility = View.VISIBLE
-                binding.shippingCostInput.visibility = View.VISIBLE
-                binding.shippingAddressLabel.visibility = View.VISIBLE
-                binding.shippingAddressInput.visibility = View.VISIBLE
+                binding.shippingCostContainer.visibility = View.VISIBLE
+                binding.shippingAddressContainer.visibility = View.VISIBLE
             } else {
-                binding.shippingCostLabel.visibility = View.GONE
-                binding.shippingCostInput.visibility = View.GONE
-                binding.shippingAddressLabel.visibility = View.GONE
-                binding.shippingAddressInput.visibility = View.GONE
+                binding.shippingCostContainer.visibility = View.GONE
+                binding.shippingAddressContainer.visibility = View.GONE
+                // Poner el costo de envío en 0 cuando se desmarca
+                binding.shippingCostInput.setText("0.0")
+                recalcTotalAmount()
             }
         }
         binding.shippingCostInput.addTextChangedListener(object : android.text.TextWatcher {
@@ -179,15 +164,12 @@ class MovementEditActivity : AppCompatActivity() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
-        binding.personSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
-                val selectedPersonId = personsList[position].id
-                if (binding.shippingRow.visibility == View.VISIBLE && binding.shippingCheckBox.isChecked) {
-                    val address = repository.addressesLiveData.value?.find { it.personId == selectedPersonId }
-                    binding.shippingAddressInput.setText(address?.rawAddress ?: "")
-                }
+        binding.personSpinner.setOnItemClickListener { _, _, position, _ ->
+            val selectedPerson = personsList.getOrNull(position)
+            if (selectedPerson != null && binding.shippingRow.visibility == View.VISIBLE && binding.shippingCheckBox.isChecked) {
+                val address = repository.addressesLiveData.value?.find { it.personId == selectedPerson.id }
+                binding.shippingAddressInput.setText(address?.rawAddress ?: "")
             }
-            override fun onNothingSelected(parent: AdapterView<*>) { }
         }
         binding.saveMovementButton.setOnClickListener { saveMovement() }
     }
@@ -214,13 +196,21 @@ class MovementEditActivity : AppCompatActivity() {
         builder.setPositiveButton("Agregar") { dialog, _ ->
             val customName = input.text.toString().trim()
             if (customName.isNotEmpty()) {
-                val newItem = MovementItem("custom", "", customName, 1.0, 1.0)
-                movementItems.add(newItem)
-                itemsAdapter.updateItems(movementItems)
-                recalcTotalAmount()
+                // Verificar si el ítem personalizado ya existe
+                val itemExists = movementItems.any { 
+                    it.collection == "custom" && it.customName == customName 
+                }
+                
+                if (itemExists) {
+                    CustomToast.showError(this, "Este ítem ya fue agregado al movimiento.")
+                } else {
+                    val newItem = MovementItem("custom", "", customName, 1.0, 1.0)
+                    movementItems.add(newItem)
+                    itemsAdapter.updateItems(movementItems)
+                    recalcTotalAmount()
+                }
             } else {
-                Snackbar.make(binding.root, "El nombre no puede estar vacío.", Snackbar.LENGTH_LONG)
-                    .show()
+                CustomToast.showError(this, "El nombre no puede estar vacío.")
             }
             dialog.dismiss()
         }
@@ -233,8 +223,8 @@ class MovementEditActivity : AppCompatActivity() {
      */
     private fun setupPersonSpinner(persons: List<Person>) {
         val personNames = persons.map { "${it.name} ${it.lastName}" }
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, personNames)
-        binding.personSpinner.adapter = adapter
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, personNames)
+        binding.personSpinner.setAdapter(adapter)
     }
 
     /**
@@ -243,8 +233,8 @@ class MovementEditActivity : AppCompatActivity() {
     private fun setupMovementTypeSpinner() {
         val movementTypes = listOf("Compra", "Venta")
         val adapter =
-            ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, movementTypes)
-        binding.movementTypeSpinner.adapter = adapter
+            ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, movementTypes)
+        binding.movementTypeSpinner.setAdapter(adapter)
     }
 
     /**
@@ -278,7 +268,8 @@ class MovementEditActivity : AppCompatActivity() {
             } else 0.0
         val total = itemsTotal + shippingCost
         binding.totalAmountInput.setText(total.toString())
-        binding.itemsHeader.visibility = if (movementItems.isNotEmpty()) View.VISIBLE else View.GONE
+        binding.itemsHeader.visibility = View.VISIBLE // Siempre visible
+        binding.itemsHeadersContainer.visibility = if (movementItems.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
     /**
@@ -325,25 +316,34 @@ class MovementEditActivity : AppCompatActivity() {
                 if (selectedItem.collection == "custom") {
                     showCustomItemDialog()
                 } else {
-                    val costValue = when (selectedItem.collection) {
-                        "products" -> repository.productsLiveData.value?.find { it.id == selectedItem.collectionId }?.cost
-                            ?: 0.0
-
-                        "recipes" -> repository.recipesLiveData.value?.find { it.id == selectedItem.collectionId }?.cost
-                            ?: 0.0
-
-                        else -> 0.0
+                    // Verificar si el ítem ya existe
+                    val itemExists = movementItems.any { 
+                        it.collection == selectedItem.collection && it.collectionId == selectedItem.collectionId 
                     }
-                    val newItem = MovementItem(
-                        selectedItem.collection,
-                        selectedItem.collectionId,
-                        null,
-                        costValue,
-                        1.0
-                    )
-                    movementItems.add(newItem)
-                    itemsAdapter.updateItems(movementItems)
-                    recalcTotalAmount()
+                    
+                    if (itemExists) {
+                        CustomToast.showError(this, "Este ítem ya fue agregado al movimiento.")
+                    } else {
+                        val costValue = when (selectedItem.collection) {
+                            "products" -> repository.productsLiveData.value?.find { it.id == selectedItem.collectionId }?.cost
+                                ?: 0.0
+
+                            "recipes" -> repository.recipesLiveData.value?.find { it.id == selectedItem.collectionId }?.cost
+                                ?: 0.0
+
+                            else -> 0.0
+                        }
+                        val newItem = MovementItem(
+                            selectedItem.collection,
+                            selectedItem.collectionId,
+                            null,
+                            costValue,
+                            1.0
+                        )
+                        movementItems.add(newItem)
+                        itemsAdapter.updateItems(movementItems)
+                        recalcTotalAmount()
+                    }
                 }
             }
             dialog.dismiss()
@@ -356,54 +356,37 @@ class MovementEditActivity : AppCompatActivity() {
      */
     private fun validateInputs(): Boolean {
         if (binding.dateInput.text.toString().trim().isEmpty()) {
-            Snackbar.make(binding.root, "La fecha es obligatoria.", Snackbar.LENGTH_LONG).show()
+            CustomToast.showError(this, "La fecha es obligatoria.")
             return false
         }
-        if (binding.personSpinner.selectedItem == null) {
-            Snackbar.make(binding.root, "Por favor, seleccione una persona.", Snackbar.LENGTH_LONG)
-                .show()
+        if (binding.personSpinner.text.toString().trim().isEmpty()) {
+            CustomToast.showError(this, "Por favor, seleccione una persona.")
             return false
         }
         val totalAmountStr = binding.totalAmountInput.text.toString().trim()
         if (totalAmountStr.isEmpty()) {
-            Snackbar.make(binding.root, "El monto total es obligatorio.", Snackbar.LENGTH_LONG)
-                .show()
+            CustomToast.showError(this, "El monto total es obligatorio.")
             return false
         }
         if (totalAmountStr.toDoubleOrNull() == null) {
-            Snackbar.make(
-                binding.root,
-                "El monto total debe ser un número válido.",
-                Snackbar.LENGTH_LONG
-            ).show()
+            CustomToast.showError(this, "El monto total debe ser un número válido.")
             return false
         }
-        if (binding.movementTypeSpinner.selectedItemPosition == 1 && binding.shippingCheckBox.isChecked) {
+        val movementTypeText = binding.movementTypeSpinner.text.toString()
+        if (movementTypeText == "Venta" && binding.shippingCheckBox.isChecked) {
             val shippingCostStr = binding.shippingCostInput.text.toString().trim()
             if (shippingCostStr.isEmpty()) {
-                Snackbar.make(
-                    binding.root,
-                    "El costo de envío es obligatorio para una venta.",
-                    Snackbar.LENGTH_LONG
-                ).show()
+                CustomToast.showError(this, "El costo de envío es obligatorio para una venta.")
                 return false
             }
             val shippingCost = shippingCostStr.toDoubleOrNull() ?: 0.0
             if (shippingCost <= 0) {
-                Snackbar.make(
-                    binding.root,
-                    "El costo de envío debe ser mayor a 0.",
-                    Snackbar.LENGTH_LONG
-                ).show()
+                CustomToast.showError(this, "El costo de envío debe ser mayor a 0.")
                 return false
             }
             val addressStr = binding.shippingAddressInput.text.toString().trim()
             if (addressStr.isEmpty()) {
-                Snackbar.make(
-                    binding.root,
-                    "La dirección de envío es obligatoria.",
-                    Snackbar.LENGTH_LONG
-                ).show()
+                CustomToast.showError(this, "La dirección de envío es obligatoria.")
                 return false
             }
         }
@@ -414,10 +397,10 @@ class MovementEditActivity : AppCompatActivity() {
      * Extracts a Movement object from the input fields.
      */
     private fun getMovementFromInputs(): Movement {
-        val selectedPersonIndex = binding.personSpinner.selectedItemPosition
-        val selectedPerson = personsList.getOrNull(selectedPersonIndex)
-        val movementType =
-            if (binding.movementTypeSpinner.selectedItemPosition == 1) EMovementType.SALE else EMovementType.PURCHASE
+        val selectedPersonName = binding.personSpinner.text.toString()
+        val selectedPerson = personsList.find { "${it.name} ${it.lastName}" == selectedPersonName }
+        val movementTypeText = binding.movementTypeSpinner.text.toString()
+        val movementType = if (movementTypeText == "Venta") EMovementType.SALE else EMovementType.PURCHASE
         val totalAmount = binding.totalAmountInput.text.toString().trim().toDoubleOrNull() ?: 0.0
         val shipment = if (movementType == EMovementType.SALE) {
             if (binding.shippingCheckBox.isChecked) {
@@ -455,9 +438,8 @@ class MovementEditActivity : AppCompatActivity() {
                 val rawAddress = binding.shippingAddressInput.text.toString().trim()
                 if (shippingCost > 0 && rawAddress.isNotEmpty()) {
                     if (currentMovement != null && currentMovement!!.shipment?.addressId?.isNotEmpty() == true) {
-                        val selectedPersonId =
-                            personsList.getOrNull(binding.personSpinner.selectedItemPosition)?.id
-                                ?: ""
+                        val selectedPersonName = binding.personSpinner.text.toString()
+                        val selectedPersonId = personsList.find { "${it.name} ${it.lastName}" == selectedPersonName }?.id ?: ""
                         AddressesHelper().updateAddress(
                             currentMovement!!.shipment!!.addressId,
                             Address(
@@ -475,17 +457,12 @@ class MovementEditActivity : AppCompatActivity() {
                                 saveMovementToFirestore(movementToSave)
                             },
                             onError = { exception ->
-                                Snackbar.make(
-                                    binding.root,
-                                    "Error updating address: ${exception.message}",
-                                    Snackbar.LENGTH_LONG
-                                ).show()
+                                CustomToast.showError(this, "Error updating address: ${exception.message}")
                             }
                         )
                     } else {
-                        val selectedPersonId =
-                            personsList.getOrNull(binding.personSpinner.selectedItemPosition)?.id
-                                ?: ""
+                        val selectedPersonName = binding.personSpinner.text.toString()
+                        val selectedPersonId = personsList.find { "${it.name} ${it.lastName}" == selectedPersonName }?.id ?: ""
                         AddressesHelper().addAddress(
                             Address(
                                 personId = selectedPersonId,
@@ -502,11 +479,7 @@ class MovementEditActivity : AppCompatActivity() {
                                 saveMovementToFirestore(movementToSave)
                             },
                             onError = { exception ->
-                                Snackbar.make(
-                                    binding.root,
-                                    "Error saving address: ${exception.message}",
-                                    Snackbar.LENGTH_LONG
-                                ).show()
+                                CustomToast.showError(this, "Error saving address: ${exception.message}")
                             }
                         )
                     }
@@ -542,36 +515,20 @@ class MovementEditActivity : AppCompatActivity() {
                                     productId = item.collectionId,
                                     onComplete = {},
                                     onError = { exception ->
-                                        Snackbar.make(
-                                            binding.root,
-                                            "Error en actualización en cascada: ${exception.message}",
-                                            Snackbar.LENGTH_LONG
-                                        ).show()
+                                        CustomToast.showError(this, "Error en actualización en cascada: ${exception.message}")
                                     }
                                 )
                             },
                             onError = { exception ->
-                                Snackbar.make(
-                                    binding.root,
-                                    "Error al actualizar stock: ${exception.message}",
-                                    Snackbar.LENGTH_LONG
-                                ).show()
+                                CustomToast.showError(this, "Error al actualizar stock: ${exception.message}")
                             }
                         )
                     }
-                    Snackbar.make(
-                        binding.root,
-                        "Movimiento agregado correctamente.",
-                        Snackbar.LENGTH_LONG
-                    ).show()
+                    CustomToast.showSuccess(this, "Movimiento agregado correctamente.")
                     finish()
                 },
                 onError = { exception ->
-                    Snackbar.make(
-                        binding.root,
-                        "Error al agregar el movimiento: ${exception.message}",
-                        Snackbar.LENGTH_LONG
-                    ).show()
+                    CustomToast.showError(this, "Error al agregar el movimiento: ${exception.message}")
                 }
             )
         } else {
@@ -602,37 +559,21 @@ class MovementEditActivity : AppCompatActivity() {
                                         productId = productId,
                                         onComplete = {},
                                         onError = { exception ->
-                                            Snackbar.make(
-                                                binding.root,
-                                                "Error en actualización en cascada: ${exception.message}",
-                                                Snackbar.LENGTH_LONG
-                                            ).show()
+                                            CustomToast.showError(this, "Error en actualización en cascada: ${exception.message}")
                                         }
                                     )
                                 },
                                 onError = { exception ->
-                                    Snackbar.make(
-                                        binding.root,
-                                        "Error al actualizar stock: ${exception.message}",
-                                        Snackbar.LENGTH_LONG
-                                    ).show()
+                                    CustomToast.showError(this, "Error al actualizar stock: ${exception.message}")
                                 }
                             )
                         }
                     }
-                    Snackbar.make(
-                        binding.root,
-                        "Movimiento actualizado correctamente.",
-                        Snackbar.LENGTH_LONG
-                    ).show()
+                    CustomToast.showSuccess(this, "Movimiento actualizado correctamente.")
                     finish()
                 },
                 onError = { exception ->
-                    Snackbar.make(
-                        binding.root,
-                        "Error al actualizar el movimiento: ${exception.message}",
-                        Snackbar.LENGTH_LONG
-                    ).show()
+                    CustomToast.showError(this, "Error al actualizar el movimiento: ${exception.message}")
                 }
             )
         }
