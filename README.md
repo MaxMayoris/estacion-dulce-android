@@ -1,77 +1,73 @@
-# 🍰 Estación Dulce - Gestión de Pastelería
+# 🍰 Estación Dulce - Bakery Management
 
-Una aplicación Android para la gestión integral de una pastelería.
+An Android application for comprehensive bakery management.
 
-## 📱 Descripción
+## 📱 Description
 
-Estación Dulce es una aplicación móvil diseñada para gestionar todos los aspectos de una pastelería, desde el inventario de productos hasta las recetas, clientes y movimientos comerciales.
+Estación Dulce is a mobile application designed to manage all aspects of a bakery, from product inventory to recipes, customers, and business transactions.
 
-## ✨ Características Principales
+## ✨ Main Features
 
-- **Gestión de Productos**: Catálogo e inventario
-- **Gestión de Recetas**: Creación y cálculo de costos
-- **Gestión de Clientes**: Registro y contacto
-- **Movimientos**: Control de entradas y salidas
-- **Dashboard**: Vista general del negocio
+- **Product Management**: Catalog and inventory
+- **Recipe Management**: Creation and cost calculation
+- **Customer Management**: Registration and contact
+- **Transactions**: Input and output control
+- **Dashboard**: Business overview
 
-## 🛠️ Tecnologías
+## 🛠️ Technologies
 
 - Kotlin
 - Android
 - Firebase
 - Material Design
 
-## 📋 Requisitos
+## 📋 Requirements
 
-- Android 11.0 o superior
-- Conexión a Internet
+- Android 11.0 or higher
+- Internet connection
 
-## 🚀 Instalación
+## 🚀 Installation
 
-1. Clonar el repositorio
-2. Configurar Firebase
-3. Compilar con Android Studio
+1. Clone the repository
+2. Configure Firebase
+3. Build with Android Studio
 
-## 🔐 Seguridad
+## 🔐 Security
 
-- Autenticación segura
-- Validación de datos
-- Archivos sensibles protegidos
+- Secure authentication
+- Data validation
+- Protected sensitive files
 
-## 📱 Capturas de Pantalla
+## 🤝 Contributing
 
-*[Aquí puedes agregar capturas de pantalla de la aplicación]*
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 🤝 Contribución
+## 📝 License
 
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+This project is licensed under the MIT License. See the `LICENSE` file for details.
 
-## 📝 Licencia
-
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
-
-## 👨‍💻 Autor
+## 👨‍💻 Author
 
 **Maximiliano Roldan**
 - Email: maxir.unsj@gmail.com
 - GitHub: [@MaxMayoris](https://github.com/MaxMayoris)
 
-## 📞 Soporte
+## 📞 Support
 
-Si tienes preguntas o necesitas ayuda, puedes:
-- Abrir un issue en GitHub
-- Contactar al desarrollador por email
+If you have questions or need help, you can:
+- Open an issue on GitHub
+- Contact the developer by email
 
-## 🔄 Historial de Versiones
+## 🔄 Version History
 
-- **v2.1** - Versión actual
-- **v2.0** - Refactorización completa
-- **v1.x** - Versiones iniciales
+- **v2.1** - Current version
+- **v2.0** - Complete refactoring
+- **v1.x** - Initial versions
 
 ---
 
-⭐ Si te gusta este proyecto, ¡dale una estrella en GitHub!
+⭐ If you like this project, give it a star on GitHub!
