@@ -2,70 +2,167 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/loginRootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#6A1B9A">
+    android:background="@drawable/login_gradient_background"
+    android:padding="@dimen/login_padding">
 
-    <!-- Logo -->
-    <ImageView
-        android:id="@+id/logoImage"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:src="@drawable/ic_logo_ed_square"
+    <!-- Logo Container -->
+    <FrameLayout
+        android:id="@+id/logoContainer"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:background="@drawable/logo_background"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="40dp" />
+        android:layout_marginTop="@dimen/logo_margin_top">
 
-    <!-- Email Input -->
-    <EditText
-        android:id="@+id/emailInput"
-        android:layout_width="0dp"
-        android:layout_height="50dp"
-        android:hint="Email"
-        android:backgroundTint="#FFFFFF"
-        android:padding="10dp"
-        android:textColor="@android:color/white"
-        android:textColorHint="@android:color/white"
-        android:inputType="textEmailAddress"
-        app:layout_constraintTop_toBottomOf="@id/logoImage"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="40dp"
-        android:layout_marginStart="30dp"
-        android:layout_marginEnd="30dp" />
+        <ImageView
+            android:id="@+id/logoImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@mipmap/ic_logo_ed_circle_192x192"
+            android:scaleType="centerCrop"
+            android:padding="8dp" />
 
-    <!-- Password Input -->
-    <EditText
-        android:id="@+id/passwordInput"
-        android:layout_width="0dp"
-        android:layout_height="50dp"
-        android:hint="Password"
-        android:backgroundTint="#FFFFFF"
-        android:padding="10dp"
-        android:textColor="@android:color/white"
-        android:textColorHint="@android:color/white"
-        android:inputType="textPassword"
-        app:layout_constraintTop_toBottomOf="@id/emailInput"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="20dp"
-        android:layout_marginStart="30dp"
-        android:layout_marginEnd="30dp" />
+    </FrameLayout>
 
-    <!-- Login Button -->
-    <Button
-        android:id="@+id/loginButton"
-        android:layout_width="0dp"
-        android:layout_height="50dp"
-        android:text="Login"
-        android:backgroundTint="@color/purple_700"
-        android:textColor="@android:color/white"
-        app:layout_constraintTop_toBottomOf="@id/passwordInput"
+    <!-- Welcome Title -->
+    <TextView
+        android:id="@+id/welcomeTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="¡Bienvenido de nuevo!"
+        android:textSize="@dimen/login_title_size"
+        android:textColor="@color/text_primary"
+        android:textStyle="bold"
+        android:layout_marginTop="@dimen/welcome_margin_top"
+        app:layout_constraintTop_toBottomOf="@id/logoContainer"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="20dp"
-        android:layout_marginStart="30dp"
-        android:layout_marginEnd="30dp" />
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Welcome Subtitle -->
+    <TextView
+        android:id="@+id/welcomeSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Inicia sesión para continuar."
+        android:textSize="@dimen/login_subtitle_size"
+        android:textColor="@color/text_secondary"
+        android:layout_marginTop="@dimen/welcome_subtitle_margin"
+        app:layout_constraintTop_toBottomOf="@id/welcomeTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Login Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/loginCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/login_card_margin_top"
+        android:layout_marginStart="@dimen/login_card_margin_horizontal"
+        android:layout_marginEnd="@dimen/login_card_margin_horizontal"
+        app:cardBackgroundColor="@color/card_background"
+        app:cardCornerRadius="@dimen/card_corner_radius"
+        app:cardElevation="@dimen/card_elevation"
+        app:layout_constraintTop_toBottomOf="@id/welcomeSubtitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/login_card_padding">
+
+            <!-- Email Input -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/emailInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Email"
+                app:boxBackgroundColor="@color/input_background"
+                app:boxStrokeColor="@color/input_hint"
+                app:hintTextColor="@color/input_hint"
+                android:textColorHint="@color/input_hint"
+                app:boxCornerRadiusTopStart="@dimen/input_corner_radius"
+                app:boxCornerRadiusTopEnd="@dimen/input_corner_radius"
+                app:boxCornerRadiusBottomStart="@dimen/input_corner_radius"
+                app:boxCornerRadiusBottomEnd="@dimen/input_corner_radius"
+                android:layout_marginBottom="@dimen/input_margin_bottom"
+                app:startIconDrawable="@android:drawable/ic_dialog_email"
+                app:startIconTint="@color/input_hint">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/emailInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/input_height"
+                    android:inputType="textEmailAddress"
+                    android:textColor="@color/input_text"
+                    android:padding="@dimen/input_padding" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Password Input -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/passwordInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Contraseña"
+                app:boxBackgroundColor="@color/input_background"
+                app:boxStrokeColor="@color/input_hint"
+                app:hintTextColor="@color/input_hint"
+                android:textColorHint="@color/input_hint"
+                app:boxCornerRadiusTopStart="@dimen/input_corner_radius"
+                app:boxCornerRadiusTopEnd="@dimen/input_corner_radius"
+                app:boxCornerRadiusBottomStart="@dimen/input_corner_radius"
+                app:boxCornerRadiusBottomEnd="@dimen/input_corner_radius"
+                app:passwordToggleEnabled="true"
+                app:passwordToggleTint="@color/input_hint"
+                android:layout_marginBottom="@dimen/input_margin_bottom"
+                app:startIconDrawable="@android:drawable/ic_lock_lock"
+                app:startIconTint="@color/input_hint">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/passwordInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/input_height"
+                    android:inputType="textPassword"
+                    android:textColor="@color/input_text"
+                    android:padding="@dimen/input_padding" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Login Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/loginButton"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/button_height"
+                android:text="Iniciar Sesión"
+                android:textSize="@dimen/button_text_size"
+                android:textColor="@android:color/white"
+                android:background="@drawable/button_gradient_background"
+                app:cornerRadius="@dimen/button_corner_radius"
+                android:layout_marginTop="@dimen/button_margin_top" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Footer Text -->
+    <TextView
+        android:id="@+id/footerText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Estación Dulce Manager - v1.3 · by Maksee"
+        android:textSize="@dimen/footer_text_size"
+        android:textColor="@color/text_secondary"
+        android:gravity="center"
+        android:layout_marginBottom="@dimen/footer_margin_bottom"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

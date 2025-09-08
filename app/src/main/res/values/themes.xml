@@ -13,4 +13,19 @@
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
+
+    <!-- Login Activity Theme -->
+    <style name="Theme.EstacionDulceApp.Login" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@drawable/login_gradient_background</item>
+        <item name="android:windowTranslucentStatus">true</item>
+    </style>
+
+    <!-- Home Activity Theme -->
+    <style name="Theme.EstacionDulceApp.Home" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@drawable/login_gradient_background</item>
+    </style>
 </resources>

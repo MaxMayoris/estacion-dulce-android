@@ -17,11 +17,11 @@ class TableView<T> @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var headerContainer: LinearLayout
-    private lateinit var previousButton: Button
-    private lateinit var nextButton: Button
-    private lateinit var pageIndicator: TextView
+    private val recyclerView: RecyclerView
+    private val headerContainer: LinearLayout
+    private val previousButton: Button
+    private val nextButton: Button
+    private val pageIndicator: TextView
 
     private var currentPage = 0
     private var pageSize = 10
@@ -86,9 +86,10 @@ class TableView<T> @JvmOverloads constructor(
         val end = (start + pageSize).coerceAtMost(originalData.size)
         val pageData = originalData.subList(start, end)
         if (paginatedAdapter is TableAdapter<*>) {
+            @Suppress("UNCHECKED_CAST")
             (paginatedAdapter as TableAdapter<T>).updateData(pageData)
         }
-        pageIndicator.text = "Page ${currentPage + 1} of $totalPages"
+        pageIndicator.text = "Página ${currentPage + 1} de $totalPages"
         previousButton.visibility = if (currentPage > 0) VISIBLE else GONE
         nextButton.visibility = if (currentPage < totalPages - 1) VISIBLE else GONE
     }
@@ -98,16 +99,15 @@ class TableView<T> @JvmOverloads constructor(
      */
     private fun generateHeaders(columnHeaders: List<String>) {
         if (headerContainer.childCount == 0) {
-            columnHeaders.forEachIndexed { index, header ->
+            columnHeaders.forEachIndexed { index, _ ->
                 val textView = TextView(context).apply {
                     layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply {
                         weight = 1f
                     }
                     setPadding(16, 16, 16, 16)
-                    setBackgroundColor(context.getColor(R.color.purple_700))
-                    setTextColor(context.getColor(android.R.color.white))
+                    setTextColor(context.getColor(R.color.table_header_text))
                     textAlignment = TEXT_ALIGNMENT_CENTER
-                    setTypeface(null, Typeface.NORMAL)
+                    setTypeface(null, Typeface.BOLD)
                     setOnClickListener { sortByColumn(index) }
                 }
                 headerContainer.addView(textView)
@@ -115,11 +115,9 @@ class TableView<T> @JvmOverloads constructor(
             // Add blank header for delete column.
             val deleteHeader = TextView(context).apply {
                 layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply {
-                    weight = 0.3f
+                    weight = 0.5f
                 }
                 setPadding(16, 16, 16, 16)
-                setBackgroundColor(context.getColor(R.color.purple_700))
-                setTextColor(context.getColor(android.R.color.white))
                 textAlignment = TEXT_ALIGNMENT_CENTER
             }
             headerContainer.addView(deleteHeader)
@@ -151,7 +149,9 @@ class TableView<T> @JvmOverloads constructor(
         }
         val valueGetter = columnValueGetter ?: return
         originalData = originalData.sortedWith(Comparator { a, b ->
+            @Suppress("UNCHECKED_CAST")
             val aValue = valueGetter(a, columnIndex) as? Comparable<Any>
+            @Suppress("UNCHECKED_CAST")
             val bValue = valueGetter(b, columnIndex) as? Comparable<Any>
             when {
                 aValue == null && bValue == null -> 0

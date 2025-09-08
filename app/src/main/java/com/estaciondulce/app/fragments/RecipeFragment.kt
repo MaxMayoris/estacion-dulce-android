@@ -12,7 +12,7 @@ import com.estaciondulce.app.databinding.FragmentRecipeBinding
 import com.estaciondulce.app.helpers.RecipesHelper
 import com.estaciondulce.app.models.Recipe
 import com.estaciondulce.app.repository.FirestoreRepository
-import com.google.android.material.snackbar.Snackbar
+import com.estaciondulce.app.utils.CustomToast
 
 /**
  * Fragment that displays the list of recipes.
@@ -55,6 +55,7 @@ class RecipeFragment : Fragment() {
         }
         binding.addRecipeButton.setOnClickListener {
             val intent = Intent(requireContext(), RecipeEditActivity::class.java)
+            @Suppress("DEPRECATION")
             startActivityForResult(intent, EDIT_RECIPE_REQUEST_CODE)
         }
         binding.searchBar.addTextChangedListener(object : TextWatcher {
@@ -117,6 +118,7 @@ class RecipeFragment : Fragment() {
         val intent = Intent(requireContext(), RecipeEditActivity::class.java).apply {
             putExtra("recipe", recipe)
         }
+        @Suppress("DEPRECATION")
         startActivityForResult(intent, EDIT_RECIPE_REQUEST_CODE)
     }
 
@@ -131,10 +133,10 @@ class RecipeFragment : Fragment() {
                 recipesHelper.deleteRecipe(
                     recipeId = recipe.id,
                     onSuccess = {
-                        Snackbar.make(binding.root, "Receta eliminada correctamente.", Snackbar.LENGTH_LONG).show()
+                        CustomToast.showSuccess(requireContext(), "Receta '${recipe.name}' eliminada correctamente.")
                     },
                     onError = {
-                        Snackbar.make(binding.root, "Error al eliminar la receta.", Snackbar.LENGTH_LONG).show()
+                        CustomToast.showError(requireContext(), "Error al eliminar la receta.")
                     }
                 )
             }
@@ -146,6 +148,7 @@ class RecipeFragment : Fragment() {
     /**
      * Handles the result from RecipeEditActivity.
      */
+    @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == EDIT_RECIPE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {

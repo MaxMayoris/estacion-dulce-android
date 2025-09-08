@@ -5,4 +5,117 @@
         <item name="itemTextColor">@color/nav_item_colors</item>
         <item name="backgroundTint">@color/purple_700</item> <!-- Background color -->
     </style>
+
+    <!-- Dashboard card style -->
+    <style name="DashboardCardStyle" parent="Widget.MaterialComponents.CardView">
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">4dp</item>
+        <item name="cardBackgroundColor">@color/card_background</item>
+        <item name="contentPadding">0dp</item>
+        <item name="rippleColor">@color/button_gradient_start</item>
+    </style>
+
+    <!-- Login title style -->
+    <style name="LoginTitleStyle" parent="TextAppearance.MaterialComponents.Headline4">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:gravity">center</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- Input field style -->
+    <style name="LoginInputStyle" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="android:textColorHint">@color/input_hint</item>
+        <item name="android:textColor">@color/input_text</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textSize">@dimen/input_text_size</item>
+    </style>
+
+    <!-- Button style -->
+    <style name="LoginButtonStyle" parent="Widget.MaterialComponents.Button">
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">@dimen/login_button_text_size</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.05</item>
+    </style>
+
+    <!-- Card style for login container -->
+    <style name="LoginCardStyle" parent="Widget.MaterialComponents.CardView">
+        <item name="cardCornerRadius">@dimen/card_corner_radius</item>
+        <item name="cardElevation">8dp</item>
+        <item name="cardBackgroundColor">@color/card_background</item>
+        <item name="contentPadding">32dp</item>
+    </style>
+
+    <!-- Custom FloatingActionButton Style -->
+    <style name="CustomFloatingActionButtonStyle" parent="Widget.MaterialComponents.FloatingActionButton">
+        <item name="backgroundTint">@color/white</item>
+        <item name="tint">@color/button_gradient_start</item>
+        <item name="elevation">8dp</item>
+        <item name="pressedTranslationZ">12dp</item>
+        <item name="borderWidth">0dp</item>
+        <item name="rippleColor">@color/button_gradient_start</item>
+        <item name="android:minWidth">56dp</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="android:padding">16dp</item>
+    </style>
+
+    <!-- Logout Button Style - HomeActivity specific -->
+    <style name="LogoutButtonStyle" parent="Widget.MaterialComponents.Button">
+        <item name="android:background">@drawable/button_rounded_white</item>
+        <item name="android:drawableTint">@color/purple_700</item>
+        <item name="android:minWidth">56dp</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="android:padding">10dp</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingEnd">10dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:elevation">6dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="backgroundTint">@null</item>
+        <item name="rippleColor">@color/purple_700</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+    </style>
+
+    <!-- Back Button Style - Fragment specific -->
+    <style name="BackButtonStyle" parent="Widget.MaterialComponents.Button">
+        <item name="android:background">@drawable/button_rounded_white</item>
+        <item name="android:drawableTint">@color/purple_700</item>
+        <item name="android:minWidth">56dp</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="android:padding">10dp</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">10dp</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingEnd">10dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:elevation">6dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="backgroundTint">@null</item>
+        <item name="rippleColor">@color/purple_700</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+    </style>
+
+    <!-- Pagination Button Style -->
+    <style name="PaginationButtonStyle" parent="Widget.MaterialComponents.Button">
+        <item name="android:background">@drawable/pagination_button_modern</item>
+        <item name="android:textColor">@color/purple_700</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:minWidth">36dp</item>
+        <item name="android:minHeight">32dp</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:elevation">1dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="backgroundTint">@null</item>
+        <item name="rippleColor">@color/purple_700</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+    </style>
+
 </resources>

@@ -12,6 +12,9 @@ import android.widget.ImageView
 import android.widget.TextView
 import com.estaciondulce.app.R
 
+/**
+ * Custom loading dialog with animated logo and customizable text.
+ */
 class CustomLoader(context: Context) {
 
     private val dialog: Dialog = Dialog(context)
@@ -19,31 +22,25 @@ class CustomLoader(context: Context) {
     private val loadingText: TextView
 
     init {
-        // Inflate the custom loader layout
         val view = LayoutInflater.from(context).inflate(R.layout.custom_loader, null)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         dialog.setContentView(view)
-        dialog.setCancelable(false) // Prevent closing while loading
+        dialog.setCancelable(false)
 
-        // Set the window background to transparent so no black background shows
         dialog.window?.apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            // Remove dimming if desired (or adjust the dim amount)
             clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
         }
 
-        // Get UI elements
         logo = dialog.findViewById(R.id.loaderLogo)
         loadingText = dialog.findViewById(R.id.loaderText)
 
-        // Set up the rotation animation for the logo
         val rotation = ObjectAnimator.ofFloat(logo, "rotation", 0f, 360f)
-        rotation.duration = 1000 // 1 second per rotation
+        rotation.duration = 1000
         rotation.repeatCount = ObjectAnimator.INFINITE
         rotation.start()
     }
 
-    // Show the loader with an optional message override
     fun show(loadingMessage: String? = null) {
         loadingMessage?.let { setLoadingText(it) }
         if (!dialog.isShowing) {
@@ -51,14 +48,12 @@ class CustomLoader(context: Context) {
         }
     }
 
-    // Hide the loader
     fun hide() {
         if (dialog.isShowing) {
             dialog.dismiss()
         }
     }
 
-    // Set custom loading text
     fun setLoadingText(message: String) {
         loadingText.text = message
     }

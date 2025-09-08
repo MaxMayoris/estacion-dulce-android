@@ -5,16 +5,21 @@ import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 import kotlinx.parcelize.RawValue
 
+/**
+ * Recipe data model with cost calculation, pricing, and hierarchical structure.
+ */
 @Parcelize
 data class Recipe(
     override var id: String = "",
-    val name: String = "",                       // Recipe name
-    val cost: Double = 0.0,                      // Cost of creating the recipe
-    val onSale: Boolean = false,                 // Whether the recipe is on sale
-    val salePrice: Double = 0.0,                 // Current sale price
-    val suggestedPrice: Double = 0.0,            // Suggested price
+    val name: String = "",
+    val cost: Double = 0.0,
+    val onSale: Boolean = false,
+    val salePrice: Double = 0.0,
+    val suggestedPrice: Double = 0.0,
     val unit: Int = 1,
-    val categories: List<String> = listOf(),     // List of category IDs from "categories" collection
-    val sections: @RawValue List<RecipeSection> = listOf(), // List of sections for the recipe
-    val recipes: @RawValue List<RecipeNested> = listOf() // List of nested recipes
+    val image: String = "",
+    val description: String = "",
+    val categories: List<String> = listOf(),
+    val sections: @RawValue List<RecipeSection> = listOf(),
+    val recipes: @RawValue List<RecipeNested> = listOf()
 ) : Parcelable, Identifiable

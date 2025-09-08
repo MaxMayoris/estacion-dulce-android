@@ -1,43 +1,54 @@
 package com.estaciondulce.app.activities
 
-import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
+import android.view.View
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Observer
 import com.estaciondulce.app.R
-import com.estaciondulce.app.fragments.HomeFragment
 import com.estaciondulce.app.fragments.MovementFragment
 import com.estaciondulce.app.fragments.PersonFragment
 import com.estaciondulce.app.fragments.ProductFragment
 import com.estaciondulce.app.fragments.RecipeFragment
+import com.estaciondulce.app.helpers.StorageHelper
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomLoader
-import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.estaciondulce.app.utils.CustomToast
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
+import com.google.firebase.auth.FirebaseAuth
 
 class HomeActivity : AppCompatActivity() {
 
-    private val homeFragment = HomeFragment()
+    private lateinit var loader: CustomLoader
+    private lateinit var auth: FirebaseAuth
+    private lateinit var storageHelper: StorageHelper
+    private var storageTestExecuted = false // Flag to ensure storage test runs only once
+    
+    // Fragment instances
     private val productFragment = ProductFragment()
     private val recipeFragment = RecipeFragment()
     private val personFragment = PersonFragment()
     private val movementFragment = MovementFragment()
-    private lateinit var loader: CustomLoader
 
     /**
      * Initializes the activity, sets up Firestore listeners,
-     * observes global LiveData, and configures the bottom navigation.
+     * observes global LiveData, and configures the dashboard cards.
      */
-    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setTheme(R.style.Theme_EstacionDulceApp_Home)
         setContentView(R.layout.activity_home)
+        
         loader = CustomLoader(this)
+        auth = FirebaseAuth.getInstance()
+        storageHelper = StorageHelper()
         loader.show()
 
         FirestoreRepository.startListeners()
 
-        val dataLoadedObserver = Observer<Any> { checkDataLoaded() }
+        val dataLoadedObserver = androidx.lifecycle.Observer<Any> { checkDataLoaded() }
         FirestoreRepository.recipesLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.productsLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.measuresLiveData.observe(this, dataLoadedObserver)
@@ -47,35 +58,102 @@ class HomeActivity : AppCompatActivity() {
         FirestoreRepository.movementsLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.addressesLiveData.observe(this, dataLoadedObserver)
 
-        val bottomNavigationView =
-            findViewById<BottomNavigationView>(R.id.bottomNavigationView)
-        loadFragment(homeFragment)
+        setupDashboardCards()
+        setupLogoutButton()
+        setupFragmentHeader()
+        
+        // Show dashboard by default
+        showDashboard()
+    }
 
-        bottomNavigationView.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_home -> {
-                    loadFragment(homeFragment); true
-                }
-
-                R.id.nav_product -> {
-                    loadFragment(productFragment); true
-                }
-
-                R.id.nav_recipe -> {
-                    loadFragment(recipeFragment); true
-                }
-
-                R.id.nav_person -> {
-                    loadFragment(personFragment); true
-                }
-
-                R.id.nav_movement -> {
-                    loadFragment(movementFragment); true
-                }
-
-                else -> false
-            }
+    /**
+     * Sets up click listeners for all dashboard cards.
+     */
+    private fun setupDashboardCards() {
+        // Products Card
+        findViewById<MaterialCardView>(R.id.productsCard).setOnClickListener {
+            loadFragment(productFragment, "Productos")
+            showFragmentContainer()
         }
+
+        // Recipes Card
+        findViewById<MaterialCardView>(R.id.recipesCard).setOnClickListener {
+            loadFragment(recipeFragment, "Recetas")
+            showFragmentContainer()
+        }
+
+        // Persons Card
+        findViewById<MaterialCardView>(R.id.personsCard).setOnClickListener {
+            loadFragment(personFragment, "Personas")
+            showFragmentContainer()
+        }
+
+        // Movements Card
+        findViewById<MaterialCardView>(R.id.movementsCard).setOnClickListener {
+            loadFragment(movementFragment, "Movimientos")
+            showFragmentContainer()
+        }
+    }
+
+    /**
+     * Sets up the logout button functionality.
+     */
+    private fun setupLogoutButton() {
+        findViewById<MaterialButton>(R.id.logoutButton).setOnClickListener {
+            // Sign out from Firebase
+            auth.signOut()
+            
+            // Navigate back to LoginActivity
+            val intent = Intent(this, LoginActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+            finish()
+        }
+    }
+
+    /**
+     * Sets up the fragment header with back button functionality.
+     */
+    private fun setupFragmentHeader() {
+        findViewById<MaterialButton>(R.id.backButton).setOnClickListener {
+            showDashboard()
+        }
+    }
+
+    /**
+     * Shows the dashboard cards and hides the fragment container and header.
+     */
+    private fun showDashboard() {
+        findViewById<View>(R.id.dashboardScrollView).visibility = View.VISIBLE
+        findViewById<View>(R.id.fragmentHeader).visibility = View.GONE
+        findViewById<View>(R.id.homeFragmentContainer).visibility = View.GONE
+    }
+
+    /**
+     * Shows the fragment container and header, hides the dashboard cards.
+     */
+    private fun showFragmentContainer() {
+        findViewById<View>(R.id.dashboardScrollView).visibility = View.GONE
+        findViewById<View>(R.id.fragmentHeader).visibility = View.VISIBLE
+        findViewById<View>(R.id.homeFragmentContainer).visibility = View.VISIBLE
+    }
+
+    /**
+     * Loads the specified fragment into the home container and sets the title.
+     */
+    private fun loadFragment(fragment: Fragment, title: String) {
+        // Set the fragment title
+        findViewById<TextView>(R.id.fragmentTitle).text = title
+        
+        val transaction = supportFragmentManager.beginTransaction()
+        if (supportFragmentManager.fragments.contains(fragment)) {
+            supportFragmentManager.fragments.forEach { transaction.hide(it) }
+            transaction.show(fragment)
+        } else {
+            supportFragmentManager.fragments.forEach { transaction.hide(it) }
+            transaction.add(R.id.homeFragmentContainer, fragment)
+        }
+        transaction.commit()
     }
 
     /**
@@ -93,21 +171,43 @@ class HomeActivity : AppCompatActivity() {
 
         if (recipesLoaded && productsLoaded && measuresLoaded && categoriesLoaded && sectionsLoaded && personsLoaded && movementsLoaded && addressesLoaded) {
             loader.hide()
+            // Test Firebase Storage access only once after data is loaded
+            if (!storageTestExecuted) {
+                testFirebaseStorageAccess()
+                storageTestExecuted = true
+            }
         }
     }
 
     /**
-     * Loads the specified fragment into the home container.
+     * Handles back button press to return to dashboard.
      */
-    private fun loadFragment(fragment: Fragment) {
-        val transaction = supportFragmentManager.beginTransaction()
-        if (supportFragmentManager.fragments.contains(fragment)) {
-            supportFragmentManager.fragments.forEach { transaction.hide(it) }
-            transaction.show(fragment)
+    @Suppress("DEPRECATION")
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        if (findViewById<View>(R.id.homeFragmentContainer).visibility == View.VISIBLE) {
+            showDashboard()
         } else {
-            supportFragmentManager.fragments.forEach { transaction.hide(it) }
-            transaction.add(R.id.homeFragmentContainer, fragment)
+            super.onBackPressed()
         }
-        transaction.commit()
+    }
+    
+    /**
+     * Tests Firebase Storage access by reading the test.txt file.
+     * This is used for production environment testing and diagnostics.
+     */
+    private fun testFirebaseStorageAccess() {
+        storageHelper.readTestFile(
+            onSuccess = { content ->
+                // Successfully read the test file
+                val message = "Storage OK: $content"
+                CustomToast.showSuccess(this, message, 3) // 3 seconds duration
+            },
+            onError = { exception ->
+                // Failed to read the test file
+                val errorMessage = "Storage Error: ${exception.message}"
+                CustomToast.showError(this, errorMessage, 3) // 3 seconds duration
+            }
+        )
     }
 }

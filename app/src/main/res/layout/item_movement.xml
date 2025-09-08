@@ -1,76 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="8dp"
-    android:gravity="center_vertical">
+    android:padding="12dp"
+    android:gravity="center_vertical"
+    android:background="@drawable/table_row_background">
 
-    <!-- Item Name (read-only) -->
+    <!-- Item Name -->
     <TextView
         android:id="@+id/itemNameTextView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="2"
-        android:text="Nombre del Ítem"
-        android:textSize="16sp" />
+        android:text="Producto"
+        android:textSize="16sp"
+        android:textColor="@color/text_primary"
+        android:layout_marginEnd="8dp"
+        android:maxLines="2"
+        android:ellipsize="end" />
 
-    <!-- Quantity with decrement and increment buttons -->
-    <LinearLayout
+    <!-- Quantity EditText -->
+    <EditText
+        android:id="@+id/quantityEditText"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="2"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:layout_height="32dp"
+        android:layout_weight="1"
+        android:text="1.0"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary"
+        android:background="@drawable/input_background"
+        android:gravity="center"
+        android:inputType="numberDecimal"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp" />
 
-    <Button
-            android:id="@+id/decrementButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:text="-"
-            android:textSize="20sp"
-            android:backgroundTint="@color/purple_200" />
-
-        <EditText
-            android:id="@+id/quantityEditText"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:minWidth="40dp"
-            android:hint="Cantidad"
-            android:inputType="numberDecimal"
-            android:padding="4dp"
-            android:textSize="16sp" />
-
-
-        <Button
-            android:id="@+id/incrementButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:text="+"
-            android:textSize="20sp"
-            android:backgroundTint="@color/purple_200" />
-    </LinearLayout>
-
-    <!-- Cost (editable) -->
+    <!-- Cost EditText -->
     <EditText
         android:id="@+id/costEditText"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="32dp"
         android:layout_weight="1"
-        android:hint="Costo"
+        android:text="0.0"
+        android:textSize="14sp"
+        android:textColor="@color/text_primary"
+        android:background="@drawable/input_background"
+        android:gravity="center"
         android:inputType="numberDecimal"
-        android:padding="4dp"
-        android:textSize="16sp" />
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp" />
 
-    <!-- Delete button -->
-    <ImageButton
+    <!-- Delete Button -->
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/deleteItemButton"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:src="@drawable/ic_delete"
         android:contentDescription="Eliminar ítem"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:scaleType="centerInside" />
+        app:backgroundTint="@color/purple_700"
+        app:cornerRadius="20dp"
+        app:icon="@drawable/ic_delete"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="20dp"
+        app:iconTint="@color/white"
+        style="@style/Widget.Material3.Button.IconButton" />
+
 </LinearLayout>

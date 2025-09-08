@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Login screen dimensions -->
+    <dimen name="login_padding">24dp</dimen>
+    <dimen name="login_margin_top">60dp</dimen>
+    <dimen name="login_title_margin_top">32dp</dimen>
+    <dimen name="login_subtitle_margin_top">8dp</dimen>
+    <dimen name="login_card_margin_top">40dp</dimen>
+    <dimen name="login_input_margin_bottom">20dp</dimen>
+    <dimen name="login_password_margin_bottom">32dp</dimen>
+    <dimen name="login_footer_margin_bottom">24dp</dimen>
+    
+    <!-- Component dimensions -->
+    <dimen name="logo_size">150dp</dimen>
+    <dimen name="logo_image_size">100dp</dimen>
+    <dimen name="logo_margin_top">40dp</dimen>
+    <dimen name="logo_padding">20dp</dimen>
+    <dimen name="button_height">56dp</dimen>
+    <dimen name="card_corner_radius">20dp</dimen>
+    <dimen name="button_corner_radius">28dp</dimen>
+    <dimen name="input_corner_radius">12dp</dimen>
+    
+    <!-- Text sizes -->
+    <dimen name="login_title_size">28sp</dimen>
+    <dimen name="login_subtitle_size">16sp</dimen>
+    <dimen name="login_button_text_size">16sp</dimen>
+    <dimen name="login_footer_text_size">14sp</dimen>
+    <dimen name="input_text_size">16sp</dimen>
+    
+    <!-- Additional dimensions for modernized layout -->
+    <dimen name="welcome_margin_top">32dp</dimen>
+    <dimen name="welcome_subtitle_margin">8dp</dimen>
+    <dimen name="login_card_margin_horizontal">24dp</dimen>
+    <dimen name="card_elevation">8dp</dimen>
+    <dimen name="login_card_padding">32dp</dimen>
+    <dimen name="input_margin_bottom">20dp</dimen>
+    <dimen name="input_padding">16dp</dimen>
+    <dimen name="input_height">56dp</dimen>
+    <dimen name="button_text_size">16sp</dimen>
+    <dimen name="button_margin_top">24dp</dimen>
+    <dimen name="footer_margin_bottom">24dp</dimen>
+    <dimen name="footer_text_size">14sp</dimen>
+</resources>
+

@@ -1,6 +1,9 @@
 package com.estaciondulce.app.activities
 
 import android.app.Activity
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Bundle
 import android.view.MenuItem
 import android.widget.ArrayAdapter
@@ -9,7 +12,7 @@ import com.estaciondulce.app.databinding.ActivityPersonEditBinding
 import com.estaciondulce.app.helpers.PersonsHelper
 import com.estaciondulce.app.models.Person
 import com.estaciondulce.app.repository.FirestoreRepository
-import com.google.android.material.snackbar.Snackbar
+import com.estaciondulce.app.utils.CustomToast
 
 /**
  * Activity para agregar o editar una persona (Cliente o Proveedor).
@@ -28,13 +31,14 @@ class PersonEditActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         // Recibir la persona (si se está editando) a través del Intent
-        currentPerson = intent.getParcelableExtra("PERSON")
+        @Suppress("DEPRECATION")
+        currentPerson = intent.getParcelableExtra<Person>("PERSON")
         supportActionBar?.title = if (currentPerson != null) "Editar Persona" else "Agregar Persona"
 
         // Configurar el Spinner para el tipo de persona (Cliente o Proveedor)
         val personTypes = listOf("Cliente", "Proveedor")
-        val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, personTypes)
-        binding.personTypeSpinner.adapter = spinnerAdapter
+        val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, personTypes)
+        binding.personTypeSpinner.setAdapter(spinnerAdapter)
 
         // Lista de prefijos con nombres de provincias
         val phonePrefixOptions = listOf(
@@ -59,13 +63,13 @@ class PersonEditActivity : AppCompatActivity() {
             "Santa Cruz (296)",
             "Tierra del Fuego (291)"
         )
-        val phonePrefixAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, phonePrefixOptions)
-        binding.phonePrefixSpinner.adapter = phonePrefixAdapter
+        val phonePrefixAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, phonePrefixOptions)
+        binding.phonePrefixSpinner.setAdapter(phonePrefixAdapter)
 
         // Establecer el valor por defecto a "San Juan (264)"
-        val defaultIndex = phonePrefixOptions.indexOfFirst { it.contains("San Juan") }
-        if (defaultIndex != -1) {
-            binding.phonePrefixSpinner.setSelection(defaultIndex)
+        val defaultPrefix = phonePrefixOptions.find { it.contains("San Juan") }
+        if (defaultPrefix != null) {
+            binding.phonePrefixSpinner.setText(defaultPrefix, false)
         }
 
         // Si se está editando, pre-cargar los datos en los campos
@@ -73,16 +77,17 @@ class PersonEditActivity : AppCompatActivity() {
             binding.personNameInput.setText(person.name)
             binding.personLastNameInput.setText(person.lastName)
             // Seleccionar en el spinner el prefijo que coincida con el valor almacenado
-            val selectedIndex = phonePrefixOptions.indexOfFirst { it.contains(person.phoneNumberPrefix) }
-            if (selectedIndex != -1) {
-                binding.phonePrefixSpinner.setSelection(selectedIndex)
+            val selectedPrefix = phonePrefixOptions.find { it.contains(person.phoneNumberPrefix) }
+            if (selectedPrefix != null) {
+                binding.phonePrefixSpinner.setText(selectedPrefix, false)
             }
             binding.phoneSuffixInput.setText(person.phoneNumberSuffix)
-            val typePosition = personTypes.indexOf(person.type)
-            if (typePosition >= 0) binding.personTypeSpinner.setSelection(typePosition)
+            binding.personTypeSpinner.setText(person.type, false)
         }
 
         binding.savePersonButton.setOnClickListener { savePerson() }
+        
+        binding.copyPhoneButton.setOnClickListener { copyPhoneNumber() }
     }
 
 
@@ -102,35 +107,35 @@ class PersonEditActivity : AppCompatActivity() {
     private fun validateInputs(): Boolean {
         val name = binding.personNameInput.text.toString().trim()
         if (name.isEmpty()) {
-            Snackbar.make(binding.root, "El nombre es obligatorio.", Snackbar.LENGTH_LONG).show()
+            CustomToast.showError(this, "El nombre es obligatorio.")
             return false
         }
 
         val lastName = binding.personLastNameInput.text.toString().trim()
         if (lastName.isEmpty()) {
-            Snackbar.make(binding.root, "El apellido es obligatorio.", Snackbar.LENGTH_LONG).show()
+            CustomToast.showError(this, "El apellido es obligatorio.")
             return false
         }
 
-        val selectedPrefixOption = binding.phonePrefixSpinner.selectedItem?.toString() ?: ""
+        val selectedPrefixOption = binding.phonePrefixSpinner.text.toString()
         if (selectedPrefixOption.isEmpty()) {
-            Snackbar.make(binding.root, "El prefijo telefónico es obligatorio.", Snackbar.LENGTH_LONG).show()
+            CustomToast.showError(this, "El prefijo telefónico es obligatorio.")
             return false
         }
 
         val phoneSuffix = binding.phoneSuffixInput.text.toString().trim()
         if (phoneSuffix.isEmpty()) {
-            Snackbar.make(binding.root, "El sufijo telefónico es obligatorio.", Snackbar.LENGTH_LONG).show()
+            CustomToast.showError(this, "El sufijo telefónico es obligatorio.")
             return false
         }
         if (phoneSuffix.length > 8) {
-            Snackbar.make(binding.root, "El sufijo debe tener máximo 8 dígitos.", Snackbar.LENGTH_LONG).show()
+            CustomToast.showError(this, "El sufijo debe tener máximo 8 dígitos.")
             return false
         }
 
         // Validación de unicidad: se verifica que no exista otra persona con el mismo nombre y apellido.
         if (!isUniquePerson(name, lastName, currentPerson?.id)) {
-            Snackbar.make(binding.root, "La persona ya existe.", Snackbar.LENGTH_LONG).show()
+            CustomToast.showError(this, "La persona ya existe.")
             return false
         }
         return true
@@ -156,11 +161,11 @@ class PersonEditActivity : AppCompatActivity() {
         val lastName = binding.personLastNameInput.text.toString().trim()
 
         // Obtener el prefijo seleccionado y extraer el número
-        val selectedPrefixOption = binding.phonePrefixSpinner.selectedItem.toString()
+        val selectedPrefixOption = binding.phonePrefixSpinner.text.toString()
         val phonePrefix = selectedPrefixOption.substringAfter("(").substringBefore(")")
 
         val phoneSuffix = binding.phoneSuffixInput.text.toString().trim()
-        val type = binding.personTypeSpinner.selectedItem.toString()
+        val type = binding.personTypeSpinner.text.toString()
 
         return Person(
             id = currentPerson?.id ?: "",
@@ -175,6 +180,30 @@ class PersonEditActivity : AppCompatActivity() {
 
 
     /**
+     * Copia el número de teléfono completo al portapapeles.
+     */
+    private fun copyPhoneNumber() {
+        val prefixText = binding.phonePrefixSpinner.text.toString()
+        val suffixText = binding.phoneSuffixInput.text.toString().trim()
+        
+        if (prefixText.isEmpty() || suffixText.isEmpty()) {
+            CustomToast.showError(this, "Complete el número de teléfono antes de copiar.")
+            return
+        }
+        
+        // Extraer el prefijo sin paréntesis
+        val prefix = prefixText.substringAfter("(").substringBefore(")")
+        val fullNumber = "$prefix$suffixText"
+        
+        // Copiar al portapapeles
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("Número de teléfono", fullNumber)
+        clipboard.setPrimaryClip(clip)
+        
+        CustomToast.showSuccess(this, "Número copiado: $fullNumber")
+    }
+
+    /**
      * Guarda la persona (agrega una nueva o actualiza la existente) usando PersonsHelper.
      */
     private fun savePerson() {
@@ -185,13 +214,13 @@ class PersonEditActivity : AppCompatActivity() {
         if (currentPerson == null) {
             personsHelper.addPerson(
                 person = personToSave,
-                onSuccess = { newPerson ->
-                    Snackbar.make(binding.root, "Persona añadida correctamente.", Snackbar.LENGTH_LONG).show()
+                onSuccess = { _ ->
+                    CustomToast.showSuccess(this, "Persona añadida correctamente.")
                     setResult(Activity.RESULT_OK)
                     finish()
                 },
                 onError = { exception ->
-                    Snackbar.make(binding.root, "Error al añadir la persona: ${exception.message}", Snackbar.LENGTH_LONG).show()
+                    CustomToast.showError(this, "Error al añadir la persona: ${exception.message}")
                 }
             )
         } else {
@@ -199,12 +228,12 @@ class PersonEditActivity : AppCompatActivity() {
                 personId = currentPerson!!.id,
                 person = personToSave,
                 onSuccess = {
-                    Snackbar.make(binding.root, "Persona actualizada correctamente.", Snackbar.LENGTH_LONG).show()
+                    CustomToast.showSuccess(this, "Persona actualizada correctamente.")
                     setResult(Activity.RESULT_OK)
                     finish()
                 },
                 onError = { exception ->
-                    Snackbar.make(binding.root, "Error al actualizar la persona: ${exception.message}", Snackbar.LENGTH_LONG).show()
+                    CustomToast.showError(this, "Error al actualizar la persona: ${exception.message}")
                 }
             )
         }

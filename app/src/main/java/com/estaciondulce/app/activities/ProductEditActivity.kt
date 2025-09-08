@@ -3,7 +3,6 @@ package com.estaciondulce.app.activities
 import android.app.Activity
 import android.os.Bundle
 import android.view.MenuItem
-import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
@@ -12,7 +11,8 @@ import com.estaciondulce.app.helpers.ProductsHelper
 import com.estaciondulce.app.helpers.RecipesHelper
 import com.estaciondulce.app.models.Product
 import com.estaciondulce.app.repository.FirestoreRepository
-import com.google.android.material.snackbar.Snackbar
+import com.estaciondulce.app.utils.CustomLoader
+import com.estaciondulce.app.utils.CustomToast
 
 /**
  * Activity to add or update a product.
@@ -24,6 +24,7 @@ class ProductEditActivity : AppCompatActivity() {
     private val recipesHelper = RecipesHelper()
     private val repository = FirestoreRepository
     private var currentProduct: Product? = null
+    private lateinit var customLoader: CustomLoader
 
     /**
      * Initializes the activity, sets up LiveData observers, and pre-populates fields if editing.
@@ -33,8 +34,12 @@ class ProductEditActivity : AppCompatActivity() {
         binding = ActivityProductEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Inicializar CustomLoader
+        customLoader = CustomLoader(this)
+
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        currentProduct = intent.getParcelableExtra("PRODUCT")
+        @Suppress("DEPRECATION")
+        currentProduct = intent.getParcelableExtra<Product>("PRODUCT")
         supportActionBar?.title =
             if (currentProduct != null) "Editar Producto" else "Agregar Producto"
 
@@ -91,32 +96,22 @@ class ProductEditActivity : AppCompatActivity() {
     }
 
     /**
-     * Configures the measure spinner using the provided list of Measure objects.
+     * Sets up the measure dropdown with the provided measures list.
      */
     private fun setupMeasureSpinner(measures: List<com.estaciondulce.app.models.Measure>) {
         val measureNames = measures.map { it.name }
         val adapter =
-            ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, measureNames)
-        binding.measureDropdown.adapter = adapter
+            ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, measureNames)
+        binding.measureDropdown.setAdapter(adapter)
 
         currentProduct?.measure?.let { productMeasureId ->
             val measure = measures.find { it.id == productMeasureId }
-            val position = measureNames.indexOf(measure?.name ?: "")
-            if (position >= 0) binding.measureDropdown.setSelection(position)
+            binding.measureDropdown.setText(measure?.name ?: "", false)
         }
 
-        binding.measureDropdown.onItemSelectedListener =
-            object : AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(
-                    parent: AdapterView<*>?,
-                    view: android.view.View?,
-                    position: Int,
-                    id: Long
-                ) {
-                }
-
-                override fun onNothingSelected(parent: AdapterView<*>?) {}
-            }
+        binding.measureDropdown.setOnItemClickListener { _, _, _, _ ->
+            // Handle item selection if needed
+        }
     }
 
     /**
@@ -138,50 +133,39 @@ class ProductEditActivity : AppCompatActivity() {
     }
 
     /**
-     * Validates the input fields and displays a Snackbar if validation fails.
+     * Validates the input fields and displays a CustomToast if validation fails.
      *
      * @return True if all inputs are valid.
      */
     private fun validateInputs(): Boolean {
         val productName = binding.productNameInput.text.toString().trim()
         if (productName.isEmpty()) {
-            Snackbar.make(
-                binding.root,
-                "El nombre del producto es obligatorio.",
-                Snackbar.LENGTH_LONG
-            ).show()
+            CustomToast.showError(this, "El nombre del producto es obligatorio.")
             return false
         }
         if (!isUniqueProductName(productName, currentProduct?.id)) {
-            Snackbar.make(binding.root, "El nombre del producto ya existe.", Snackbar.LENGTH_LONG)
-                .show()
+            CustomToast.showError(this, "El nombre del producto ya existe.")
             return false
         }
         val stock = binding.productStockInput.text.toString().toDoubleOrNull() ?: -1.0
         if (stock < 0) {
-            Snackbar.make(binding.root, "El stock no puede ser menor a 0.", Snackbar.LENGTH_LONG)
-                .show()
+            CustomToast.showError(this, "El stock no puede ser menor a 0.")
             return false
         }
         val cost = binding.productCostInput.text.toString().toDoubleOrNull() ?: -1.0
         if (cost <= 0) {
-            Snackbar.make(binding.root, "El costo no puede ser menor a 0.", Snackbar.LENGTH_LONG)
-                .show()
+            CustomToast.showError(this, "El costo no puede ser menor a 0.")
             return false
         }
         val minQty = binding.productMinimumQuantityInput.text.toString().toDoubleOrNull() ?: -1.0
         if (minQty <= 0) {
-            Snackbar.make(
-                binding.root,
-                "La cantidad mínima no puede ser menor a 0.",
-                Snackbar.LENGTH_LONG
-            ).show()
+            CustomToast.showError(this, "La cantidad mínima no puede ser menor a 0.")
             return false
         }
-        val measureName = binding.measureDropdown.selectedItem?.toString()
+        val measureName = binding.measureDropdown.text.toString()
         val measureId = repository.measuresLiveData.value?.find { it.name == measureName }?.id
         if (measureId.isNullOrEmpty()) {
-            Snackbar.make(binding.root, "Debe seleccionar una medida.", Snackbar.LENGTH_LONG).show()
+            CustomToast.showError(this, "Debe seleccionar una medida.")
             return false
         }
         return true
@@ -202,7 +186,7 @@ class ProductEditActivity : AppCompatActivity() {
         val roundedCost = Math.round(cost * 100.0) / 100.0
         val roundedMinQty = Math.round(minQty * 100.0) / 100.0
 
-        val measureName = binding.measureDropdown.selectedItem?.toString()
+        val measureName = binding.measureDropdown.text.toString()
         val measureId =
             repository.measuresLiveData.value?.find { it.name == measureName }?.id.orEmpty()
 
@@ -222,24 +206,22 @@ class ProductEditActivity : AppCompatActivity() {
     private fun saveProduct() {
         if (!validateInputs()) return
         val productToSave = getProductFromInputs()
+        
+        // Mostrar CustomLoader antes de guardar
+        customLoader.show("Guardando producto...")
+        
         if (currentProduct == null) {
             productsHelper.addProduct(
                 product = productToSave,
                 onSuccess = {
-                    Snackbar.make(
-                        binding.root,
-                        "Producto añadido correctamente.",
-                        Snackbar.LENGTH_LONG
-                    ).show()
+                    customLoader.hide()
+                    CustomToast.showSuccess(this, "Producto añadido correctamente.")
                     setResult(Activity.RESULT_OK)
                     finish()
                 },
-                onError = {
-                    Snackbar.make(
-                        binding.root,
-                        "Error al añadir el producto.",
-                        Snackbar.LENGTH_LONG
-                    ).show()
+                onError = { exception ->
+                    customLoader.hide()
+                    CustomToast.showError(this, "Error al añadir el producto: ${exception.message}")
                 }
             )
         } else {
@@ -250,29 +232,20 @@ class ProductEditActivity : AppCompatActivity() {
                     RecipesHelper().updateCascadeAffectedRecipesFromProduct(
                         currentProduct!!.id,
                         onComplete = {
-                            Snackbar.make(
-                                binding.root,
-                                "Producto actualizado correctamente.",
-                                Snackbar.LENGTH_LONG
-                            ).show()
+                            customLoader.hide()
+                            CustomToast.showSuccess(this, "Producto actualizado correctamente.")
                             setResult(Activity.RESULT_OK)
                             finish()
                         },
                         onError = { exception ->
-                            Snackbar.make(
-                                binding.root,
-                                "Error en actualización en cascada: ${exception.message}",
-                                Snackbar.LENGTH_LONG
-                            ).show()
+                            customLoader.hide()
+                            CustomToast.showError(this, "Error en actualización en cascada: ${exception.message}")
                         }
                     )
                 },
-                onError = {
-                    Snackbar.make(
-                        binding.root,
-                        "Error al actualizar el producto.",
-                        Snackbar.LENGTH_LONG
-                    ).show()
+                onError = { exception ->
+                    customLoader.hide()
+                    CustomToast.showError(this, "Error al actualizar el producto: ${exception.message}")
                 }
             )
         }
