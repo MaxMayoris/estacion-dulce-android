@@ -13,6 +13,8 @@ import com.estaciondulce.app.helpers.RecipesHelper
 import com.estaciondulce.app.models.Recipe
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
+import com.estaciondulce.app.utils.DeleteConfirmationDialog
+import com.estaciondulce.app.models.toColumnConfigs
 
 /**
  * Fragment that displays the list of recipes.
@@ -76,21 +78,20 @@ class RecipeFragment : Fragment() {
      */
     private fun setupTableView(recipes: List<Recipe>) {
         val sortedList = recipes.sortedBy { it.name }
-        binding.recipeTable.setupTable(
-            columnHeaders = listOf("Nombre", "Costo", "Precio Venta", "Rendimiento"),
+        val columnConfigs = listOf("Nombre", "Costo", "Venta", "En Venta").toColumnConfigs(currencyColumns = setOf(1, 2))
+        binding.recipeTable.setupTableWithConfigs(
+            columnConfigs = columnConfigs,
             data = sortedList,
             adapter = RecipeAdapter(
                 recipeList = sortedList,
                 onRowClick = { recipe -> editRecipe(recipe) },
                 onDeleteClick = { recipe -> deleteRecipe(recipe) }
             ) { recipe ->
-                val rendimiento = if (recipe.cost > 0)
-                    ((recipe.salePrice - recipe.cost) / recipe.cost) * 100 else 0.0
                 listOf(
                     recipe.name,
                     recipe.cost,
                     recipe.salePrice,
-                    String.format("%.2f%%", rendimiento)
+                    recipe.onSale
                 )
             },
             pageSize = 10,
@@ -100,11 +101,7 @@ class RecipeFragment : Fragment() {
                     0 -> recipe.name
                     1 -> recipe.cost
                     2 -> recipe.salePrice
-                    3 -> {
-                        val rendimiento = if (recipe.cost > 0)
-                            ((recipe.salePrice - recipe.cost) / recipe.cost) * 100 else 0.0
-                        String.format("%.1f%%", rendimiento)
-                    }
+                    3 -> recipe.onSale
                     else -> null
                 }
             }
@@ -126,10 +123,11 @@ class RecipeFragment : Fragment() {
      * Deletes the specified recipe.
      */
     private fun deleteRecipe(recipe: Recipe) {
-        val dialog = android.app.AlertDialog.Builder(requireContext())
-            .setTitle("Confirmar Eliminación")
-            .setMessage("¿Está seguro de que desea eliminar la receta '${recipe.name}'?")
-            .setPositiveButton("Eliminar") { _, _ ->
+        DeleteConfirmationDialog.show(
+            context = requireContext(),
+            itemName = recipe.name,
+            itemType = "receta",
+            onConfirm = {
                 recipesHelper.deleteRecipe(
                     recipeId = recipe.id,
                     onSuccess = {
@@ -140,9 +138,7 @@ class RecipeFragment : Fragment() {
                     }
                 )
             }
-            .setNegativeButton("Cancelar", null)
-            .create()
-        dialog.show()
+        )
     }
 
     /**

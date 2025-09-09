@@ -13,6 +13,7 @@ import com.estaciondulce.app.helpers.ProductsHelper
 import com.estaciondulce.app.models.Product
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.DeleteConfirmationDialog
+import com.estaciondulce.app.models.toColumnConfigs
 import com.google.android.material.snackbar.Snackbar
 
 /**
@@ -90,8 +91,9 @@ class ProductFragment : Fragment() {
      */
     private fun setupTableView(products: List<Product>) {
         val sortedList = products.sortedBy { it.name }
-        binding.productTable.setupTable(
-            columnHeaders = listOf("Nombre", "Stock", "Costo"),
+        val columnConfigs = listOf("Nombre", "Stock", "Costo").toColumnConfigs(currencyColumns = setOf(2))
+        binding.productTable.setupTableWithConfigs(
+            columnConfigs = columnConfigs,
             data = sortedList,
             adapter = ProductAdapter(
                 productList = sortedList,

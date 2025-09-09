@@ -64,9 +64,9 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
-- **v2.1** - Current version
-- **v2.0** - Complete refactoring
-- **v1.x** - Initial versions
+- **v2.2** - Multiple image support for recipes, profit percentage calculation, modernized delete dialogs, enhanced table formatting, and code cleanup
+- **v2.1** - Minor corrections and bug fixes
+- **v2.0** - Complete UI/UX design refactoring
 
 ---
 

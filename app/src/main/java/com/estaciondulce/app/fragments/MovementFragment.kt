@@ -16,6 +16,7 @@ import com.estaciondulce.app.models.Movement
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.DeleteConfirmationDialog
 import com.estaciondulce.app.utils.CustomToast
+import com.estaciondulce.app.models.toColumnConfigs
 
 class MovementFragment : Fragment() {
 
@@ -86,8 +87,9 @@ class MovementFragment : Fragment() {
      */
     private fun setupTableView(movements: List<Movement>) {
         val sortedList = movements.sortedByDescending { it.date }
-        binding.movementTable.setupTable(
-            columnHeaders = listOf("Fecha", "Nombre", "Monto", "Tipo"),
+        val columnConfigs = listOf("Fecha", "Nombre", "Monto", "Tipo").toColumnConfigs(currencyColumns = setOf(2))
+        binding.movementTable.setupTableWithConfigs(
+            columnConfigs = columnConfigs,
             data = sortedList,
             adapter = MovementAdapter(
                 movementList = sortedList,

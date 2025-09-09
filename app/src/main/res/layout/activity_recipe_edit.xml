@@ -86,7 +86,7 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- En venta checkbox -->
+                <!-- Checkboxes Layout -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -100,7 +100,17 @@
                         android:text="En venta"
                         android:textSize="16sp"
                         android:textColor="@color/text_primary"
-                        android:buttonTint="@color/button_gradient_start" />
+                        android:buttonTint="@color/button_gradient_start"
+                        android:layout_marginEnd="16dp"/>
+
+                    <CheckBox
+                        android:id="@+id/recipeOnSaleQueryCheckbox"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Consultar"
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:buttonTint="@color/button_gradient_start"/>
 
                 </LinearLayout>
 
@@ -126,85 +136,42 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Imagen de la Receta"
+                    android:text="Imágenes"
                     android:textSize="18sp"
                     android:textColor="@color/text_primary"
                     android:textStyle="bold"
                     android:fontFamily="sans-serif-medium"
                     android:layout_marginBottom="16dp"/>
 
-                <LinearLayout
+                <!-- Image Gallery -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/imagesRecyclerView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
-                    <!-- Image Preview -->
-                    <ImageView
-                        android:id="@+id/recipeImagePreview"
-                        android:layout_width="120dp"
-                        android:layout_height="120dp"
-                        android:layout_marginEnd="16dp"
-                        android:background="@color/light_gray"
-                        android:scaleType="centerCrop"
-                        android:src="@android:drawable/ic_menu_gallery" />
+                <!-- Add Image Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/addImageButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Agregar imagen"
+                    android:textSize="14sp"
+                    app:cornerRadius="8dp"
+                    app:backgroundTint="@color/button_gradient_start"
+                    android:textColor="@color/white"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
-                    <!-- Image Actions -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/selectImageButton"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginBottom="8dp"
-                            android:text="Seleccionar imagen"
-                            android:textSize="14sp"
-                            app:cornerRadius="8dp"
-                            app:backgroundTint="@color/button_gradient_start"
-                            android:textColor="@color/white"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/removeImageButton"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Eliminar imagen"
-                            android:textSize="14sp"
-                            app:cornerRadius="8dp"
-                            app:backgroundTint="@color/error_red"
-                            android:textColor="@color/white"
-                            android:visibility="gone"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
-
-                        <ProgressBar
-                            android:id="@+id/imageUploadProgress"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:layout_marginTop="8dp"
-                            android:visibility="gone" />
-
-                        <!-- Temporary diagnostic button - remove in production -->
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/diagnosticButton"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:text="🔧 Diagnóstico Storage"
-                            android:textSize="12sp"
-                            android:visibility="gone"
-                            app:cornerRadius="8dp"
-                            app:backgroundTint="@color/warning_orange"
-                            android:textColor="@color/white"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
+                <ProgressBar
+                    android:id="@+id/imageUploadProgress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone" />
 
             </LinearLayout>
 
@@ -436,6 +403,34 @@
                         </com.google.android.material.textfield.TextInputLayout>
 
                     </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Margen de beneficio -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="16dp"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/profitPercentageLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Margen de beneficio:"
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginEnd="8dp" />
+
+                    <TextView
+                        android:id="@+id/profitPercentageValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0%"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/success_green" />
 
                 </LinearLayout>
 
