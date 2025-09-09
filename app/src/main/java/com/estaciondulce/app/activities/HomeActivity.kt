@@ -11,7 +11,6 @@ import com.estaciondulce.app.fragments.MovementFragment
 import com.estaciondulce.app.fragments.PersonFragment
 import com.estaciondulce.app.fragments.ProductFragment
 import com.estaciondulce.app.fragments.RecipeFragment
-import com.estaciondulce.app.helpers.StorageHelper
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.utils.CustomToast
@@ -23,8 +22,6 @@ class HomeActivity : AppCompatActivity() {
 
     private lateinit var loader: CustomLoader
     private lateinit var auth: FirebaseAuth
-    private lateinit var storageHelper: StorageHelper
-    private var storageTestExecuted = false // Flag to ensure storage test runs only once
     
     // Fragment instances
     private val productFragment = ProductFragment()
@@ -43,7 +40,6 @@ class HomeActivity : AppCompatActivity() {
         
         loader = CustomLoader(this)
         auth = FirebaseAuth.getInstance()
-        storageHelper = StorageHelper()
         loader.show()
 
         FirestoreRepository.startListeners()
@@ -171,11 +167,6 @@ class HomeActivity : AppCompatActivity() {
 
         if (recipesLoaded && productsLoaded && measuresLoaded && categoriesLoaded && sectionsLoaded && personsLoaded && movementsLoaded && addressesLoaded) {
             loader.hide()
-            // Test Firebase Storage access only once after data is loaded
-            if (!storageTestExecuted) {
-                testFirebaseStorageAccess()
-                storageTestExecuted = true
-            }
         }
     }
 
@@ -192,22 +183,4 @@ class HomeActivity : AppCompatActivity() {
         }
     }
     
-    /**
-     * Tests Firebase Storage access by reading the test.txt file.
-     * This is used for production environment testing and diagnostics.
-     */
-    private fun testFirebaseStorageAccess() {
-        storageHelper.readTestFile(
-            onSuccess = { content ->
-                // Successfully read the test file
-                val message = "Storage OK: $content"
-                CustomToast.showSuccess(this, message, 3) // 3 seconds duration
-            },
-            onError = { exception ->
-                // Failed to read the test file
-                val errorMessage = "Storage Error: ${exception.message}"
-                CustomToast.showError(this, errorMessage, 3) // 3 seconds duration
-            }
-        )
-    }
 }

@@ -19,7 +19,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Observer
-import com.bumptech.glide.Glide
 import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.ActivityRecipeEditBinding
 import com.estaciondulce.app.helpers.RecipesHelper
@@ -31,11 +30,11 @@ import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.DeleteConfirmationDialog
+import com.estaciondulce.app.adapters.RecipeImageAdapter
 import android.util.TypedValue
 import java.io.File
 import java.io.IOException
 
-// Extension function for dp conversion
 val Int.dp: Int
     get() = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP,
@@ -43,9 +42,6 @@ val Int.dp: Int
         android.content.res.Resources.getSystem().displayMetrics
     ).toInt()
 
-/**
- * Activity for adding or editing a recipe.
- */
 class RecipeEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityRecipeEditBinding
@@ -58,29 +54,45 @@ class RecipeEditActivity : AppCompatActivity() {
     private val selectedRecipes = mutableListOf<RecipeNested>()
     private val repository = FirestoreRepository
     
-    // Image handling variables
-    private var currentImageUri: Uri? = null
-    private var currentImageUrl: String = ""
-    private var tempImageFile: File? = null
+    private var currentImageUris: List<Uri> = emptyList()
+    private var existingImageUrls: MutableList<String> = mutableListOf()
+    private var tempImageUrls: MutableList<String> = mutableListOf()
+    private var tempImageFiles: MutableList<File> = mutableListOf()
+    private val tempUrlToOriginalUriMap: MutableMap<String, Uri> = mutableMapOf()
+    private val imagesToDeleteFromStorage: MutableList<String> = mutableListOf()
+    private lateinit var imageAdapter: RecipeImageAdapter
+    private val sessionTempId = "temp_${System.currentTimeMillis()}"
+    private val tempStorageUid: String
+        get() = if (recipe?.id?.isNotEmpty() == true) recipe!!.id else sessionTempId
+    private val currentUserId: String
+        get() = recipe?.id?.takeIf { it.isNotEmpty() } ?: sessionTempId
     
-    // Activity result launchers for image selection
     private val galleryLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let { 
-            currentImageUri = it
-            loadImagePreview(it)
-            uploadImageToFirebase(it)
+        ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            val totalCurrentImages = existingImageUrls.size + tempImageUrls.size
+            val availableSlots = 5 - totalCurrentImages
+            val urisToProcess = uris.take(availableSlots)
+            
+            if (uris.size > availableSlots) {
+                CustomToast.showInfo(this, "Solo puedes agregar $availableSlots imágenes más")
+            }
+            
+            if (urisToProcess.isNotEmpty()) {
+                currentImageUris = urisToProcess
+                uploadImagesToTempStorage(urisToProcess)
+            }
         }
     }
     
     private val cameraLauncher = registerForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
-        if (success && tempImageFile != null) {
-            currentImageUri = Uri.fromFile(tempImageFile)
-            loadImagePreview(currentImageUri!!)
-            uploadImageToFirebase(currentImageUri!!)
+        if (success && tempImageFiles.isNotEmpty()) {
+            val tempFile = tempImageFiles.last()
+            val uri = Uri.fromFile(tempFile)
+            uploadImagesToTempStorage(listOf(uri))
         }
     }
     
@@ -91,18 +103,14 @@ class RecipeEditActivity : AppCompatActivity() {
         val storageGranted = permissions[android.Manifest.permission.READ_EXTERNAL_STORAGE] ?: false
         val mediaGranted = permissions[android.Manifest.permission.READ_MEDIA_IMAGES] ?: false
         
-        // Check if camera permission is granted
         if (cameraGranted) {
-            // For gallery access, we need either storage or media permission (depending on Android version)
             val hasStorageAccess = storageGranted || mediaGranted
             if (hasStorageAccess) {
                 showImageSelectionDialog()
             } else {
-                // Camera is granted but storage is not - show dialog but only allow camera
                 showImageSelectionDialogCameraOnly()
             }
         } else {
-            // Camera permission denied
             handleCameraPermissionDenied()
         }
     }
@@ -112,10 +120,6 @@ class RecipeEditActivity : AppCompatActivity() {
         return true
     }
 
-    /**
-     * Initializes the activity, sets up LiveData observers, pre-populates fields if editing,
-     * and configures UI event listeners.
-     */
     @SuppressLint("DefaultLocale")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -138,15 +142,23 @@ class RecipeEditActivity : AppCompatActivity() {
         })
         repository.recipesLiveData.observe(this, Observer { setupRecipeSearchBar() })
 
+        imageAdapter = RecipeImageAdapter { imageUrl ->
+            deleteImage(imageUrl)
+        }
+        binding.imagesRecyclerView.adapter = imageAdapter
+
         recipe?.let { r ->
             binding.recipeNameInput.setText(r.name)
             binding.recipeCostInput.setText(String.format("%.2f", r.cost))
             binding.recipeSuggestedPriceInput.setText(String.format("%.2f", r.suggestedPrice))
             binding.recipeSalePriceInput.setText(String.format("%.2f", r.salePrice))
             binding.recipeOnSaleCheckbox.isChecked = r.onSale
+            binding.recipeOnSaleQueryCheckbox.isChecked = r.onSaleQuery
             binding.recipeUnitInput.setText(r.unit.toString())
             binding.recipeDescriptionInput.setText(r.description)
-            currentImageUrl = r.image
+            existingImageUrls.clear()
+            existingImageUrls.addAll(r.images)
+            tempImageUrls.clear()
             selectedSections.clear()
             selectedCategories.clear()
             selectedSections.addAll(r.sections.filter { it.products.isNotEmpty() })
@@ -157,7 +169,8 @@ class RecipeEditActivity : AppCompatActivity() {
             updateCategoryTags()
             updateNestedRecipesUI()
             updateCosts()
-            loadExistingImage()
+            updateProfitPercentage()
+            updateImageGallery()
         }
 
         binding.recipeUnitInput.addTextChangedListener(object : TextWatcher {
@@ -170,25 +183,37 @@ class RecipeEditActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) { }
         })
 
+        binding.recipeCostInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) { }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                updateProfitPercentage()
+            }
+            override fun afterTextChanged(s: Editable?) { }
+        })
+
+        binding.recipeSalePriceInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) { }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                updateProfitPercentage()
+            }
+            override fun afterTextChanged(s: Editable?) { }
+        })
+
         loader.show()
         binding.saveRecipeButton.setOnClickListener { saveRecipe() }
         
-        // Image button listeners
-        binding.selectImageButton.setOnClickListener { 
-            checkPermissionsAndShowImageDialog()
+        binding.addImageButton.setOnClickListener { 
+            val totalCurrentImages = existingImageUrls.size + tempImageUrls.size
+            if (totalCurrentImages < 5) {
+                checkPermissionsAndShowImageDialog()
+            } else {
+                CustomToast.showInfo(this, "Máximo 5 imágenes permitidas")
+            }
         }
-        
-        binding.removeImageButton.setOnClickListener {
-            removeImage()
-        }
-        
         
         loader.hide()
     }
 
-    /**
-     * Configures the category selector using the provided categories map.
-     */
     private fun setupCategorySelector(categoriesMap: Map<String, String>) {
         val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categoriesMap.values.toList())
         binding.categorySelector.setAdapter(adapter)
@@ -198,16 +223,13 @@ class RecipeEditActivity : AppCompatActivity() {
             if (!selectedCategories.contains(selectedId)) {
                 selectedCategories.add(selectedId)
                 updateCategoryTags()
-                binding.categorySelector.setText("") // Clear the text after selection
+                binding.categorySelector.setText("")
             } else {
                 Toast.makeText(this@RecipeEditActivity, "La categoría ya fue añadida", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    /**
-     * Configures the section selector using the provided sections map.
-     */
     private fun setupSectionSelector(sectionsMap: Map<String, String>) {
         val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, sectionsMap.values.toList())
         binding.sectionSelector.setAdapter(adapter)
@@ -222,16 +244,13 @@ class RecipeEditActivity : AppCompatActivity() {
                 )
                 selectedSections.add(newSection)
                 updateSectionsUI()
-                binding.sectionSelector.setText("") // Clear the text after selection
+                binding.sectionSelector.setText("")
             } else {
                 Toast.makeText(this@RecipeEditActivity, "La sección ya fue añadida", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    /**
-     * Updates the category tags UI.
-     */
     private fun updateCategoryTags() {
         binding.categoryTagsContainer.removeAllViews()
         if (selectedCategories.isEmpty()) {
@@ -255,9 +274,6 @@ class RecipeEditActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Updates the UI for the selected sections.
-     */
     private fun updateSectionsUI() {
         binding.sectionsContainer.removeAllViews()
         binding.sectionsTitle.visibility = if (selectedSections.isNotEmpty()) View.VISIBLE else View.GONE
@@ -303,9 +319,6 @@ class RecipeEditActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Displays a product search popup anchored to the given view.
-     */
     private fun showProductSearchPopup(anchor: View, products: List<Map.Entry<String, Pair<String, Double>>>, section: RecipeSection) {
         val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, products.map { it.value.first })
         val popup = ListPopupWindow(this).apply {
@@ -328,9 +341,6 @@ class RecipeEditActivity : AppCompatActivity() {
         popup.show()
     }
 
-    /**
-     * Adds a product view to the specified container.
-     */
     private fun addProductToUI(
         productContainer: LinearLayout,
         section: RecipeSection,
@@ -351,7 +361,6 @@ class RecipeEditActivity : AppCompatActivity() {
         }
         quantityContainer.removeAllViews()
         quantityContainer.addView(quantityControl)
-        // Icon and styling are now defined in XML
         removeButton.setOnClickListener {
             showConfirmationDialog("¿Está seguro de eliminar el producto $productName?") {
                 productContainer.removeView(productView)
@@ -363,10 +372,6 @@ class RecipeEditActivity : AppCompatActivity() {
         productContainer.addView(productView)
     }
 
-    /**
-     * Creates a quantity control view that increments/decrements by 1.0.
-     * The control allows input of decimals and ensures spacing between buttons.
-     */
     private fun createQuantityControl(initialValue: Double, onQuantityChanged: (Double) -> Unit): LinearLayout {
         val container = LinearLayout(this)
         container.orientation = LinearLayout.HORIZONTAL
@@ -445,10 +450,6 @@ class RecipeEditActivity : AppCompatActivity() {
         return container
     }
 
-    /**
-     * Creates a quantity control view that increments/decrements by 1.
-     * The control allows input of decimals and ensures spacing between buttons.
-     */
     private fun createIntegerQuantityControl(initialValue: Int, onQuantityChanged: (Int) -> Unit): LinearLayout {
         val container = LinearLayout(this)
         container.orientation = LinearLayout.HORIZONTAL
@@ -536,10 +537,6 @@ class RecipeEditActivity : AppCompatActivity() {
         return container
     }
 
-    /**
-     * Updates the recipe cost and suggested price based on current inputs,
-     * rounding the values to 2 decimals.
-     */
     private fun updateCosts() {
         val productsMap = repository.productsLiveData.value?.associate { it.id to Pair(it.name, it.cost) } ?: emptyMap()
         val recipesMap = repository.recipesLiveData.value?.associateBy { it.id }?.toMutableMap() ?: mutableMapOf()
@@ -549,9 +546,11 @@ class RecipeEditActivity : AppCompatActivity() {
             cost = binding.recipeCostInput.text.toString().toDoubleOrNull() ?: 0.0,
             suggestedPrice = binding.recipeSuggestedPriceInput.text.toString().toDoubleOrNull() ?: 0.0,
             salePrice = binding.recipeSalePriceInput.text.toString().toDoubleOrNull() ?: 0.0,
+            profitPercentage = 0.0, 
             unit = binding.recipeUnitInput.text.toString().toIntOrNull() ?: 1,
             onSale = binding.recipeOnSaleCheckbox.isChecked,
-            image = currentImageUrl,
+            onSaleQuery = binding.recipeOnSaleQueryCheckbox.isChecked,
+            images = (existingImageUrls + tempImageUrls).toList(),
             description = binding.recipeDescriptionInput.text.toString(),
             categories = selectedCategories.toList(),
             sections = selectedSections,
@@ -560,11 +559,30 @@ class RecipeEditActivity : AppCompatActivity() {
         val (costPerUnit, suggestedPrice) = recipesHelper.calculateCostAndSuggestedPrice(updatedRecipe, productsMap, recipesMap)
         binding.recipeCostInput.setText(String.format("%.2f", costPerUnit))
         binding.recipeSuggestedPriceInput.setText(String.format("%.2f", suggestedPrice))
+        updateProfitPercentage()
     }
 
-    /**
-     * Sets up the recipe search bar with a popup for selecting recipes.
-     */
+    private fun updateProfitPercentage() {
+        val cost = binding.recipeCostInput.text.toString().toDoubleOrNull() ?: 0.0
+        val salePrice = binding.recipeSalePriceInput.text.toString().toDoubleOrNull() ?: 0.0
+        
+        val profitPercentage = if (cost > 0) {
+            ((salePrice - cost) / cost) * 100
+        } else {
+            0.0
+        }
+        
+        val formattedPercentage = String.format("%.1f%%", profitPercentage)
+        binding.profitPercentageValue.text = formattedPercentage
+        
+        val color = if (profitPercentage >= 0) {
+            ContextCompat.getColor(this, R.color.success_green)
+        } else {
+            ContextCompat.getColor(this, R.color.error_red)
+        }
+        binding.profitPercentageValue.setTextColor(color)
+    }
+
     private fun setupRecipeSearchBar() {
         val recipeSearchAdapter = ArrayAdapter<String>(this, android.R.layout.simple_list_item_1)
         val popupWindow = ListPopupWindow(this).apply {
@@ -598,9 +616,6 @@ class RecipeEditActivity : AppCompatActivity() {
         })
     }
 
-    /**
-     * Updates the UI for nested recipes.
-     */
     private fun updateNestedRecipesUI() {
         binding.selectedRecipeContainer.removeAllViews()
         binding.selectedRecipeContainer.visibility = if (selectedRecipes.isNotEmpty()) View.VISIBLE else View.GONE
@@ -661,9 +676,6 @@ class RecipeEditActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Displays the selected recipe in the nested recipes container.
-     */
     private fun displaySelectedRecipe(recipe: Recipe) {
         binding.selectedRecipeContainer.visibility = View.VISIBLE
         if (binding.selectedRecipeContainer.findViewWithTag<LinearLayout>(recipe.id) != null) {
@@ -728,104 +740,180 @@ class RecipeEditActivity : AppCompatActivity() {
         binding.recipeSearchBar.text?.clear()
     }
 
-    /**
-     * Saves the recipe by adding or updating it using RecipesHelper.
-     */
     private fun saveRecipe() {
         validateFields { isValid ->
             if (!isValid) return@validateFields
-            loader.show()
-            val updatedRecipe = Recipe(
-                id = recipe?.id ?: "",
-                name = binding.recipeNameInput.text.toString(),
-                cost = binding.recipeCostInput.text.toString().toDoubleOrNull() ?: 0.0,
-                suggestedPrice = binding.recipeSuggestedPriceInput.text.toString().toDoubleOrNull() ?: 0.0,
-                salePrice = binding.recipeSalePriceInput.text.toString().toDoubleOrNull() ?: 0.0,
-                unit = binding.recipeUnitInput.text.toString().toIntOrNull() ?: 1,
-                onSale = binding.recipeOnSaleCheckbox.isChecked,
-                image = currentImageUrl,
-                description = binding.recipeDescriptionInput.text.toString(),
-                categories = selectedCategories.toList(),
-                sections = selectedSections,
-                recipes = selectedRecipes
-            )
-            if (updatedRecipe.id.isEmpty()) {
-                // For new recipes, first save the recipe to get the ID
+            try {
+                loader.show()
+                val cost = binding.recipeCostInput.text.toString().toDoubleOrNull() ?: 0.0
+                val salePrice = binding.recipeSalePriceInput.text.toString().toDoubleOrNull() ?: 0.0
+                val profitPercentage = if (cost > 0) {
+                    ((salePrice - cost) / cost) * 100
+                } else {
+                    0.0
+                }
+
+                val updatedRecipe = Recipe(
+                    id = recipe?.id ?: "",
+                    name = binding.recipeNameInput.text.toString(),
+                    cost = cost,
+                    suggestedPrice = binding.recipeSuggestedPriceInput.text.toString().toDoubleOrNull()
+                        ?: 0.0,
+                    salePrice = salePrice,
+                    profitPercentage = profitPercentage,
+                    unit = binding.recipeUnitInput.text.toString().toIntOrNull() ?: 1,
+                    onSale = binding.recipeOnSaleCheckbox.isChecked,
+                    onSaleQuery = binding.recipeOnSaleQueryCheckbox.isChecked,
+                    images = existingImageUrls.toList(),
+                    description = binding.recipeDescriptionInput.text.toString(),
+                    categories = selectedCategories.toList(),
+                    sections = selectedSections,
+                    recipes = selectedRecipes
+                )
+                if (updatedRecipe.id.isEmpty()) {
                 recipesHelper.addRecipe(
                     recipe = updatedRecipe,
                     onSuccess = { newRecipe ->
-                        // If there's a temp image, migrate it to the final location
-                        if (currentImageUrl.isNotEmpty() && currentImageUrl.contains("temp_")) {
-                            storageHelper.migrateTempImageToRecipe(
-                                tempImageUrl = currentImageUrl,
-                                newRecipeId = newRecipe.id,
-                                onSuccess = { finalImageUrl ->
-                                    // Update the recipe with the final image URL
-                                    val finalRecipe = newRecipe.copy(image = finalImageUrl)
-                                    recipesHelper.updateRecipe(
-                                        recipeId = newRecipe.id,
-                                        recipe = finalRecipe,
-                                        onSuccess = {
-                                            loader.hide()
-                                            sendResultAndFinish(finalRecipe)
-                                        },
-                                        onError = { e ->
-                                            loader.hide()
-                                            CustomToast.showError(this, "Error al actualizar imagen de receta: ${e.message}")
-                                            e.printStackTrace()
-                                        }
-                                    )
+                        if (tempImageUrls.isNotEmpty()) {
+                            uploadTempImagesToFinalLocation(
+                                tempImageUrls = tempImageUrls,
+                                recipeId = newRecipe.id,
+                                onSuccess = { finalImageUrls ->
+                                    if (imagesToDeleteFromStorage.isNotEmpty()) {
+                                        storageHelper.deleteImagesFromStorage(
+                                            imageUrls = imagesToDeleteFromStorage,
+                                            onSuccess = {
+                                                val finalRecipe = newRecipe.copy(
+                                                    images = existingImageUrls + finalImageUrls
+                                                )
+                                                updateRecipeAndFinish(finalRecipe)
+                                            },
+                                            onError = { error ->
+                                                loader.hide()
+                                                CustomToast.showError(
+                                                    this,
+                                                    "Error al eliminar imágenes: ${error.message}"
+                                                )
+                                                error.printStackTrace()
+                                            }
+                                        )
+                                    } else {
+                                        val finalRecipe = newRecipe.copy(
+                                            images = existingImageUrls + finalImageUrls
+                                        )
+                                        updateRecipeAndFinish(finalRecipe)
+                                    }
                                 },
-                                onError = { e ->
+                                onError = { error ->
                                     loader.hide()
-                                    CustomToast.showError(this, "Error al migrar imagen: ${e.message}")
-                                    e.printStackTrace()
+                                    CustomToast.showError(
+                                        this,
+                                        "Error al subir imágenes: ${error.message}"
+                                    )
+                                    error.printStackTrace()
                                 }
                             )
                         } else {
-                            loader.hide()
-                            sendResultAndFinish(newRecipe)
+                            val finalRecipe = newRecipe.copy(
+                                images = existingImageUrls
+                            )
+                            updateRecipeAndFinish(finalRecipe)
                         }
                     },
-                    onError = { e ->
+                    onError = { error ->
                         loader.hide()
-                        Toast.makeText(this, "Error al guardar la receta.", Toast.LENGTH_SHORT).show()
-                        e.printStackTrace()
+                        CustomToast.showError(this, "Error al guardar la receta: ${error.message}")
+                        error.printStackTrace()
                     }
                 )
             } else {
-                recipesHelper.updateRecipe(
-                    recipeId = updatedRecipe.id,
-                    recipe = updatedRecipe,
-                    onSuccess = {
-                        recipesHelper.updateCascadeCosts(
-                            updatedRecipe = updatedRecipe,
-                            allProducts = repository.productsLiveData.value?.associate { it.id to Pair(it.name, it.cost) } ?: emptyMap(),
-                            allRecipes = repository.recipesLiveData.value?.associateBy { it.id }?.toMutableMap() ?: mutableMapOf(),
-                            onComplete = {
-                                loader.hide()
-                                sendResultAndFinish(updatedRecipe)
+                if (tempImageUrls.isNotEmpty()) {
+                    uploadTempImagesToFinalLocation(
+                        tempImageUrls = tempImageUrls,
+                        recipeId = updatedRecipe.id,
+                        onSuccess = { finalImageUrls ->
+                            if (imagesToDeleteFromStorage.isNotEmpty()) {
+                                storageHelper.deleteImagesFromStorage(
+                                    imageUrls = imagesToDeleteFromStorage,
+                                    onSuccess = {
+                                        val finalRecipe = updatedRecipe.copy(
+                                            images = existingImageUrls + finalImageUrls
+                                        )
+                                        updateRecipeAndFinish(finalRecipe)
+                                    },
+                                    onError = { error ->
+                                        loader.hide()
+                                        CustomToast.showError(
+                                            this,
+                                            "Error al eliminar imágenes: ${error.message}"
+                                        )
+                                        error.printStackTrace()
+                                    }
+                                )
+                            } else {
+                                val finalRecipe = updatedRecipe.copy(
+                                    images = existingImageUrls + finalImageUrls
+                                )
+                                updateRecipeAndFinish(finalRecipe)
+                            }
+                        },
+                        onError = { error ->
+                            loader.hide()
+                            CustomToast.showError(this, "Error al subir imágenes: ${error.message}")
+                            error.printStackTrace()
+                        }
+                    )
+                } else {
+                    if (imagesToDeleteFromStorage.isNotEmpty()) {
+                        storageHelper.deleteImagesFromStorage(
+                            imageUrls = imagesToDeleteFromStorage,
+                            onSuccess = {
+                                val finalRecipe = updatedRecipe.copy(
+                                    images = existingImageUrls
+                                )
+                                updateRecipeAndFinish(finalRecipe)
                             },
                             onError = { error ->
                                 loader.hide()
-                                Toast.makeText(this, "Error al actualizar recetas en cascada.", Toast.LENGTH_SHORT).show()
+                                CustomToast.showError(
+                                    this,
+                                    "Error al eliminar imágenes: ${error.message}"
+                                )
                                 error.printStackTrace()
                             }
                         )
-                    },
-                    onError = { e ->
-                        loader.hide()
-                        Toast.makeText(this, "Error al actualizar la receta.", Toast.LENGTH_SHORT).show()
-                        e.printStackTrace()
+                    } else {
+                        val finalRecipe = updatedRecipe.copy(
+                            images = existingImageUrls
+                        )
+                        updateRecipeAndFinish(finalRecipe)
                     }
-                )
+                }
+            }
+            } catch (e: Exception) {
+                loader.hide()
+                CustomToast.showError(this, "Error al guardar la receta: ${e.message}")
+                e.printStackTrace()
             }
         }
     }
+    
+    private fun updateRecipeAndFinish(finalRecipe: Recipe) {
+        recipesHelper.updateRecipe(
+            recipeId = finalRecipe.id,
+            recipe = finalRecipe,
+            onSuccess = {
+                loader.hide()
+                sendResultAndFinish(finalRecipe)
+            },
+            onError = { e ->
+                loader.hide()
+                CustomToast.showError(this, "Error al actualizar receta: ${e.message}")
+                e.printStackTrace()
+            }
+        )
+    }
 
-    /**
-     * Validates the input fields and calls the provided callback with the result.
-     */
     private fun validateFields(onValidationComplete: (Boolean) -> Unit) {
         val name = binding.recipeNameInput.text.toString().trim()
         val cost = binding.recipeCostInput.text.toString().trim()
@@ -876,20 +964,13 @@ class RecipeEditActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Sends the updated recipe as result and finishes the activity.
-     */
     private fun sendResultAndFinish(updatedRecipe: Recipe) {
         val resultIntent = Intent().apply { putExtra("updatedRecipe", updatedRecipe) }
         setResult(RESULT_OK, resultIntent)
         finish()
     }
 
-    /**
-     * Displays a confirmation dialog with the given message.
-     */
     private fun showConfirmationDialog(message: String, onConfirmed: () -> Unit) {
-        // Extract item name from message for better UX
         val itemName = when {
             message.contains("producto") -> {
                 val start = message.indexOf("'") + 1
@@ -926,9 +1007,6 @@ class RecipeEditActivity : AppCompatActivity() {
         )
     }
     
-    /**
-     * Checks permissions and shows image selection dialog.
-     */
     private fun checkPermissionsAndShowImageDialog() {
         val cameraPermission = android.Manifest.permission.CAMERA
         val storagePermission = android.Manifest.permission.READ_EXTERNAL_STORAGE
@@ -939,36 +1017,26 @@ class RecipeEditActivity : AppCompatActivity() {
         val mediaGranted = ContextCompat.checkSelfPermission(this, mediaPermission) == PackageManager.PERMISSION_GRANTED
         
         if (cameraGranted && (storageGranted || mediaGranted)) {
-            // All permissions granted, show full dialog
             showImageSelectionDialog()
         } else if (cameraGranted) {
-            // Only camera granted, show camera-only dialog
             showImageSelectionDialogCameraOnly()
         } else {
-            // Need to request permissions
             requestImagePermissions()
         }
     }
     
-    /**
-     * Requests necessary permissions for image selection.
-     */
     private fun requestImagePermissions() {
         val permissions = mutableListOf<String>()
         
-        // Always request camera permission
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             permissions.add(android.Manifest.permission.CAMERA)
         }
         
-        // Request storage permissions based on Android version
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+ uses READ_MEDIA_IMAGES
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_MEDIA_IMAGES) != PackageManager.PERMISSION_GRANTED) {
                 permissions.add(android.Manifest.permission.READ_MEDIA_IMAGES)
             }
         } else {
-            // Android 12 and below use READ_EXTERNAL_STORAGE
             if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 permissions.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
             }
@@ -977,25 +1045,19 @@ class RecipeEditActivity : AppCompatActivity() {
         if (permissions.isNotEmpty()) {
             permissionLauncher.launch(permissions.toTypedArray())
         } else {
-            // This shouldn't happen, but just in case
             showImageSelectionDialog()
         }
     }
     
-    /**
-     * Shows dialog to select image source (camera or gallery).
-     */
     private fun showImageSelectionDialog() {
         val options = mutableListOf<String>()
         val actions = mutableListOf<() -> Unit>()
         
-        // Add camera option if available
         if (isCameraAvailable()) {
             options.add("Cámara")
             actions.add { openCamera() }
         }
         
-        // Add gallery option
         options.add("Galería")
         actions.add { openGallery() }
         
@@ -1013,9 +1075,6 @@ class RecipeEditActivity : AppCompatActivity() {
             .show()
     }
     
-    /**
-     * Shows dialog with only camera option (when gallery permission is not available).
-     */
     private fun showImageSelectionDialogCameraOnly() {
         AlertDialog.Builder(this)
             .setTitle("Seleccionar imagen")
@@ -1027,16 +1086,12 @@ class RecipeEditActivity : AppCompatActivity() {
             .show()
     }
     
-    /**
-     * Handles camera permission denial.
-     */
     private fun handleCameraPermissionDenied() {
         val shouldShowRationale = ActivityCompat.shouldShowRequestPermissionRationale(
             this, android.Manifest.permission.CAMERA
         )
         
         if (shouldShowRationale) {
-            // User denied permission but didn't check "Don't ask again"
             AlertDialog.Builder(this)
                 .setTitle("Permiso de cámara requerido")
                 .setMessage("Para tomar fotos de recetas, necesitas otorgar permiso de cámara.")
@@ -1046,7 +1101,6 @@ class RecipeEditActivity : AppCompatActivity() {
                 .setNegativeButton("Cancelar", null)
                 .show()
         } else {
-            // User denied permission and checked "Don't ask again" or it's the first time
             AlertDialog.Builder(this)
                 .setTitle("Permiso de cámara requerido")
                 .setMessage("Para tomar fotos, necesitas habilitar el permiso de cámara en la configuración de la aplicación.")
@@ -1058,9 +1112,6 @@ class RecipeEditActivity : AppCompatActivity() {
         }
     }
     
-    /**
-     * Opens app settings for manual permission management.
-     */
     private fun openAppSettings() {
         val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = android.net.Uri.fromParts("package", packageName, null)
@@ -1068,22 +1119,19 @@ class RecipeEditActivity : AppCompatActivity() {
         startActivity(intent)
     }
     
-    /**
-     * Opens camera to take a photo.
-     */
     private fun openCamera() {
-        // Double-check camera permission before opening camera
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(this, "Permiso de cámara no otorgado", Toast.LENGTH_SHORT).show()
             return
         }
         
         try {
-            tempImageFile = createImageFile()
+            val tempFile = createImageFile()
+            tempImageFiles.add(tempFile)
             val photoURI = FileProvider.getUriForFile(
                 this,
                 "${packageName}.fileprovider",
-                tempImageFile!!
+                tempFile
             )
             cameraLauncher.launch(photoURI)
         } catch (e: IOException) {
@@ -1095,11 +1143,7 @@ class RecipeEditActivity : AppCompatActivity() {
         }
     }
     
-    /**
-     * Opens gallery to select an image.
-     */
     private fun openGallery() {
-        // Check if we have storage permission
         val hasStoragePermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED
         } else {
@@ -1113,131 +1157,174 @@ class RecipeEditActivity : AppCompatActivity() {
         }
     }
     
-    /**
-     * Creates a temporary image file for camera capture.
-     */
     private fun createImageFile(): File {
         val imageFileName = "JPEG_${System.currentTimeMillis()}_"
         val storageDir = getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES)
         return File.createTempFile(imageFileName, ".jpg", storageDir)
     }
     
-    /**
-     * Checks if camera is available on the device.
-     */
     private fun isCameraAvailable(): Boolean {
         return packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
     }
     
-    /**
-     * Loads image preview using Glide.
-     */
-    private fun loadImagePreview(uri: Uri) {
-        Glide.with(this)
-            .load(uri)
-            .centerCrop()
-            .into(binding.recipeImagePreview)
-        
-        binding.removeImageButton.visibility = View.VISIBLE
-    }
-    
-    /**
-     * Loads existing image from URL.
-     */
-    private fun loadExistingImage() {
-        if (currentImageUrl.isNotEmpty()) {
-            Glide.with(this)
-                .load(currentImageUrl)
-                .centerCrop()
-                .into(binding.recipeImagePreview)
-            
-            binding.removeImageButton.visibility = View.VISIBLE
-        }
-    }
-    
-    /**
-     * Uploads image to Firebase Storage using organized structure.
-     */
-    private fun uploadImageToFirebase(uri: Uri) {
-        showImageUploadProgress(true)
-        loader.show("Cargando...")
-        
-        // Get recipe ID - use existing ID if editing, or generate temp ID for new recipes
-        val recipeId = if (recipe?.id?.isNotEmpty() == true) {
-            recipe!!.id
+    private fun updateImageGallery() {
+        val allImages = existingImageUrls + tempImageUrls
+        imageAdapter.updateImages(allImages)
+        val totalImages = allImages.size
+        binding.addImageButton.isEnabled = totalImages < 5
+        binding.addImageButton.text = if (totalImages < 5) {
+            "Agregar imagen ($totalImages/5)"
         } else {
-            // For new recipes, generate a temporary ID that will be replaced when saved
-            "temp_${System.currentTimeMillis()}"
+            "Máximo alcanzado (5/5)"
         }
+    }
+    
+    private fun uploadImagesToTempStorage(uris: List<Uri>) {
+        if (uris.isEmpty()) return
         
-        // Use the new organized upload method
-            storageHelper.uploadRecipeImage(
+        showImageUploadProgress(true)
+        loader.show("Subiendo imágenes...")
+        
+        val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", java.util.Locale.getDefault())
+            .format(java.util.Date())
+        
+        var completedUploads = 0
+        val totalUploads = uris.size
+        
+        uris.forEachIndexed { index, uri ->
+            val fileName = if (uris.size > 1) {
+                "${timestamp}-${index + 1}.jpg"
+            } else {
+                "${timestamp}.jpg"
+            }
+            
+            storageHelper.uploadTempImage(
                 imageUri = uri,
-                recipeId = recipeId,
+                uid = tempStorageUid,
+                fileName = fileName,
                 onSuccess = { downloadUrl ->
-                    currentImageUrl = downloadUrl
-                    showImageUploadProgress(false)
-                    loader.hide()
-                    CustomToast.showSuccess(this, "Imagen subida exitosamente")
+                    tempImageUrls.add(downloadUrl)
+                    tempUrlToOriginalUriMap[downloadUrl] = uri
+                    completedUploads++
+                    
+                    if (completedUploads == totalUploads) {
+                        showImageUploadProgress(false)
+                        loader.hide()
+                        updateImageGallery()
+                        CustomToast.showSuccess(this, "Imágenes subidas exitosamente")
+                    }
                 },
                 onError = { error ->
-                    showImageUploadProgress(false)
-                    loader.hide()
-                    // Show exact Firebase message without modification
-                    CustomToast.showError(this, "Error al subir imagen: ${error.message}")
+                    completedUploads++
+                    if (completedUploads == totalUploads) {
+                        showImageUploadProgress(false)
+                        loader.hide()
+                        updateImageGallery()
+                        CustomToast.showError(this, "Error al subir algunas imágenes: ${error.message}")
+                    }
                     error.printStackTrace()
-                },
-                onProgress = { _ ->
-                    // Progress is handled by the progress bar visibility
                 }
             )
         }
+    }
     
-    /**
-     * Removes the current image.
-     */
-    private fun removeImage() {
-        showConfirmationDialog("¿Está seguro de eliminar la imagen?") {
-            // Delete from Firebase Storage if it exists
-            if (currentImageUrl.isNotEmpty()) {
-                storageHelper.deleteImage(
-                    imageUrl = currentImageUrl,
-                    onSuccess = {
-                        clearImage()
-                        CustomToast.showSuccess(this, "Imagen eliminada")
-                    },
-                    onError = { error ->
-                        // Even if deletion fails, clear the local reference
-                        clearImage()
-                        CustomToast.showInfo(this, "Imagen eliminada localmente")
-                        error.printStackTrace()
-                    }
-                )
-            } else {
-                clearImage()
+    private fun deleteImage(imageUrl: String) {
+        showConfirmationDialog("¿Está seguro de eliminar esta imagen?") {
+            if (tempImageUrls.contains(imageUrl)) {
+                tempImageUrls.remove(imageUrl)
+                tempUrlToOriginalUriMap.remove(imageUrl)
+                updateImageGallery()
+                CustomToast.showSuccess(this, "Imagen eliminada")
+            } else if (existingImageUrls.contains(imageUrl)) {
+                existingImageUrls.remove(imageUrl)
+                imagesToDeleteFromStorage.add(imageUrl)
+                updateImageGallery()
+                CustomToast.showSuccess(this, "Imagen eliminada")
             }
         }
     }
     
-    /**
-     * Clears the image from UI and variables.
-     */
-    private fun clearImage() {
-        currentImageUrl = ""
-        currentImageUri = null
-        binding.recipeImagePreview.setImageResource(android.R.drawable.ic_menu_gallery)
-        binding.removeImageButton.visibility = View.GONE
-        tempImageFile?.delete()
-        tempImageFile = null
+    private fun clearAllImages() {
+        existingImageUrls.clear()
+        tempImageUrls.clear()
+        tempUrlToOriginalUriMap.clear()
+        imagesToDeleteFromStorage.clear()
+        currentImageUris = emptyList()
+        tempImageFiles.forEach { it.delete() }
+        tempImageFiles.clear()
+        updateImageGallery()
     }
     
-    /**
-     * Shows or hides image upload progress.
-     */
+    private fun uploadTempImagesToFinalLocation(
+        tempImageUrls: List<String>,
+        recipeId: String,
+        onSuccess: (List<String>) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        if (tempImageUrls.isEmpty()) {
+            onSuccess(emptyList())
+            return
+        }
+        
+        val urisToUpload = mutableListOf<Uri>()
+        val fileNames = mutableListOf<String>()
+        
+        tempImageUrls.forEach { tempUrl ->
+            val originalUri = findOriginalUriForTempUrl(tempUrl)
+            if (originalUri != null) {
+                urisToUpload.add(originalUri)
+                val fileName = tempUrl.substringAfterLast("/").substringBefore("?")
+                    .replace("%2F", "/")
+                    .substringAfterLast("/")
+                fileNames.add(fileName)
+            }
+        }
+        
+        if (urisToUpload.isEmpty()) {
+            onError(Exception("No se encontraron las URIs originales para las imágenes temp"))
+            return
+        }
+        
+        var completedUploads = 0
+        val totalUploads = urisToUpload.size
+        val finalImageUrls = mutableListOf<String>()
+        
+        urisToUpload.forEachIndexed { index, uri ->
+            val fileName = fileNames[index]
+            
+            storageHelper.uploadRecipeImageWithName(
+                imageUri = uri,
+                recipeId = recipeId,
+                fileName = fileName,
+                onSuccess = { downloadUrl ->
+                    finalImageUrls.add(downloadUrl)
+                    completedUploads++
+                    
+                    if (completedUploads == totalUploads) {
+                        onSuccess(finalImageUrls)
+                    }
+                },
+                onError = { error ->
+                    completedUploads++
+                    if (completedUploads == totalUploads) {
+                        if (finalImageUrls.isNotEmpty()) {
+                            onSuccess(finalImageUrls)
+                        } else {
+                            onError(error)
+                        }
+                    }
+                }
+            )
+        }
+    }
+    
+    private fun findOriginalUriForTempUrl(tempUrl: String): Uri? {
+        return tempUrlToOriginalUriMap[tempUrl]
+    }
+
     private fun showImageUploadProgress(show: Boolean) {
         binding.imageUploadProgress.visibility = if (show) View.VISIBLE else View.GONE
-        binding.selectImageButton.isEnabled = !show
+        val totalImages = existingImageUrls.size + tempImageUrls.size
+        binding.addImageButton.isEnabled = !show && totalImages < 5
     }
-    
-    
 }

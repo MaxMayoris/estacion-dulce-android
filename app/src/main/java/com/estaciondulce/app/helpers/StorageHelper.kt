@@ -270,38 +270,207 @@ class StorageHelper {
             onError(e)
         }
     }
-    
+
     /**
-     * Reads the test.txt file from Firebase Storage root to verify storage access.
-     * This is used for production environment testing.
-     * @param onSuccess Callback with the file content
-     * @param onError Callback with error information (exact Firebase message)
+     * Uploads a recipe image with a specific filename to Firebase Storage.
+     * @param imageUri URI of the image to upload
+     * @param recipeId ID of the recipe
+     * @param fileName Custom filename for the image
+     * @param onSuccess Callback with the download URL
+     * @param onError Callback with error information
      */
-    fun readTestFile(
+    fun uploadRecipeImageWithName(
+        imageUri: Uri,
+        recipeId: String,
+        fileName: String,
         onSuccess: (String) -> Unit,
         onError: (Exception) -> Unit
     ) {
         try {
-            // Reference to the test.txt file in the root of the storage bucket
-            val testFileRef = storageRef.child("test.txt")
+            // Validate input
+            if (imageUri == Uri.EMPTY) {
+                onError(Exception("Invalid image URI"))
+                return
+            }
             
-            // Download the file as bytes and convert to string
-            testFileRef.getBytes(Long.MAX_VALUE)
-                .addOnSuccessListener { bytes ->
-                    try {
-                        val content = String(bytes, Charsets.UTF_8)
-                        onSuccess(content)
-                    } catch (e: Exception) {
-                        onError(e)
-                    }
+            if (recipeId.isEmpty()) {
+                onError(Exception("Recipe ID cannot be empty"))
+                return
+            }
+            
+            if (fileName.isEmpty()) {
+                onError(Exception("Filename cannot be empty"))
+                return
+            }
+            
+            // Validate and sanitize recipe ID
+            val sanitizedRecipeId = validateAndSanitizePath(recipeId)
+            if (sanitizedRecipeId == null) {
+                onError(Exception("Invalid recipe ID: $recipeId"))
+                return
+            }
+            
+            // Validate and sanitize filename
+            val sanitizedFileName = validateAndSanitizePath(fileName)
+            if (sanitizedFileName == null) {
+                onError(Exception("Invalid filename: $fileName"))
+                return
+            }
+            
+            // Create organized storage path
+            val storagePath = "recipes/$sanitizedRecipeId/$sanitizedFileName"
+            val imageRef = storage.reference.child(storagePath)
+            
+            // Upload the image
+            val uploadTask = imageRef.putFile(imageUri)
+            
+            uploadTask.addOnSuccessListener { taskSnapshot ->
+                // Get the download URL
+                taskSnapshot.storage.downloadUrl.addOnSuccessListener { downloadUrl ->
+                    onSuccess(downloadUrl.toString())
+                }.addOnFailureListener { urlError ->
+                    onError(urlError)
                 }
-                .addOnFailureListener { exception ->
-                    onError(exception)
-                }
+            }.addOnFailureListener { uploadError ->
+                onError(uploadError)
+            }
             
         } catch (e: Exception) {
             onError(e)
         }
     }
+
+    /**
+     * Uploads an image to temporary storage for immediate preview.
+     * @param imageUri URI of the image to upload
+     * @param uid User ID for temp folder organization
+     * @param fileName Custom filename for the image
+     * @param onSuccess Callback with the download URL
+     * @param onError Callback with error information
+     */
+    fun uploadTempImage(
+        imageUri: Uri,
+        uid: String,
+        fileName: String,
+        onSuccess: (String) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        try {
+            // Validate input
+            if (imageUri == Uri.EMPTY) {
+                onError(Exception("Invalid image URI"))
+                return
+            }
+            
+            if (uid.isEmpty()) {
+                onError(Exception("User ID cannot be empty"))
+                return
+            }
+            
+            if (fileName.isEmpty()) {
+                onError(Exception("Filename cannot be empty"))
+                return
+            }
+            
+            // Validate and sanitize uid and filename
+            val sanitizedUid = validateAndSanitizePath(uid)
+            val sanitizedFileName = validateAndSanitizePath(fileName)
+            
+            if (sanitizedUid == null || sanitizedFileName == null) {
+                onError(Exception("Invalid uid or filename"))
+                return
+            }
+            
+            // Create temp storage path
+            val storagePath = "temp/$sanitizedUid/$sanitizedFileName"
+            val imageRef = storage.reference.child(storagePath)
+            
+            // Upload the image
+            val uploadTask = imageRef.putFile(imageUri)
+            
+            uploadTask.addOnSuccessListener { taskSnapshot ->
+                // Get the download URL
+                taskSnapshot.storage.downloadUrl.addOnSuccessListener { downloadUrl ->
+                    onSuccess(downloadUrl.toString())
+                }.addOnFailureListener { urlError ->
+                    onError(urlError)
+                }
+            }.addOnFailureListener { uploadError ->
+                onError(uploadError)
+            }
+            
+        } catch (e: Exception) {
+            onError(e)
+        }
+    }
+
+
+    
+    /**
+     * Deletes multiple images from Firebase Storage.
+     */
+    fun deleteImagesFromStorage(
+        imageUrls: List<String>,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        if (imageUrls.isEmpty()) {
+            onSuccess()
+            return
+        }
+        
+        var completedDeletions = 0
+        val totalDeletions = imageUrls.size
+        var hasError = false
+        
+        imageUrls.forEach { imageUrl ->
+            try {
+                val imageRef = storage.getReferenceFromUrl(imageUrl)
+                imageRef.delete()
+                        .addOnSuccessListener {
+                            completedDeletions++
+                            if (completedDeletions == totalDeletions) {
+                                if (hasError) {
+                                    onError(Exception("Some images could not be deleted"))
+                                } else {
+                                    onSuccess()
+                                }
+                            }
+                        }
+                        .addOnFailureListener { error ->
+                            completedDeletions++
+                            hasError = true
+                            if (completedDeletions == totalDeletions) {
+                                onError(Exception("Some images could not be deleted: ${error.message}"))
+                            }
+                        }
+            } catch (e: Exception) {
+                completedDeletions++
+                hasError = true
+                if (completedDeletions == totalDeletions) {
+                    onError(e)
+                }
+            }
+        }
+    }
+
+    /**
+     * Extracts filename from a Firebase Storage URL.
+     */
+    private fun extractFileNameFromUrl(url: String): String? {
+        return try {
+            val uri = Uri.parse(url)
+            val pathSegments = uri.pathSegments
+            if (pathSegments.size >= 2) {
+                pathSegments.last()
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    
 }
 

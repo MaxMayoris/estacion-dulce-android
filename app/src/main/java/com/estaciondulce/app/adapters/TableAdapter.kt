@@ -8,6 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.TableRowDynamicBinding
+import com.estaciondulce.app.models.TableColumnConfig
 
 /**
  * Abstract base adapter for table-style RecyclerView with dynamic columns and alternating row colors.
@@ -18,9 +19,15 @@ abstract class TableAdapter<T>(
     private val onDeleteClick: (T) -> Unit
 ) : RecyclerView.Adapter<TableAdapter.DynamicViewHolder<T>>() {
 
+    private var columnConfigs: List<TableColumnConfig> = emptyList()
+
     fun updateData(newData: List<T>) {
         dataList = newData
         notifyDataSetChanged()
+    }
+
+    fun setColumnConfigs(configs: List<TableColumnConfig>) {
+        columnConfigs = configs
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DynamicViewHolder<T> {
@@ -42,10 +49,15 @@ abstract class TableAdapter<T>(
 
     protected fun bindRowContent(binding: TableRowDynamicBinding, cellValues: List<Any>) {
         binding.rowContainer.removeAllViews()
-        for (value in cellValues) {
+        for ((index, value) in cellValues.withIndex()) {
             val textView = TextView(binding.root.context).apply {
+                val isCurrency = index < columnConfigs.size && columnConfigs[index].isCurrency
                 text = when (value) {
-                    is Double -> String.format("%.2f", value)
+                    is Double -> {
+                        val formattedValue = String.format("%.2f", value)
+                        if (isCurrency) "$$formattedValue" else formattedValue
+                    }
+                    is Boolean -> if (value) "Sí" else "No"
                     else -> value.toString()
                 }
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)

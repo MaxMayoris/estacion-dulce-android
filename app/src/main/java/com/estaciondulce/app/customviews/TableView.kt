@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.estaciondulce.app.R
 import com.estaciondulce.app.adapters.TableAdapter
+import com.estaciondulce.app.models.TableColumnConfig
 
 class TableView<T> @JvmOverloads constructor(
     context: Context,
@@ -61,6 +62,34 @@ class TableView<T> @JvmOverloads constructor(
         this.totalPages = (data.size + pageSize - 1) / pageSize
 
         generateHeaders(columnHeaders)
+        recyclerView.adapter = paginatedAdapter
+        showPage(0)
+    }
+
+    /**
+     * Configures the table with column configurations, data, adapter, and pagination.
+     */
+    fun setupTableWithConfigs(
+        columnConfigs: List<TableColumnConfig>,
+        data: List<T>,
+        adapter: RecyclerView.Adapter<*>,
+        pageSize: Int = 10,
+        columnValueGetter: ((T, Int) -> Comparable<*>?)
+    ) {
+        this.pageSize = pageSize
+        this.originalData = data
+        this.paginatedAdapter = adapter
+        this.columnValueGetter = columnValueGetter
+        this.totalPages = (data.size + pageSize - 1) / pageSize
+
+        // Set column configurations in the adapter
+        if (adapter is TableAdapter<*>) {
+            @Suppress("UNCHECKED_CAST")
+            (adapter as TableAdapter<T>).setColumnConfigs(columnConfigs)
+        }
+
+        val headers = columnConfigs.map { it.header }
+        generateHeaders(headers)
         recyclerView.adapter = paginatedAdapter
         showPage(0)
     }
