@@ -476,12 +476,14 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="8dp"
-            android:text="Guardar"
+            android:text="GUARDAR"
             android:textAllCaps="false"
-            android:textSize="16sp"
+            android:textSize="18sp"
             android:textStyle="bold"
+            android:fontFamily="sans-serif-medium"
             app:backgroundTint="@color/button_gradient_start"
-            app:cornerRadius="12dp"
+            app:cornerRadius="28dp"
+            android:elevation="8dp"
             android:visibility="gone" />
 
     </LinearLayout>
