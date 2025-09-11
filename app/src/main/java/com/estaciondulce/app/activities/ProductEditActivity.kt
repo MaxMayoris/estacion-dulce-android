@@ -8,7 +8,6 @@ import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import com.estaciondulce.app.databinding.ActivityProductEditBinding
 import com.estaciondulce.app.helpers.ProductsHelper
-import com.estaciondulce.app.helpers.RecipesHelper
 import com.estaciondulce.app.models.Product
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomLoader
@@ -21,7 +20,6 @@ class ProductEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProductEditBinding
     private val productsHelper = ProductsHelper()
-    private val recipesHelper = RecipesHelper()
     private val repository = FirestoreRepository
     private var currentProduct: Product? = null
     private lateinit var customLoader: CustomLoader
@@ -34,7 +32,6 @@ class ProductEditActivity : AppCompatActivity() {
         binding = ActivityProductEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Inicializar CustomLoader
         customLoader = CustomLoader(this)
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -110,7 +107,6 @@ class ProductEditActivity : AppCompatActivity() {
         }
 
         binding.measureDropdown.setOnItemClickListener { _, _, _, _ ->
-            // Handle item selection if needed
         }
     }
 
@@ -207,8 +203,7 @@ class ProductEditActivity : AppCompatActivity() {
         if (!validateInputs()) return
         val productToSave = getProductFromInputs()
         
-        // Mostrar CustomLoader antes de guardar
-        customLoader.show("Guardando producto...")
+        customLoader.show()
         
         if (currentProduct == null) {
             productsHelper.addProduct(
@@ -229,19 +224,10 @@ class ProductEditActivity : AppCompatActivity() {
                 productId = currentProduct!!.id,
                 product = productToSave,
                 onSuccess = {
-                    RecipesHelper().updateCascadeAffectedRecipesFromProduct(
-                        currentProduct!!.id,
-                        onComplete = {
-                            customLoader.hide()
-                            CustomToast.showSuccess(this, "Producto actualizado correctamente.")
-                            setResult(Activity.RESULT_OK)
-                            finish()
-                        },
-                        onError = { exception ->
-                            customLoader.hide()
-                            CustomToast.showError(this, "Error en actualización en cascada: ${exception.message}")
-                        }
-                    )
+                    customLoader.hide()
+                    CustomToast.showSuccess(this, "Producto actualizado correctamente.")
+                    setResult(Activity.RESULT_OK)
+                    finish()
                 },
                 onError = { exception ->
                     customLoader.hide()

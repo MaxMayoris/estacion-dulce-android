@@ -9,19 +9,21 @@ import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.estaciondulce.app.adapters.MovementItemsAdapter
+import com.estaciondulce.app.adapters.DialogAddItemAdapter
+import com.estaciondulce.app.utils.DeleteConfirmationDialog
 import com.estaciondulce.app.databinding.ActivityMovementEditBinding
 import com.estaciondulce.app.helpers.AddressesHelper
 import com.estaciondulce.app.helpers.MovementsHelper
-import com.estaciondulce.app.helpers.ProductsHelper
-import com.estaciondulce.app.helpers.RecipesHelper
 import com.estaciondulce.app.models.Address
 import com.estaciondulce.app.models.EMovementType
+import com.estaciondulce.app.models.EPersonType
 import com.estaciondulce.app.models.Movement
 import com.estaciondulce.app.models.MovementItem
 import com.estaciondulce.app.models.Person
 import com.estaciondulce.app.models.Shipment
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
+import com.estaciondulce.app.utils.CustomLoader
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -38,9 +40,11 @@ class MovementEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMovementEditBinding
     private val movementsHelper = MovementsHelper()
+    private lateinit var customLoader: CustomLoader
     private var currentMovement: Movement? = null
     private val repository = FirestoreRepository
     private var selectedDate: Date = Date()
+    private var selectedDeliveryDate: Date? = null
     private var personsList: List<Person> = listOf()
     private var movementItems: MutableList<MovementItem> = mutableListOf()
     private lateinit var itemsAdapter: MovementItemsAdapter
@@ -50,20 +54,37 @@ class MovementEditActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMovementEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        customLoader = CustomLoader(this)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         @Suppress("DEPRECATION")
         currentMovement = intent.getParcelableExtra<Movement>("MOVEMENT")
         supportActionBar?.title =
             if (currentMovement != null) "Editar Movimiento" else "Agregar Movimiento"
         binding.dateInput.setOnClickListener { showDatePickerDialog() }
+        binding.deliveryDateTimeInput.setOnClickListener { showDateTimePickerDialog() }
         binding.itemsRecyclerView.layoutManager = LinearLayoutManager(this)
         itemsAdapter = MovementItemsAdapter(
             movementItems,
             onItemChanged = { recalcTotalAmount() },
             onDeleteClicked = { position ->
-                movementItems.removeAt(position)
-                itemsAdapter.updateItems(movementItems)
-                recalcTotalAmount()
+                val item = movementItems[position]
+                val itemName = when (item.collection) {
+                    "products" -> repository.productsLiveData.value?.find { it.id == item.collectionId }?.name ?: "Producto"
+                    "recipes" -> repository.recipesLiveData.value?.find { it.id == item.collectionId }?.name ?: "Receta"
+                    "custom" -> item.collectionId
+                    else -> "Item"
+                }
+                
+                DeleteConfirmationDialog.show(
+                    context = this,
+                    itemName = itemName,
+                    itemType = "item",
+                    onConfirm = {
+                        movementItems.removeAt(position)
+                        itemsAdapter.updateItems(movementItems)
+                        recalcTotalAmount()
+                    }
+                )
             },
             getDisplayName = { collection, collectionId ->
                 when (collection) {
@@ -92,10 +113,13 @@ class MovementEditActivity : AppCompatActivity() {
                 }
             }
         }
+        
+        binding.personSpinner.isEnabled = false
+        binding.personSpinnerLayout.isEnabled = false
         setupMovementTypeSpinner()
         currentMovement?.let { movement ->
-            selectedDate = movement.date
-            binding.dateInput.setText(formatDate(movement.date))
+            selectedDate = movement.movementDate
+            binding.dateInput.setText(formatDate(movement.movementDate))
             binding.totalAmountInput.setText(movement.totalAmount.toString())
             val movementTypeText = when (movement.type) {
                 EMovementType.PURCHASE -> "Compra"
@@ -103,20 +127,33 @@ class MovementEditActivity : AppCompatActivity() {
                 else -> "Compra"
             }
             binding.movementTypeSpinner.setText(movementTypeText, false)
+            updatePersonSpinnerHint(movementTypeText)
+            binding.movementTypeSpinner.isEnabled = false
+            binding.movementTypeSpinner.isFocusable = false
+            
+            binding.itemsCard.visibility = View.VISIBLE
+            binding.totalAmountCard.visibility = View.VISIBLE
+            binding.saveMovementButton.visibility = View.VISIBLE
             if (movement.type == EMovementType.SALE) {
                 binding.shippingRow.visibility = View.VISIBLE
                 val shippingCost = movement.shipment?.shippingCost ?: 0.0
                 binding.shippingCostInput.setText(shippingCost.toString())
                 binding.shippingCheckBox.isChecked = shippingCost != 0.0
                 if (binding.shippingCheckBox.isChecked) {
+                    binding.deliveryDateTimeContainer.visibility = View.VISIBLE
                     binding.shippingCostContainer.visibility = View.VISIBLE
                     binding.shippingAddressContainer.visibility = View.VISIBLE
+                    movement.deliveryDate?.let { deliveryDate ->
+                        selectedDeliveryDate = deliveryDate
+                        binding.deliveryDateTimeInput.setText(formatDateTime(deliveryDate))
+                    }
                     if (movement.shipment?.addressId?.isNotEmpty() == true) {
                         val address =
                             repository.addressesLiveData.value?.find { it.id == movement.shipment.addressId }
                         binding.shippingAddressInput.setText(address?.rawAddress ?: "")
                     }
                 } else {
+                    binding.deliveryDateTimeContainer.visibility = View.GONE
                     binding.shippingCostContainer.visibility = View.GONE
                     binding.shippingAddressContainer.visibility = View.GONE
                 }
@@ -135,6 +172,15 @@ class MovementEditActivity : AppCompatActivity() {
         binding.movementTypeSpinner.setOnItemClickListener { _, _, position, _ ->
             val movementTypes = listOf("Compra", "Venta")
             val selectedType = movementTypes.getOrNull(position)
+            
+            binding.itemsCard.visibility = View.VISIBLE
+            binding.totalAmountCard.visibility = View.VISIBLE
+            binding.saveMovementButton.visibility = View.VISIBLE
+            
+            val currentPersons = repository.personsLiveData.value ?: emptyList()
+            setupPersonSpinner(currentPersons)
+            binding.personSpinner.setText("") // Clear current selection
+            
             if (selectedType == "Venta") {
                 binding.shippingRow.visibility = View.VISIBLE
             } else {
@@ -146,13 +192,16 @@ class MovementEditActivity : AppCompatActivity() {
         }
         binding.shippingCheckBox.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
+                binding.deliveryDateTimeContainer.visibility = View.VISIBLE
                 binding.shippingCostContainer.visibility = View.VISIBLE
                 binding.shippingAddressContainer.visibility = View.VISIBLE
             } else {
+                binding.deliveryDateTimeContainer.visibility = View.GONE
                 binding.shippingCostContainer.visibility = View.GONE
                 binding.shippingAddressContainer.visibility = View.GONE
-                // Poner el costo de envío en 0 cuando se desmarca
+                binding.deliveryDateTimeInput.setText("")
                 binding.shippingCostInput.setText("0.0")
+                selectedDeliveryDate = null
                 recalcTotalAmount()
             }
         }
@@ -185,18 +234,28 @@ class MovementEditActivity : AppCompatActivity() {
     }
 
     /**
-     * Displays a dialog to add a custom item.
+     * Displays a modern dialog to add a custom item.
      */
     private fun showCustomItemDialog() {
-        val builder = androidx.appcompat.app.AlertDialog.Builder(this)
-        builder.setTitle("Agregar ítem personalizado")
-        val input = android.widget.EditText(this)
-        input.hint = "Nombre del ítem"
-        builder.setView(input)
-        builder.setPositiveButton("Agregar") { dialog, _ ->
-            val customName = input.text.toString().trim()
+        val dialogView = layoutInflater.inflate(com.estaciondulce.app.R.layout.dialog_custom_item, null)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val customItemNameInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(com.estaciondulce.app.R.id.customItemNameInput)
+        val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.cancelButton)
+        val addButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.addButton)
+
+        customItemNameInput.requestFocus()
+
+        cancelButton.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        addButton.setOnClickListener {
+            val customName = customItemNameInput.text.toString().trim()
             if (customName.isNotEmpty()) {
-                // Verificar si el ítem personalizado ya existe
                 val itemExists = movementItems.any { 
                     it.collection == "custom" && it.customName == customName 
                 }
@@ -209,22 +268,45 @@ class MovementEditActivity : AppCompatActivity() {
                     itemsAdapter.updateItems(movementItems)
                     recalcTotalAmount()
                 }
+                dialog.dismiss()
             } else {
                 CustomToast.showError(this, "El nombre no puede estar vacío.")
             }
-            dialog.dismiss()
         }
-        builder.setNegativeButton("Cancelar") { dialog, _ -> dialog.dismiss() }
-        builder.show()
+
+        dialog.show()
     }
 
     /**
-     * Sets up the person spinner with the provided list.
+     * Sets up the person spinner with the provided list, filtered by movement type.
      */
     private fun setupPersonSpinner(persons: List<Person>) {
-        val personNames = persons.map { "${it.name} ${it.lastName}" }
+        val movementType = binding.movementTypeSpinner.text.toString()
+        val filteredPersons = when (movementType) {
+            "Compra" -> persons.filter { it.type == EPersonType.PROVIDER.dbValue }
+            "Venta" -> persons.filter { it.type == EPersonType.CLIENT.dbValue }
+            else -> emptyList() // No persons if no type selected
+        }
+        
+        val personNames = filteredPersons.map { "${it.name} ${it.lastName}" }
         val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, personNames)
         binding.personSpinner.setAdapter(adapter)
+        
+        updatePersonSpinnerHint(movementType)
+        binding.personSpinner.isEnabled = movementType.isNotEmpty()
+        binding.personSpinnerLayout.isEnabled = movementType.isNotEmpty()
+    }
+    
+    /**
+     * Updates the person spinner hint based on movement type.
+     */
+    private fun updatePersonSpinnerHint(movementType: String) {
+        val hint = when (movementType) {
+            "Compra" -> EPersonType.PROVIDER.displayValue
+            "Venta" -> EPersonType.CLIENT.displayValue
+            else -> "Persona"
+        }
+        binding.personSpinnerLayout.hint = hint
     }
 
     /**
@@ -252,8 +334,32 @@ class MovementEditActivity : AppCompatActivity() {
         }, year, month, day).show()
     }
 
+    private fun showDateTimePickerDialog() {
+        val calendar = Calendar.getInstance()
+        selectedDeliveryDate?.let { calendar.time = it }
+        
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+        val hour = calendar.get(Calendar.HOUR_OF_DAY)
+        val minute = calendar.get(Calendar.MINUTE)
+
+        android.app.DatePickerDialog(this, { _, selectedYear, selectedMonth, selectedDay ->
+            android.app.TimePickerDialog(this, { _, selectedHour, selectedMinute ->
+                calendar.set(selectedYear, selectedMonth, selectedDay, selectedHour, selectedMinute)
+                selectedDeliveryDate = calendar.time
+                binding.deliveryDateTimeInput.setText(formatDateTime(selectedDeliveryDate!!))
+            }, hour, minute, true).show()
+        }, year, month, day).show()
+    }
+
     private fun formatDate(date: Date): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        return sdf.format(date)
+    }
+
+    private fun formatDateTime(date: Date): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
         return sdf.format(date)
     }
 
@@ -276,78 +382,115 @@ class MovementEditActivity : AppCompatActivity() {
      * Displays a dialog for adding an item by searching products and recipes.
      */
     private fun showAddItemDialog() {
-        val builder = androidx.appcompat.app.AlertDialog.Builder(this)
-        val dialogView =
-            layoutInflater.inflate(com.estaciondulce.app.R.layout.dialog_add_item, null)
-        builder.setView(dialogView)
-        val searchEditText =
-            dialogView.findViewById<android.widget.EditText>(com.estaciondulce.app.R.id.searchEditText)
-        val itemsListView =
-            dialogView.findViewById<android.widget.ListView>(com.estaciondulce.app.R.id.itemsListView)
+        val dialogView = layoutInflater.inflate(com.estaciondulce.app.R.layout.dialog_add_item, null)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val searchEditText = dialogView.findViewById<android.widget.EditText>(com.estaciondulce.app.R.id.searchEditText)
+        val itemsRecyclerView = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(com.estaciondulce.app.R.id.itemsRecyclerView)
+        val emptyState = dialogView.findViewById<android.widget.LinearLayout>(com.estaciondulce.app.R.id.emptyState)
+        val closeButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.closeButton)
+
+        itemsRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        
         val products = repository.productsLiveData.value ?: emptyList()
         val recipes = repository.recipesLiveData.value ?: emptyList()
-        val itemsList = mutableListOf<ItemEntry>()
-        itemsList.add(ItemEntry("Personalizar item", "custom", ""))
-        for (product in products) {
-            itemsList.add(ItemEntry(product.name, "products", product.id))
+        
+        val currentMovementType = currentMovement?.type
+        val isPurchase = when {
+            currentMovementType != null -> currentMovementType == EMovementType.PURCHASE
+            binding.movementTypeSpinner.text.toString().contains("Compra") -> true
+            binding.movementTypeSpinner.text.toString().contains("Venta") -> false
+            else -> true // Default to purchase
         }
-        for (recipe in recipes) {
-            itemsList.add(ItemEntry(recipe.name, "recipes", recipe.id))
+        
+        val allItems = mutableListOf<ItemEntry>()
+        
+        if (isPurchase) {
+            val sortedProducts = products.sortedBy { it.name }
+            for (product in sortedProducts) {
+                allItems.add(ItemEntry(product.name, "products", product.id))
+            }
+        } else {
+            allItems.add(ItemEntry("Personalizar item", "custom", ""))
+            val sortedRecipes = recipes.sortedBy { it.name }
+            for (recipe in sortedRecipes) {
+                allItems.add(ItemEntry(recipe.name, "recipes", recipe.id))
+            }
         }
-        val listAdapter =
-            ArrayAdapter<ItemEntry>(this, android.R.layout.simple_list_item_1, itemsList)
-        itemsListView.adapter = listAdapter
+
+        val dialogAdapter = DialogAddItemAdapter(allItems, products, recipes, isPurchase) { selectedItem ->
+            if (selectedItem.collection == "custom") {
+                dialog.dismiss()
+                showCustomItemDialog()
+            } else {
+                val itemExists = movementItems.any { 
+                    it.collection == selectedItem.collection && it.collectionId == selectedItem.collectionId 
+                }
+                
+                if (itemExists) {
+                    CustomToast.showError(this, "Este ítem ya fue agregado al movimiento.")
+                } else {
+                    val costValue = when (selectedItem.collection) {
+                        "products" -> {
+                            repository.productsLiveData.value?.find { it.id == selectedItem.collectionId }?.cost ?: 0.0
+                        }
+                        "recipes" -> {
+                            val recipe = repository.recipesLiveData.value?.find { it.id == selectedItem.collectionId }
+                            if (isPurchase) recipe?.cost ?: 0.0 else recipe?.salePrice ?: 0.0
+                        }
+                        else -> 0.0
+                    }
+                    val newItem = MovementItem(
+                        selectedItem.collection,
+                        selectedItem.collectionId,
+                        null,
+                        costValue,
+                        1.0
+                    )
+                    movementItems.add(newItem)
+                    itemsAdapter.updateItems(movementItems)
+                    recalcTotalAmount()
+                }
+                dialog.dismiss()
+            }
+        }
+        
+        itemsRecyclerView.adapter = dialogAdapter
+
         searchEditText.addTextChangedListener(object : android.text.TextWatcher {
             override fun afterTextChanged(s: android.text.Editable?) {}
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val filtered = itemsList.filter { it.name.contains(s ?: "", ignoreCase = true) }
-                listAdapter.clear()
-                listAdapter.addAll(filtered)
-                listAdapter.notifyDataSetChanged()
-            }
-        })
-        builder.setTitle("Seleccione un ítem")
-        builder.setNegativeButton("Cancelar") { dialog, _ -> dialog.dismiss() }
-        val dialog = builder.create()
-        itemsListView.setOnItemClickListener { _, _, position, _ ->
-            val selectedItem = listAdapter.getItem(position)
-            if (selectedItem != null) {
-                if (selectedItem.collection == "custom") {
-                    showCustomItemDialog()
+                val query = s?.toString() ?: ""
+                
+                if (query.length < 3) {
+                    itemsRecyclerView.visibility = View.GONE
+                    emptyState.visibility = View.GONE
+                    dialogAdapter.updateItems(emptyList())
                 } else {
-                    // Verificar si el ítem ya existe
-                    val itemExists = movementItems.any { 
-                        it.collection == selectedItem.collection && it.collectionId == selectedItem.collectionId 
-                    }
+                    val filtered = allItems.filter { 
+                        it.name.contains(query, ignoreCase = true) 
+                    }.sortedBy { it.name }
                     
-                    if (itemExists) {
-                        CustomToast.showError(this, "Este ítem ya fue agregado al movimiento.")
+                    if (filtered.isEmpty()) {
+                        itemsRecyclerView.visibility = View.GONE
+                        emptyState.visibility = View.VISIBLE
                     } else {
-                        val costValue = when (selectedItem.collection) {
-                            "products" -> repository.productsLiveData.value?.find { it.id == selectedItem.collectionId }?.cost
-                                ?: 0.0
-
-                            "recipes" -> repository.recipesLiveData.value?.find { it.id == selectedItem.collectionId }?.cost
-                                ?: 0.0
-
-                            else -> 0.0
-                        }
-                        val newItem = MovementItem(
-                            selectedItem.collection,
-                            selectedItem.collectionId,
-                            null,
-                            costValue,
-                            1.0
-                        )
-                        movementItems.add(newItem)
-                        itemsAdapter.updateItems(movementItems)
-                        recalcTotalAmount()
+                        itemsRecyclerView.visibility = View.VISIBLE
+                        emptyState.visibility = View.GONE
+                        dialogAdapter.updateItems(filtered)
                     }
                 }
             }
+        })
+
+        closeButton.setOnClickListener {
             dialog.dismiss()
         }
+
         dialog.show()
     }
 
@@ -418,10 +561,11 @@ class MovementEditActivity : AppCompatActivity() {
             id = currentMovement?.id ?: "",
             type = movementType,
             personId = selectedPerson?.id ?: "",
-            date = selectedDate,
+            movementDate = selectedDate,
             totalAmount = totalAmount,
             items = movementItems,
-            shipment = shipment
+            shipment = shipment,
+            deliveryDate = selectedDeliveryDate
         )
     }
 
@@ -430,6 +574,9 @@ class MovementEditActivity : AppCompatActivity() {
      */
     private fun saveMovement() {
         if (!validateInputs()) return
+        
+        customLoader.show()
+        
         var movementToSave = getMovementFromInputs()
         if (movementToSave.type == EMovementType.SALE) {
             if (binding.shippingCheckBox.isChecked) {
@@ -501,79 +648,38 @@ class MovementEditActivity : AppCompatActivity() {
             MovementsHelper().addMovement(
                 movement = movement,
                 onSuccess = {
-                    movement.items.filter { it.collection == "products" }.forEach { item ->
-                        val delta =
-                            if (movement.type == EMovementType.PURCHASE) item.quantity else -item.quantity
-                        val updateCost = movement.type == EMovementType.PURCHASE
-                        ProductsHelper().updateProductStock(
-                            productId = item.collectionId,
-                            delta = delta,
-                            updateCost = updateCost,
-                            newCost = item.cost,
-                            onSuccess = {
-                                RecipesHelper().updateCascadeAffectedRecipesFromProduct(
-                                    productId = item.collectionId,
-                                    onComplete = {},
-                                    onError = { exception ->
-                                        CustomToast.showError(this, "Error en actualización en cascada: ${exception.message}")
-                                    }
-                                )
-                            },
-                            onError = { exception ->
-                                CustomToast.showError(this, "Error al actualizar stock: ${exception.message}")
-                            }
-                        )
-                    }
+                    customLoader.hide()
                     CustomToast.showSuccess(this, "Movimiento agregado correctamente.")
                     finish()
                 },
                 onError = { exception ->
+                    customLoader.hide()
                     CustomToast.showError(this, "Error al agregar el movimiento: ${exception.message}")
                 }
             )
         } else {
-            MovementsHelper().updateMovement(
-                movementId = currentMovement!!.id,
+            val originalMovementId = currentMovement!!.id
+            
+            MovementsHelper().addMovement(
                 movement = movement,
                 onSuccess = {
-                    val originalItems = originalProductItems
-                    val updatedItems = movement.items.filter { it.collection == "products" }
-                    val originalMap = originalItems.groupBy { it.collectionId }
-                    val updatedMap = updatedItems.groupBy { it.collectionId }
-                    val allProductIds = (originalMap.keys + updatedMap.keys).distinct()
-                    allProductIds.forEach { productId ->
-                        val originalQty = originalMap[productId]?.sumOf { it.quantity } ?: 0.0
-                        val updatedQty = updatedMap[productId]?.sumOf { it.quantity } ?: 0.0
-                        val delta =
-                            if (movement.type == EMovementType.PURCHASE) updatedQty - originalQty else originalQty - updatedQty
-                        if (delta != 0.0) {
-                            val updateCost = movement.type == EMovementType.PURCHASE
-                            val newCost = updatedMap[productId]?.firstOrNull()?.cost ?: 0.0
-                            ProductsHelper().updateProductStock(
-                                productId = productId,
-                                delta = delta,
-                                updateCost = updateCost,
-                                newCost = newCost,
-                                onSuccess = {
-                                    RecipesHelper().updateCascadeAffectedRecipesFromProduct(
-                                        productId = productId,
-                                        onComplete = {},
-                                        onError = { exception ->
-                                            CustomToast.showError(this, "Error en actualización en cascada: ${exception.message}")
-                                        }
-                                    )
-                                },
-                                onError = { exception ->
-                                    CustomToast.showError(this, "Error al actualizar stock: ${exception.message}")
-                                }
-                            )
+                    MovementsHelper().deleteMovement(
+                        movementId = originalMovementId,
+                        onSuccess = {
+                            customLoader.hide()
+                            CustomToast.showSuccess(this, "Movimiento actualizado correctamente.")
+                            finish()
+                        },
+                        onError = { _ ->
+                            customLoader.hide()
+                            CustomToast.showError(this, "Movimiento actualizado, pero hubo un error al eliminar el original. Contacte soporte.")
+                            finish()
                         }
-                    }
-                    CustomToast.showSuccess(this, "Movimiento actualizado correctamente.")
-                    finish()
+                    )
                 },
                 onError = { exception ->
-                    CustomToast.showError(this, "Error al actualizar el movimiento: ${exception.message}")
+                    customLoader.hide()
+                    CustomToast.showError(this, "Error al crear el movimiento actualizado: ${exception.message}")
                 }
             )
         }

@@ -11,8 +11,10 @@ import androidx.appcompat.app.AppCompatActivity
 import com.estaciondulce.app.databinding.ActivityPersonEditBinding
 import com.estaciondulce.app.helpers.PersonsHelper
 import com.estaciondulce.app.models.Person
+import com.estaciondulce.app.models.EPersonType
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
+import com.estaciondulce.app.utils.CustomLoader
 
 /**
  * Activity para agregar o editar una persona (Cliente o Proveedor).
@@ -21,26 +23,25 @@ class PersonEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPersonEditBinding
     private val personsHelper = PersonsHelper() // Usamos el helper para personas
+    private lateinit var customLoader: CustomLoader
     private var currentPerson: Person? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityPersonEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        customLoader = CustomLoader(this)
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        // Recibir la persona (si se está editando) a través del Intent
         @Suppress("DEPRECATION")
         currentPerson = intent.getParcelableExtra<Person>("PERSON")
         supportActionBar?.title = if (currentPerson != null) "Editar Persona" else "Agregar Persona"
 
-        // Configurar el Spinner para el tipo de persona (Cliente o Proveedor)
-        val personTypes = listOf("Cliente", "Proveedor")
+        val personTypes = EPersonType.values().map { it.displayValue }
         val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, personTypes)
         binding.personTypeSpinner.setAdapter(spinnerAdapter)
 
-        // Lista de prefijos con nombres de provincias
         val phonePrefixOptions = listOf(
             "Córdoba (351)",
             "Santa Fe (341)",
@@ -66,23 +67,21 @@ class PersonEditActivity : AppCompatActivity() {
         val phonePrefixAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, phonePrefixOptions)
         binding.phonePrefixSpinner.setAdapter(phonePrefixAdapter)
 
-        // Establecer el valor por defecto a "San Juan (264)"
         val defaultPrefix = phonePrefixOptions.find { it.contains("San Juan") }
         if (defaultPrefix != null) {
             binding.phonePrefixSpinner.setText(defaultPrefix, false)
         }
 
-        // Si se está editando, pre-cargar los datos en los campos
         currentPerson?.let { person ->
             binding.personNameInput.setText(person.name)
             binding.personLastNameInput.setText(person.lastName)
-            // Seleccionar en el spinner el prefijo que coincida con el valor almacenado
             val selectedPrefix = phonePrefixOptions.find { it.contains(person.phoneNumberPrefix) }
             if (selectedPrefix != null) {
                 binding.phonePrefixSpinner.setText(selectedPrefix, false)
             }
             binding.phoneSuffixInput.setText(person.phoneNumberSuffix)
-            binding.personTypeSpinner.setText(person.type, false)
+            val typeText = EPersonType.getDisplayValue(person.type)
+            binding.personTypeSpinner.setText(typeText, false)
         }
 
         binding.savePersonButton.setOnClickListener { savePerson() }
@@ -133,7 +132,6 @@ class PersonEditActivity : AppCompatActivity() {
             return false
         }
 
-        // Validación de unicidad: se verifica que no exista otra persona con el mismo nombre y apellido.
         if (!isUniquePerson(name, lastName, currentPerson?.id)) {
             CustomToast.showError(this, "La persona ya existe.")
             return false
@@ -160,12 +158,12 @@ class PersonEditActivity : AppCompatActivity() {
         val name = binding.personNameInput.text.toString().trim()
         val lastName = binding.personLastNameInput.text.toString().trim()
 
-        // Obtener el prefijo seleccionado y extraer el número
         val selectedPrefixOption = binding.phonePrefixSpinner.text.toString()
         val phonePrefix = selectedPrefixOption.substringAfter("(").substringBefore(")")
 
         val phoneSuffix = binding.phoneSuffixInput.text.toString().trim()
-        val type = binding.personTypeSpinner.text.toString()
+        val typeText = binding.personTypeSpinner.text.toString()
+        val type = EPersonType.getDbValue(typeText)
 
         return Person(
             id = currentPerson?.id ?: "",
@@ -191,11 +189,9 @@ class PersonEditActivity : AppCompatActivity() {
             return
         }
         
-        // Extraer el prefijo sin paréntesis
         val prefix = prefixText.substringAfter("(").substringBefore(")")
         val fullNumber = "$prefix$suffixText"
         
-        // Copiar al portapapeles
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText("Número de teléfono", fullNumber)
         clipboard.setPrimaryClip(clip)
@@ -209,17 +205,21 @@ class PersonEditActivity : AppCompatActivity() {
     private fun savePerson() {
         if (!validateInputs()) return
 
+        customLoader.show()
+
         val personToSave = getPersonFromInputs()
 
         if (currentPerson == null) {
             personsHelper.addPerson(
                 person = personToSave,
                 onSuccess = { _ ->
+                    customLoader.hide()
                     CustomToast.showSuccess(this, "Persona añadida correctamente.")
                     setResult(Activity.RESULT_OK)
                     finish()
                 },
                 onError = { exception ->
+                    customLoader.hide()
                     CustomToast.showError(this, "Error al añadir la persona: ${exception.message}")
                 }
             )

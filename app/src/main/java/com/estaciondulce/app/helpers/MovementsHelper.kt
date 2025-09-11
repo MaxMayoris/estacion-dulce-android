@@ -8,10 +8,14 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
         val movementData = mapOf(
             "type" to movement.type?.name,
             "personId" to movement.personId,
-            "date" to movement.date,
+            "movementDate" to movement.movementDate,
             "totalAmount" to movement.totalAmount,
             "items" to movement.items,
-            "shipment" to movement.shipment
+            "shipment" to movement.shipment,
+            "deliveryDate" to movement.deliveryDate,
+            "delta" to movement.delta,
+            "appliedAt" to movement.appliedAt,
+            "createdAt" to movement.createdAt
         )
         genericHelper.addDocument(
             collectionName = "movements",
@@ -27,10 +31,14 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
         val movementData = mapOf(
             "type" to movement.type?.name,
             "personId" to movement.personId,
-            "date" to movement.date,
+            "movementDate" to movement.movementDate,
             "totalAmount" to movement.totalAmount,
             "items" to movement.items,
-            "shipment" to movement.shipment
+            "shipment" to movement.shipment,
+            "deliveryDate" to movement.deliveryDate,
+            "delta" to movement.delta,
+            "appliedAt" to movement.appliedAt,
+            "createdAt" to movement.createdAt
         )
         genericHelper.updateDocument(
             collectionName = "movements",

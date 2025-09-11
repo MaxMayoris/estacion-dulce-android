@@ -533,28 +533,38 @@
                     android:fontFamily="sans-serif-medium"
                     android:layout_marginBottom="16dp"/>
 
-                <!-- Search Bar -->
-                <com.google.android.material.textfield.TextInputLayout
+                <!-- Modern Search Bar -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:hint="Buscar receta"
-                    app:boxCornerRadiusTopStart="8dp"
-                    app:boxCornerRadiusTopEnd="8dp"
-                    app:boxCornerRadiusBottomStart="8dp"
-                    app:boxCornerRadiusBottomEnd="8dp"
-                    app:boxStrokeColor="@color/button_gradient_start"
-                    app:hintTextColor="@color/button_gradient_start"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/search_background"
+                    android:padding="12dp"
+                    android:layout_marginBottom="16dp">
 
-                    <com.google.android.material.textfield.TextInputEditText
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_search"
+                        android:layout_marginEnd="12dp"
+                        app:tint="@color/button_gradient_start" />
+
+                    <EditText
                         android:id="@+id/recipeSearchBar"
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@android:color/transparent"
+                        android:hint="Buscar recetas..."
                         android:inputType="text"
-                        android:textSize="16sp" />
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary"
+                        android:focusable="false"
+                        android:clickable="true" />
 
-                </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
 
                 <!-- Selected Recipe Container -->
                 <LinearLayout

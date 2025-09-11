@@ -64,7 +64,6 @@
                             android:layout_height="wrap_content"
                             android:clickable="true"
                             android:focusable="false"
-                            android:hint="Selecciona la fecha"
                             android:inputType="none"
                             android:textSize="16sp" />
 
@@ -98,6 +97,7 @@
 
                 <!-- Persona -->
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/personSpinnerLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="Persona"
@@ -124,12 +124,14 @@
 
         <!-- Detalle de Ítems Card -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/itemsCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/white">
+            app:cardBackgroundColor="@color/white"
+            android:visibility="gone">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -153,8 +155,7 @@
                         android:text="Detalle de Ítems"
                         android:textColor="@color/text_primary"
                         android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:visibility="gone" />
+                        android:textStyle="bold" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/addItemButton"
@@ -284,6 +285,51 @@
 
                 </LinearLayout>
 
+                <!-- Fecha y Hora de Entrega -->
+                <LinearLayout
+                    android:id="@+id/deliveryDateTimeContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/deliveryDateTimeLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Fecha y Hora"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="Fecha y Hora"
+                        app:boxCornerRadiusTopStart="8dp"
+                        app:boxCornerRadiusTopEnd="8dp"
+                        app:boxCornerRadiusBottomStart="8dp"
+                        app:boxCornerRadiusBottomEnd="8dp"
+                        app:boxStrokeColor="@color/button_gradient_start"
+                        app:hintTextColor="@color/button_gradient_start"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/deliveryDateTimeInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:clickable="true"
+                            android:focusable="false"
+                            android:inputType="none"
+                            android:textSize="16sp" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </LinearLayout>
+
                 <!-- Costo de envío -->
                 <LinearLayout
                     android:id="@+id/shippingCostContainer"
@@ -298,7 +344,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Costo de Envío"
+                        android:text="Costo"
                         android:textColor="@color/text_primary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -320,7 +366,6 @@
                             android:id="@+id/shippingCostInput"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Ingrese el costo de envío"
                             android:inputType="numberDecimal"
                             android:textSize="16sp" />
 
@@ -341,7 +386,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:text="Dirección de Envío"
+                        android:text="Dirección"
                         android:textColor="@color/text_primary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -362,7 +407,6 @@
                             android:id="@+id/shippingAddressInput"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Ingrese la dirección"
                             android:inputType="textMultiLine"
                             android:lines="3"
                             android:textSize="16sp" />
@@ -377,12 +421,14 @@
 
         <!-- Monto Total Card -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/totalAmountCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/white">
+            app:cardBackgroundColor="@color/white"
+            android:visibility="gone">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -415,7 +461,6 @@
                         android:id="@+id/totalAmountInput"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Ingrese el monto total"
                         android:inputType="numberDecimal"
                         android:textSize="16sp" />
 
@@ -436,7 +481,8 @@
             android:textSize="16sp"
             android:textStyle="bold"
             app:backgroundTint="@color/button_gradient_start"
-            app:cornerRadius="12dp" />
+            app:cornerRadius="12dp"
+            android:visibility="gone" />
 
     </LinearLayout>
 

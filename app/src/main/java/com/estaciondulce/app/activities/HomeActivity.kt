@@ -23,7 +23,6 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var loader: CustomLoader
     private lateinit var auth: FirebaseAuth
     
-    // Fragment instances
     private val productFragment = ProductFragment()
     private val recipeFragment = RecipeFragment()
     private val personFragment = PersonFragment()
@@ -57,8 +56,6 @@ class HomeActivity : AppCompatActivity() {
         setupDashboardCards()
         setupLogoutButton()
         setupFragmentHeader()
-        
-        // Show dashboard by default
         showDashboard()
     }
 
@@ -66,25 +63,21 @@ class HomeActivity : AppCompatActivity() {
      * Sets up click listeners for all dashboard cards.
      */
     private fun setupDashboardCards() {
-        // Products Card
         findViewById<MaterialCardView>(R.id.productsCard).setOnClickListener {
             loadFragment(productFragment, "Productos")
             showFragmentContainer()
         }
 
-        // Recipes Card
         findViewById<MaterialCardView>(R.id.recipesCard).setOnClickListener {
             loadFragment(recipeFragment, "Recetas")
             showFragmentContainer()
         }
 
-        // Persons Card
         findViewById<MaterialCardView>(R.id.personsCard).setOnClickListener {
             loadFragment(personFragment, "Personas")
             showFragmentContainer()
         }
 
-        // Movements Card
         findViewById<MaterialCardView>(R.id.movementsCard).setOnClickListener {
             loadFragment(movementFragment, "Movimientos")
             showFragmentContainer()
@@ -96,10 +89,11 @@ class HomeActivity : AppCompatActivity() {
      */
     private fun setupLogoutButton() {
         findViewById<MaterialButton>(R.id.logoutButton).setOnClickListener {
-            // Sign out from Firebase
+            loader.show()
             auth.signOut()
+            loader.hide()
+            CustomToast.showSuccess(this, "Sesión cerrada correctamente.")
             
-            // Navigate back to LoginActivity
             val intent = Intent(this, LoginActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
@@ -138,7 +132,6 @@ class HomeActivity : AppCompatActivity() {
      * Loads the specified fragment into the home container and sets the title.
      */
     private fun loadFragment(fragment: Fragment, title: String) {
-        // Set the fragment title
         findViewById<TextView>(R.id.fragmentTitle).text = title
         
         val transaction = supportFragmentManager.beginTransaction()

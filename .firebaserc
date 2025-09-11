@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "estaciondulceappdev",
+    "dev": "estaciondulceappdev",
+    "prod": "estaciondulceprod"
+  }
+}
