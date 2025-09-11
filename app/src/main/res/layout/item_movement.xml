@@ -21,49 +21,63 @@
         android:maxLines="2"
         android:ellipsize="end" />
 
-    <!-- Quantity EditText -->
-    <EditText
-        android:id="@+id/quantityEditText"
-        android:layout_width="0dp"
-        android:layout_height="32dp"
-        android:layout_weight="1"
-        android:text="1.0"
-        android:textSize="14sp"
-        android:textColor="@color/text_primary"
-        android:background="@drawable/input_background"
-        android:gravity="center"
-        android:inputType="numberDecimal"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp" />
+    <!-- Quantity Input -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginEnd="8dp"
+        android:minWidth="80dp">
 
-    <!-- Cost EditText -->
-    <EditText
-        android:id="@+id/costEditText"
-        android:layout_width="0dp"
-        android:layout_height="32dp"
-        android:layout_weight="1"
-        android:text="0.0"
-        android:textSize="14sp"
-        android:textColor="@color/text_primary"
-        android:background="@drawable/input_background"
-        android:gravity="center"
-        android:inputType="numberDecimal"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp" />
+        <EditText
+            android:id="@+id/quantityEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal"
+            android:text="1.0"
+            android:textSize="14sp"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/input_background"
+            android:padding="8dp"
+            android:gravity="center" />
+
+    </LinearLayout>
+
+    <!-- Cost Input -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginEnd="8dp"
+        android:minWidth="80dp">
+
+        <EditText
+            android:id="@+id/costEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal"
+            android:text="0.00"
+            android:textSize="14sp"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/input_background"
+            android:padding="8dp"
+            android:gravity="center" />
+
+    </LinearLayout>
 
     <!-- Delete Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/deleteItemButton"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:contentDescription="Eliminar ítem"
-        app:backgroundTint="@color/purple_700"
+        android:contentDescription="Eliminar item"
         app:cornerRadius="20dp"
+        app:backgroundTint="@color/purple_700"
         app:icon="@drawable/ic_delete"
+        app:iconTint="@color/white"
+        app:iconSize="20dp"
         app:iconGravity="textStart"
         app:iconPadding="0dp"
-        app:iconSize="20dp"
-        app:iconTint="@color/white"
         style="@style/Widget.Material3.Button.IconButton" />
 
 </LinearLayout>

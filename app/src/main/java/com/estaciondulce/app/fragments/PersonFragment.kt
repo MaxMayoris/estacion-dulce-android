@@ -12,6 +12,7 @@ import com.estaciondulce.app.adapters.PersonAdapter
 import com.estaciondulce.app.databinding.FragmentPersonBinding
 import com.estaciondulce.app.helpers.PersonsHelper
 import com.estaciondulce.app.models.Person
+import com.estaciondulce.app.models.EPersonType
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.DeleteConfirmationDialog
 import com.estaciondulce.app.utils.CustomToast
@@ -75,7 +76,6 @@ class PersonFragment : Fragment() {
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // La LiveData global se actualiza automáticamente.
         }
     }
 
@@ -95,7 +95,7 @@ class PersonFragment : Fragment() {
             ) { person ->
                 listOf(
                     "${person.name} ${person.lastName}",
-                    person.type
+                    EPersonType.getDisplayValue(person.type)
                 )
             },
             pageSize = 10,
@@ -103,7 +103,7 @@ class PersonFragment : Fragment() {
                 val person = item as Person
                 when (columnIndex) {
                     0 -> "${person.name} ${person.lastName}"
-                    1 -> person.type
+                    1 -> EPersonType.getDisplayValue(person.type)
                     else -> null
                 }
             }

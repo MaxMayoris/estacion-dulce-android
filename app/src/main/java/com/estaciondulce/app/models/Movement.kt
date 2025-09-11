@@ -13,8 +13,12 @@ data class Movement(
     override var id: String = "",
     val type: EMovementType? = null,
     val personId: String = "",
-    val date: Date = Date(),
+    val movementDate: Date = Date(),
     val totalAmount: Double = 0.0,
     val items: @RawValue List<MovementItem> = listOf(),
-    val shipment: Shipment? = null
+    val shipment: Shipment? = null,
+    val deliveryDate: Date? = null,
+    val delta: @RawValue Map<String, Double> = mapOf(),
+    val appliedAt: Date? = null,
+    val createdAt: Date? = null
 ) : Parcelable, Identifiable

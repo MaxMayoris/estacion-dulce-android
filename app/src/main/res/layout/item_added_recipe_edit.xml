@@ -17,7 +17,7 @@
         android:gravity="center_vertical"
         android:padding="12dp">
 
-        <!-- Product Info -->
+        <!-- Recipe Info -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -25,10 +25,10 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/addedProductName"
+                android:id="@+id/addedRecipeName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Producto"
+                android:text="Receta"
                 android:textColor="@color/text_primary"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -36,7 +36,7 @@
                 android:ellipsize="end" />
 
             <TextView
-                android:id="@+id/addedProductCost"
+                android:id="@+id/addedRecipeCost"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
@@ -60,7 +60,6 @@
             android:layout_marginEnd="12dp">
 
             <TextView
-                android:id="@+id/quantityLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Cantidad"
@@ -84,7 +83,7 @@
                     android:id="@+id/quantityInput"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:inputType="numberDecimal"
+                    android:inputType="number"
                     android:textSize="14sp"
                     android:textColor="@color/text_primary"
                     android:gravity="center"
@@ -97,10 +96,10 @@
 
         <!-- Remove Button -->
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/removeProductButton"
+            android:id="@+id/removeRecipeButton"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:contentDescription="Eliminar producto"
+            android:contentDescription="Eliminar receta"
             app:cornerRadius="20dp"
             app:backgroundTint="@color/purple_700"
             app:icon="@drawable/ic_delete"
@@ -113,3 +112,4 @@
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>
+

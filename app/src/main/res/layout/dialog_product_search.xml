@@ -2,9 +2,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@drawable/dialog_background"
+    android:background="@color/white"
     android:padding="0dp">
 
     <!-- Header -->
@@ -20,9 +20,9 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Agregar Ítem"
+            android:text="Seleccionar Producto"
             android:textColor="@color/white"
-            android:textSize="20sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton
@@ -70,14 +70,13 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:background="@android:color/transparent"
-                android:hint="Buscar productos y recetas..."
+                android:hint="Buscar productos..."
                 android:inputType="text"
                 android:textSize="16sp"
                 android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_secondary" />
 
         </LinearLayout>
-
 
     </LinearLayout>
 
@@ -87,12 +86,11 @@
         android:layout_height="1dp"
         android:background="@color/divider_color" />
 
-    <!-- Items List -->
+    <!-- Products List -->
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/itemsRecyclerView"
+        android:id="@+id/productsRecyclerView"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="400dp"
         android:padding="8dp"
         android:clipToPadding="false" />
 
@@ -116,18 +114,9 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="No se encontraron resultados"
+            android:text="No se encontraron productos"
             android:textColor="@color/text_secondary"
             android:textSize="16sp"
-            android:gravity="center" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Intenta con otros términos de búsqueda"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp"
             android:gravity="center" />
 
     </LinearLayout>

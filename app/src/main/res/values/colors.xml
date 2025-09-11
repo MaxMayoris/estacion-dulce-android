@@ -56,5 +56,6 @@
     <color name="warning_orange">#FF9800</color>
     <color name="warning_orange_dark">#F57C00</color>
     <color name="red_500">#F44336</color>
+    <color name="divider_color">#E1E8ED</color>
 
 </resources>

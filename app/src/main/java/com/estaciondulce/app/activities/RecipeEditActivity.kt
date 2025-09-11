@@ -31,6 +31,8 @@ import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.DeleteConfirmationDialog
 import com.estaciondulce.app.adapters.RecipeImageAdapter
+import com.estaciondulce.app.adapters.ProductSearchAdapter
+import com.estaciondulce.app.adapters.RecipeSearchAdapter
 import android.util.TypedValue
 import java.io.File
 import java.io.IOException
@@ -215,40 +217,80 @@ class RecipeEditActivity : AppCompatActivity() {
     }
 
     private fun setupCategorySelector(categoriesMap: Map<String, String>) {
-        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, categoriesMap.values.toList())
-        binding.categorySelector.setAdapter(adapter)
+        updateCategorySelectorAdapter(categoriesMap)
         binding.categorySelector.setOnItemClickListener { _, _, position, _ ->
+            @Suppress("UNCHECKED_CAST")
+            val adapter = binding.categorySelector.adapter as ArrayAdapter<String>
             val selectedName = adapter.getItem(position) ?: return@setOnItemClickListener
-            val selectedId = categoriesMap.entries.find { it.value == selectedName }?.key ?: return@setOnItemClickListener
-            if (!selectedCategories.contains(selectedId)) {
-                selectedCategories.add(selectedId)
-                updateCategoryTags()
+            
+            if (selectedName == "No se pueden agregar más categorías") {
                 binding.categorySelector.setText("")
-            } else {
-                Toast.makeText(this@RecipeEditActivity, "La categoría ya fue añadida", Toast.LENGTH_SHORT).show()
+                return@setOnItemClickListener
             }
+            
+            val selectedId = categoriesMap.entries.find { it.value == selectedName }?.key ?: return@setOnItemClickListener
+            selectedCategories.add(selectedId)
+            updateCategoryTags()
+            updateCategorySelectorAdapter(categoriesMap) // Update adapter to remove selected category
+            binding.categorySelector.setText("")
         }
     }
 
-    private fun setupSectionSelector(sectionsMap: Map<String, String>) {
-        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, sectionsMap.values.toList())
-        binding.sectionSelector.setAdapter(adapter)
-        binding.sectionSelector.setOnItemClickListener { _, _, position, _ ->
-            val selectedName = adapter.getItem(position) ?: return@setOnItemClickListener
-            val selectedId = sectionsMap.entries.find { it.value == selectedName }?.key ?: return@setOnItemClickListener
-            if (selectedSections.none { it.id == selectedId }) {
-                val newSection = RecipeSection(
-                    id = selectedId,
-                    name = selectedName,
-                    products = mutableListOf()
-                )
-                selectedSections.add(newSection)
-                updateSectionsUI()
-                binding.sectionSelector.setText("")
-            } else {
-                Toast.makeText(this@RecipeEditActivity, "La sección ya fue añadida", Toast.LENGTH_SHORT).show()
-            }
+    private fun updateCategorySelectorAdapter(categoriesMap: Map<String, String>) {
+        val availableCategories = categoriesMap.filter { (id, _) -> !selectedCategories.contains(id) }
+        val items = if (availableCategories.isEmpty()) {
+            listOf("No se pueden agregar más categorías")
+        } else {
+            availableCategories.values.toList()
         }
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, items)
+        binding.categorySelector.setAdapter(adapter)
+        
+        binding.categorySelector.isEnabled = availableCategories.isNotEmpty()
+    }
+
+    private fun setupSectionSelector(sectionsMap: Map<String, String>) {
+        updateSectionSelectorAdapter(sectionsMap)
+        binding.sectionSelector.setOnItemClickListener { _, _, position, _ ->
+            @Suppress("UNCHECKED_CAST")
+            val adapter = binding.sectionSelector.adapter as ArrayAdapter<String>
+            val selectedName = adapter.getItem(position) ?: return@setOnItemClickListener
+            
+            if (selectedName == "No se pueden agregar más secciones") {
+                binding.sectionSelector.setText("")
+                return@setOnItemClickListener
+            }
+            
+            val selectedId = sectionsMap.entries.find { it.value == selectedName }?.key ?: return@setOnItemClickListener
+            val newSection = RecipeSection(
+                id = selectedId,
+                name = selectedName,
+                products = mutableListOf()
+            )
+            selectedSections.add(newSection)
+            updateSectionsUI()
+            updateSectionSelectorAdapter(sectionsMap) // Update adapter to remove selected section
+            binding.sectionSelector.setText("")
+        }
+    }
+
+    private fun updateSectionSelectorAdapter(sectionsMap: Map<String, String>) {
+        val availableSections = sectionsMap.filter { (id, _) -> selectedSections.none { it.id == id } }
+        val items = if (availableSections.isEmpty()) {
+            listOf("No se pueden agregar más secciones")
+        } else {
+            availableSections.values.toList()
+        }
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, items)
+        binding.sectionSelector.setAdapter(adapter)
+        
+        binding.sectionSelector.isEnabled = availableSections.isNotEmpty()
+    }
+
+    private fun getProductUnit(productId: String): String {
+        val product = repository.productsLiveData.value?.find { it.id == productId }
+        val measure = repository.measuresLiveData.value?.find { it.id == product?.measure }
+        return measure?.unit ?: "unidad"
     }
 
     private fun updateCategoryTags() {
@@ -267,6 +309,10 @@ class RecipeEditActivity : AppCompatActivity() {
                 deleteButton.setOnClickListener {
                     selectedCategories.remove(catId)
                     updateCategoryTags()
+                    repository.categoriesLiveData.value?.let { categoriesList ->
+                        val categoriesMap = categoriesList.associate { it.id to it.name }
+                        updateCategorySelectorAdapter(categoriesMap)
+                    }
                 }
                 binding.categoryTagsContainer.addView(tagView)
             }
@@ -304,6 +350,10 @@ class RecipeEditActivity : AppCompatActivity() {
                     selectedSections.remove(section)
                     updateSectionsUI()
                     updateCosts()
+                    repository.sectionsLiveData.value?.let { sectionsList ->
+                        val sectionsMap = sectionsList.associate { it.id to it.name }
+                        updateSectionSelectorAdapter(sectionsMap)
+                    }
                 }
             }
             productContainer.removeAllViews()
@@ -319,26 +369,103 @@ class RecipeEditActivity : AppCompatActivity() {
         }
     }
 
-    private fun showProductSearchPopup(anchor: View, products: List<Map.Entry<String, Pair<String, Double>>>, section: RecipeSection) {
-        val adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, products.map { it.value.first })
-        val popup = ListPopupWindow(this).apply {
-            anchorView = anchor
-            setAdapter(adapter)
-            setOnItemClickListener { _, _, position, _ ->
-                val selected = products[position]
-                if (section.products.any { it.productId == selected.key }) {
-                    Toast.makeText(this@RecipeEditActivity, "El producto ya fue añadido en esta sección.", Toast.LENGTH_SHORT).show()
-                    dismiss()
-                    return@setOnItemClickListener
-                }
-                section.products += RecipeProduct(selected.key, 1.0)
-                if (anchor is EditText) anchor.text.clear()
-                updateSectionsUI()
-                updateCosts()
-                dismiss()
+    private fun showProductSearchPopup(@Suppress("UNUSED_PARAMETER") anchor: View, products: List<Map.Entry<String, Pair<String, Double>>>, section: RecipeSection) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_product_search, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val searchEditText = dialogView.findViewById<EditText>(R.id.searchEditText)
+        val productsRecyclerView = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.productsRecyclerView)
+        val emptyState = dialogView.findViewById<LinearLayout>(R.id.emptyState)
+        val closeButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.closeButton)
+
+        productsRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        
+        val productObjects = products.map { entry ->
+            com.estaciondulce.app.models.Product(
+                id = entry.key,
+                name = entry.value.first,
+                cost = entry.value.second
+            )
+        }
+
+        val dialogAdapter = ProductSearchAdapter(productObjects) { selectedProduct ->
+            if (section.products.any { it.productId == selectedProduct.id }) {
+                CustomToast.showError(this, "El producto ya fue añadido en esta sección.")
+            } else {
+                dialog.dismiss()
+                showQuantitySelectionDialog(selectedProduct, section)
             }
         }
-        popup.show()
+        
+        productsRecyclerView.adapter = dialogAdapter
+
+        searchEditText.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {}
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s?.toString() ?: ""
+                val filtered = productObjects.filter { 
+                    it.name.contains(query, ignoreCase = true) 
+                }.sortedBy { it.name }
+                
+                if (filtered.isEmpty()) {
+                    productsRecyclerView.visibility = View.GONE
+                    emptyState.visibility = View.VISIBLE
+                } else {
+                    productsRecyclerView.visibility = View.VISIBLE
+                    emptyState.visibility = View.GONE
+                    dialogAdapter.updateProducts(filtered)
+                }
+            }
+        })
+
+        closeButton.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun showQuantitySelectionDialog(product: com.estaciondulce.app.models.Product, section: RecipeSection) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_quantity_selection, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val productNameText = dialogView.findViewById<TextView>(R.id.productNameText)
+        val quantityInputLayout = dialogView.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.quantityInputLayout)
+        val quantityInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.quantityInput)
+        val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.cancelButton)
+        val addButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.addButton)
+
+        productNameText.text = product.name
+        quantityInput.setText("1")
+        quantityInput.requestFocus()
+        
+        val unit = getProductUnit(product.id)
+        quantityInputLayout.hint = "Cantidad en $unit"
+
+        cancelButton.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        addButton.setOnClickListener {
+            val quantity = quantityInput.text.toString().toDoubleOrNull() ?: 1.0
+            if (quantity > 0) {
+                section.products += RecipeProduct(product.id, quantity)
+                updateSectionsUI()
+                updateCosts()
+                dialog.dismiss()
+            } else {
+                CustomToast.showError(this, "La cantidad debe ser mayor a 0")
+            }
+        }
+
+        dialog.show()
     }
 
     private fun addProductToUI(
@@ -351,18 +478,31 @@ class RecipeEditActivity : AppCompatActivity() {
         val productView = LayoutInflater.from(this).inflate(R.layout.item_added_product_recipe_edit, productContainer, false)
         val productNameView = productView.findViewById<TextView>(R.id.addedProductName)
         val productCostView = productView.findViewById<TextView>(R.id.addedProductCost)
-        val quantityContainer = productView.findViewById<LinearLayout>(R.id.productQuantity)
+        val quantityLabel = productView.findViewById<TextView>(R.id.quantityLabel)
+        val quantityInput = productView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.quantityInput)
         val removeButton = productView.findViewById<com.google.android.material.button.MaterialButton>(R.id.removeProductButton)
+        
         productNameView.text = productName
-        productCostView.text = String.format("%.2f", productCost)
-        val quantityControl = createQuantityControl(recipeProduct.quantity) { newQty ->
-            recipeProduct.quantity = newQty
+        productCostView.text = String.format("$%.2f", productCost)
+        quantityInput.setText(recipeProduct.quantity.toString())
+        
+        val unit = getProductUnit(recipeProduct.productId)
+        quantityLabel.text = "Cantidad en $unit"
+        
+        quantityInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val newQuantity = s.toString().toDoubleOrNull() ?: 0.0
+                if (newQuantity > 0) {
+                    recipeProduct.quantity = newQuantity
             updateCosts()
         }
-        quantityContainer.removeAllViews()
-        quantityContainer.addView(quantityControl)
+            }
+        })
+        
         removeButton.setOnClickListener {
-            showConfirmationDialog("¿Está seguro de eliminar el producto $productName?") {
+            showProductDeleteConfirmation(productName) {
                 productContainer.removeView(productView)
                 section.products = section.products.filterNot { it.productId == recipeProduct.productId }
                 updateSectionsUI()
@@ -584,36 +724,102 @@ class RecipeEditActivity : AppCompatActivity() {
     }
 
     private fun setupRecipeSearchBar() {
-        val recipeSearchAdapter = ArrayAdapter<String>(this, android.R.layout.simple_list_item_1)
-        val popupWindow = ListPopupWindow(this).apply {
-            anchorView = binding.recipeSearchBar
-            setAdapter(recipeSearchAdapter)
-            setOnItemClickListener { _, _, position, _ ->
-                repository.recipesLiveData.value?.let { recipesList ->
-                    val selectedRecipe = recipesList.find { it.name == recipeSearchAdapter.getItem(position) }
-                    selectedRecipe?.let { displaySelectedRecipe(it) }
-                }
-                dismiss()
+        binding.recipeSearchBar.setOnClickListener {
+            showRecipeSearchDialog()
+        }
+    }
+
+    private fun showRecipeSearchDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_recipe_search, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val searchEditText = dialogView.findViewById<EditText>(R.id.searchEditText)
+        val recipesRecyclerView = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recipesRecyclerView)
+        val emptyState = dialogView.findViewById<LinearLayout>(R.id.emptyState)
+        val closeButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.closeButton)
+
+        recipesRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        
+        val availableRecipes = repository.recipesLiveData.value?.filter { it.id != recipe?.id }?.sortedBy { it.name } ?: emptyList()
+
+        val dialogAdapter = RecipeSearchAdapter(availableRecipes) { selectedRecipe ->
+            if (selectedRecipes.any { it.recipeId == selectedRecipe.id }) {
+                CustomToast.showError(this, "Esta receta ya fue agregada a las recetas anidadas.")
+            } else {
+                dialog.dismiss()
+                showRecipeQuantitySelectionDialog(selectedRecipe)
             }
         }
-        binding.recipeSearchBar.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) { }
+        
+        recipesRecyclerView.adapter = dialogAdapter
+
+        searchEditText.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {}
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val query = s.toString().trim()
-                if (query.length >= 3) {
-                    repository.recipesLiveData.value?.let { recipesList ->
-                        val filtered = recipesList.filter { it.name.contains(query, ignoreCase = true) && it.id != recipe?.id }
-                        recipeSearchAdapter.clear()
-                        recipeSearchAdapter.addAll(filtered.map { it.name })
-                        recipeSearchAdapter.notifyDataSetChanged()
-                        if (filtered.isNotEmpty()) popupWindow.show() else popupWindow.dismiss()
-                    }
+                val query = s?.toString() ?: ""
+                val filtered = availableRecipes.filter { 
+                    it.name.contains(query, ignoreCase = true) 
+                }.sortedBy { it.name }
+                
+                if (filtered.isEmpty()) {
+                    recipesRecyclerView.visibility = View.GONE
+                    emptyState.visibility = View.VISIBLE
                 } else {
-                    popupWindow.dismiss()
+                    recipesRecyclerView.visibility = View.VISIBLE
+                    emptyState.visibility = View.GONE
+                    dialogAdapter.updateRecipes(filtered)
                 }
             }
-            override fun afterTextChanged(s: Editable?) { }
         })
+
+        closeButton.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun showRecipeQuantitySelectionDialog(selectedRecipe: Recipe) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_recipe_quantity_selection, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val recipeNameText = dialogView.findViewById<TextView>(R.id.recipeNameText)
+        val quantityInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.quantityInput)
+        val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.cancelButton)
+        val addButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.addButton)
+
+        recipeNameText.text = selectedRecipe.name
+        quantityInput.setText("1")
+        quantityInput.requestFocus()
+
+        cancelButton.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        addButton.setOnClickListener {
+            val quantity = quantityInput.text.toString().toIntOrNull() ?: 1
+            if (quantity > 0) {
+                val newNestedRecipe = RecipeNested(
+                    recipeId = selectedRecipe.id,
+                    quantity = quantity
+                )
+                selectedRecipes.add(newNestedRecipe)
+                updateNestedRecipesUI()
+                updateCosts()
+                dialog.dismiss()
+            } else {
+                CustomToast.showError(this, "La cantidad debe ser mayor a 0")
+            }
+        }
+
+        dialog.show()
     }
 
     private fun updateNestedRecipesUI() {
@@ -623,122 +829,50 @@ class RecipeEditActivity : AppCompatActivity() {
             for (nested in selectedRecipes) {
                 val recipeData = recipesList.find { it.id == nested.recipeId }
                 if (recipeData != null) {
-                    val recipeRow = LinearLayout(this).apply {
-                        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-                        orientation = LinearLayout.HORIZONTAL
-                        setPadding(8, 8, 8, 8)
-                        tag = recipeData.id
-                    }
-                    val nameView = TextView(this).apply {
-                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2f)
-                        text = recipeData.name
-                        setPadding(8, 8, 8, 8)
-                        textSize = 14f
-                        setTextColor(ContextCompat.getColor(context, android.R.color.black))
-                    }
-                    val costView = TextView(this).apply {
-                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                        text = String.format("%.2f", recipeData.cost)
-                        setPadding(8, 8, 8, 8)
-                        textSize = 14f
-                        setTextColor(ContextCompat.getColor(context, android.R.color.black))
-                    }
-                    val quantityControl = createIntegerQuantityControl(nested.quantity) { newQuantity ->
-                        nested.quantity = newQuantity
-                        updateCosts()
-                    }
-
-                    val deleteButton = com.google.android.material.button.MaterialButton(this).apply {
-                        layoutParams = LinearLayout.LayoutParams(40.dp, 40.dp).apply { setMargins(8, 0, 0, 0) }
-                        cornerRadius = 20.dp
-                        backgroundTintList = ContextCompat.getColorStateList(this@RecipeEditActivity, R.color.purple_700)
-                        setIcon(ContextCompat.getDrawable(this@RecipeEditActivity, R.drawable.ic_delete))
-                        iconTint = ContextCompat.getColorStateList(this@RecipeEditActivity, R.color.white)
-                        iconSize = 20.dp
-                        iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_START
-                        iconPadding = 0
-                        contentDescription = "Eliminar receta"
-                    }
-                    deleteButton.setOnClickListener {
-                        showConfirmationDialog("¿Está seguro de eliminar la receta ${recipeData.name}?") {
-                            binding.selectedRecipeContainer.removeView(recipeRow)
-                            selectedRecipes.removeIf { it.recipeId == recipeData.id }
-                            updateCosts()
-                        }
-                    }
-                    recipeRow.addView(nameView)
-                    recipeRow.addView(costView)
-                    recipeRow.addView(quantityControl)
-                    recipeRow.addView(deleteButton)
-                    binding.selectedRecipeContainer.addView(recipeRow)
+                    addRecipeToUI(binding.selectedRecipeContainer, nested, recipeData)
                 }
             }
         }
     }
 
-    private fun displaySelectedRecipe(recipe: Recipe) {
-        binding.selectedRecipeContainer.visibility = View.VISIBLE
-        if (binding.selectedRecipeContainer.findViewWithTag<LinearLayout>(recipe.id) != null) {
-            Toast.makeText(this, "Esta receta ya fue añadida.", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val recipeRow = LinearLayout(this).apply {
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(8, 8, 8, 8)
-            tag = recipe.id
-        }
-        val nameView = TextView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2f)
-            text = recipe.name
-            setPadding(8, 8, 8, 8)
-            textSize = 14f
-            setTextColor(ContextCompat.getColor(context, android.R.color.black))
-        }
-        val costView = TextView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            text = String.format("%.2f", recipe.cost)
-            setPadding(8, 8, 8, 8)
-            textSize = 14f
-            setTextColor(ContextCompat.getColor(context, android.R.color.black))
-        }
-        val quantityControl = createIntegerQuantityControl(1) { newQuantity ->
-            val nested = selectedRecipes.find { it.recipeId == recipe.id } ?: RecipeNested(recipeId = recipe.id, quantity = 1)
-            nested.quantity = newQuantity
-            if (!selectedRecipes.contains(nested)) {
-                selectedRecipes.add(nested)
+    private fun addRecipeToUI(
+        recipeContainer: LinearLayout,
+        recipeNested: RecipeNested,
+        recipeData: Recipe
+    ) {
+        val recipeView = LayoutInflater.from(this).inflate(R.layout.item_added_recipe_edit, recipeContainer, false)
+        val recipeNameView = recipeView.findViewById<TextView>(R.id.addedRecipeName)
+        val recipeCostView = recipeView.findViewById<TextView>(R.id.addedRecipeCost)
+        val quantityInput = recipeView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.quantityInput)
+        val removeButton = recipeView.findViewById<com.google.android.material.button.MaterialButton>(R.id.removeRecipeButton)
+        
+        recipeNameView.text = recipeData.name
+        recipeCostView.text = String.format("$%.2f", recipeData.cost)
+        quantityInput.setText(recipeNested.quantity.toInt().toString())
+        
+        quantityInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val newQuantity = s.toString().toIntOrNull() ?: 1
+                if (newQuantity > 0) {
+                    recipeNested.quantity = newQuantity
+                    updateCosts()
+                }
             }
-            updateCosts()
-        }
-        val deleteButton = com.google.android.material.button.MaterialButton(this).apply {
-            layoutParams = LinearLayout.LayoutParams(40.dp, 40.dp).apply { setMargins(8, 0, 0, 0) }
-            cornerRadius = 20.dp
-            backgroundTintList = ContextCompat.getColorStateList(this@RecipeEditActivity, R.color.purple_700)
-            setIcon(ContextCompat.getDrawable(this@RecipeEditActivity, R.drawable.ic_delete))
-            iconTint = ContextCompat.getColorStateList(this@RecipeEditActivity, R.color.white)
-            iconSize = 20.dp
-            iconGravity = com.google.android.material.button.MaterialButton.ICON_GRAVITY_TEXT_START
-            iconPadding = 0
-            contentDescription = "Eliminar receta"
-        }
-        deleteButton.setOnClickListener {
-            showConfirmationDialog("¿Está seguro de eliminar la receta ${recipe.name}?") {
-                binding.selectedRecipeContainer.removeView(recipeRow)
-                selectedRecipes.removeIf { it.recipeId == recipe.id }
+        })
+        
+        removeButton.setOnClickListener {
+            showRecipeDeleteConfirmation(recipeData.name) {
+                recipeContainer.removeView(recipeView)
+                selectedRecipes.removeIf { it.recipeId == recipeNested.recipeId }
+                updateNestedRecipesUI()
                 updateCosts()
             }
         }
-        recipeRow.addView(nameView)
-        recipeRow.addView(costView)
-        recipeRow.addView(quantityControl)
-        recipeRow.addView(deleteButton)
-        binding.selectedRecipeContainer.addView(recipeRow)
-        if (selectedRecipes.none { it.recipeId == recipe.id }) {
-            selectedRecipes.add(RecipeNested(recipeId = recipe.id, quantity = 1))
-        }
-        updateCosts()
-        binding.recipeSearchBar.text?.clear()
+        recipeContainer.addView(recipeView)
     }
+
 
     private fun saveRecipe() {
         validateFields { isValid ->
@@ -970,33 +1104,43 @@ class RecipeEditActivity : AppCompatActivity() {
         finish()
     }
 
+    private fun showProductDeleteConfirmation(productName: String, onConfirmed: () -> Unit) {
+        DeleteConfirmationDialog.show(
+            context = this,
+            itemName = productName,
+            itemType = "producto",
+            onConfirm = onConfirmed
+        )
+    }
+
+    private fun showRecipeDeleteConfirmation(recipeName: String, onConfirmed: () -> Unit) {
+        DeleteConfirmationDialog.show(
+            context = this,
+            itemName = recipeName,
+            itemType = "receta",
+            onConfirm = onConfirmed
+        )
+    }
+
     private fun showConfirmationDialog(message: String, onConfirmed: () -> Unit) {
-        val itemName = when {
-            message.contains("producto") -> {
-                val start = message.indexOf("'") + 1
-                val end = message.lastIndexOf("'")
-                if (start > 0 && end > start) message.substring(start, end) else "producto"
-            }
-            message.contains("sección") -> {
-                val start = message.indexOf("sección ") + 8
-                val end = message.indexOf("?")
-                if (start > 7 && end > start) message.substring(start, end).trim() else "sección"
-            }
-            message.contains("receta") -> {
-                val start = message.indexOf("receta ") + 7
-                val end = message.indexOf("?")
-                if (start > 6 && end > start) message.substring(start, end).trim() else "receta"
-            }
-            message.contains("imagen") -> "imagen"
-            else -> "elemento"
-        }
+        val itemName: String
+        val itemType: String
         
-        val itemType = when {
-            message.contains("producto") -> "producto"
-            message.contains("sección") -> "sección"
-            message.contains("receta") -> "receta"
-            message.contains("imagen") -> "imagen"
-            else -> "elemento"
+        when {
+            message.contains("eliminar la sección ") -> {
+                val start = message.indexOf("eliminar la sección ") + 20
+                val end = message.indexOf("?")
+                itemName = if (start > 19 && end > start) message.substring(start, end).trim() else "sección"
+                itemType = "sección"
+            }
+            message.contains("eliminar esta imagen") -> {
+                itemName = "imagen"
+                itemType = "imagen"
+            }
+            else -> {
+                itemName = "elemento"
+                itemType = "elemento"
+            }
         }
         
         DeleteConfirmationDialog.show(
@@ -1183,7 +1327,7 @@ class RecipeEditActivity : AppCompatActivity() {
         if (uris.isEmpty()) return
         
         showImageUploadProgress(true)
-        loader.show("Subiendo imágenes...")
+        loader.show()
         
         val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", java.util.Locale.getDefault())
             .format(java.util.Date())

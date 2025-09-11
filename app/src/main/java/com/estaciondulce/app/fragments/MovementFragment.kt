@@ -17,12 +17,34 @@ import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.DeleteConfirmationDialog
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.models.toColumnConfigs
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class MovementFragment : Fragment() {
 
     private var _binding: FragmentMovementBinding? = null
     private val binding get() = _binding!!
     private val repository = FirestoreRepository
+
+    /**
+     * Formats a date to Spanish format: "dd-mes hh:mm"
+     */
+    private fun formatDateToSpanish(date: java.util.Date): String {
+        val sdf = SimpleDateFormat("dd-MMM HH:mm", Locale("es"))
+        val formatted = sdf.format(date)
+        return formatted.replace("sept.", "sep")
+            .replace("enero", "ene")
+            .replace("febrero", "feb")
+            .replace("marzo", "mar")
+            .replace("abril", "abr")
+            .replace("mayo", "may")
+            .replace("junio", "jun")
+            .replace("julio", "jul")
+            .replace("agosto", "ago")
+            .replace("octubre", "oct")
+            .replace("noviembre", "nov")
+            .replace("diciembre", "dic")
+    }
 
     override fun onCreateView(
         inflater: android.view.LayoutInflater,
@@ -77,7 +99,6 @@ class MovementFragment : Fragment() {
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // Global LiveData is updated automatically.
         }
     }
 
@@ -86,7 +107,7 @@ class MovementFragment : Fragment() {
      * The table displays Fecha, Nombre (obtained via personId), Monto, and Tipo (Compra o Venta).
      */
     private fun setupTableView(movements: List<Movement>) {
-        val sortedList = movements.sortedByDescending { it.date }
+        val sortedList = movements.sortedByDescending { it.movementDate }
         val columnConfigs = listOf("Fecha", "Nombre", "Monto", "Tipo").toColumnConfigs(currencyColumns = setOf(2))
         binding.movementTable.setupTableWithConfigs(
             columnConfigs = columnConfigs,
@@ -96,8 +117,7 @@ class MovementFragment : Fragment() {
                 onRowClick = { movement -> editMovement(movement) },
                 onDeleteClick = { movement -> deleteMovement(movement) }
             ) { movement ->
-                val dateString =
-                    android.text.format.DateFormat.format("yyyy-MM-dd", movement.date).toString()
+                val dateString = formatDateToSpanish(movement.movementDate)
                 val personName =
                     repository.personsLiveData.value?.find { it.id == movement.personId }?.let {
                         "${it.name} ${it.lastName}"
@@ -118,8 +138,7 @@ class MovementFragment : Fragment() {
             columnValueGetter = { item, columnIndex ->
                 val movement = item as Movement
                 when (columnIndex) {
-                    0 -> android.text.format.DateFormat.format("yyyy-MM-dd", movement.date)
-                        .toString()
+                    0 -> formatDateToSpanish(movement.movementDate)
 
                     1 -> repository.personsLiveData.value?.find { it.id == movement.personId }
                         ?.let {

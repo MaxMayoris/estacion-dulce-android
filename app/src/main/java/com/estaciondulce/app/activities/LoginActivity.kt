@@ -10,6 +10,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import com.estaciondulce.app.R
 import com.estaciondulce.app.helpers.StorageHelper
 import com.estaciondulce.app.utils.CustomToast
+import com.estaciondulce.app.utils.CustomLoader
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
@@ -21,6 +22,7 @@ class LoginActivity : AppCompatActivity() {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var storageHelper: StorageHelper
+    private lateinit var customLoader: CustomLoader
     private val skipLoginForDebug = false
 
     /**
@@ -29,7 +31,6 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Apply custom theme
         setTheme(R.style.Theme_EstacionDulceApp_Login)
 
         if (skipLoginForDebug) {
@@ -41,6 +42,7 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_login)
         auth = FirebaseAuth.getInstance()
         storageHelper = StorageHelper()
+        customLoader = CustomLoader(this)
 
         val emailInput = findViewById<TextInputEditText>(R.id.emailInput)
         val passwordInput = findViewById<TextInputEditText>(R.id.passwordInput)
@@ -48,13 +50,11 @@ class LoginActivity : AppCompatActivity() {
         val rootLayout = findViewById<ConstraintLayout>(R.id.loginRootLayout)
         val footerText = findViewById<TextView>(R.id.footerText)
 
-        // Set dynamic footer text with version
         try {
             val packageInfo: PackageInfo = packageManager.getPackageInfo(packageName, 0)
             val versionName = packageInfo.versionName
             footerText.text = "Estacion Dulce Manager - v$versionName · by Maksee"
         } catch (e: PackageManager.NameNotFoundException) {
-            // Fallback to default text if version cannot be retrieved
             footerText.text = "Estacion Dulce Manager by Maksee"
         }
 
@@ -67,16 +67,19 @@ class LoginActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            customLoader.show()
+
             auth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener { task ->
+                    customLoader.hide()
+                    
                     if (task.isSuccessful) {
                         CustomToast.showSuccess(this, "Inicio de sesión exitoso!")
                         
-                        // Navigate to HomeActivity after a short delay
                         rootLayout.postDelayed({
                             startActivity(Intent(this, HomeActivity::class.java))
                             finish()
-                        }, 2000) // 2 second delay to show the storage test result
+                        }, 2000)
                     } else {
                         val errorMessage = task.exception?.message ?: "Error en el inicio de sesión."
                         CustomToast.showError(this, errorMessage)
