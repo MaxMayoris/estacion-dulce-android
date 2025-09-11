@@ -340,7 +340,7 @@
             android:id="@+id/saveProductButton"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:text="Guardar Producto"
+            android:text="GUARDAR"
             android:textSize="18sp"
             android:textColor="@color/white"
             android:textStyle="bold"

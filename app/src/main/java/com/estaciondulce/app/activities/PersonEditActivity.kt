@@ -228,11 +228,13 @@ class PersonEditActivity : AppCompatActivity() {
                 personId = currentPerson!!.id,
                 person = personToSave,
                 onSuccess = {
+                    customLoader.hide()
                     CustomToast.showSuccess(this, "Persona actualizada correctamente.")
                     setResult(Activity.RESULT_OK)
                     finish()
                 },
                 onError = { exception ->
+                    customLoader.hide()
                     CustomToast.showError(this, "Error al actualizar la persona: ${exception.message}")
                 }
             )

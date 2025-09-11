@@ -146,17 +146,17 @@ class HomeActivity : AppCompatActivity() {
     }
 
     /**
-     * Checks if data are loaded and hides the loader if so.
+     * Checks if data are loaded and hides the loader when loading is complete (success or failure).
      */
     private fun checkDataLoaded() {
-        val recipesLoaded = FirestoreRepository.recipesLiveData.value?.isNotEmpty() ?: false
-        val productsLoaded = FirestoreRepository.productsLiveData.value?.isNotEmpty() ?: false
-        val measuresLoaded = FirestoreRepository.measuresLiveData.value?.isNotEmpty() ?: false
-        val categoriesLoaded = FirestoreRepository.categoriesLiveData.value?.isNotEmpty() ?: false
-        val sectionsLoaded = FirestoreRepository.sectionsLiveData.value?.isNotEmpty() ?: false
-        val personsLoaded = FirestoreRepository.personsLiveData.value?.isNotEmpty() ?: false
-        val movementsLoaded = FirestoreRepository.movementsLiveData.value?.isNotEmpty() ?: false
-        val addressesLoaded = FirestoreRepository.addressesLiveData.value?.isNotEmpty() ?: false
+        val recipesLoaded = FirestoreRepository.recipesLiveData.value != null
+        val productsLoaded = FirestoreRepository.productsLiveData.value != null
+        val measuresLoaded = FirestoreRepository.measuresLiveData.value != null
+        val categoriesLoaded = FirestoreRepository.categoriesLiveData.value != null
+        val sectionsLoaded = FirestoreRepository.sectionsLiveData.value != null
+        val personsLoaded = FirestoreRepository.personsLiveData.value != null
+        val movementsLoaded = FirestoreRepository.movementsLiveData.value != null
+        val addressesLoaded = FirestoreRepository.addressesLiveData.value != null
 
         if (recipesLoaded && productsLoaded && measuresLoaded && categoriesLoaded && sectionsLoaded && personsLoaded && movementsLoaded && addressesLoaded) {
             loader.hide()
