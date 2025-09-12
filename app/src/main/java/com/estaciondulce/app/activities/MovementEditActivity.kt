@@ -49,6 +49,9 @@ class MovementEditActivity : AppCompatActivity() {
     private var movementItems: MutableList<MovementItem> = mutableListOf()
     private lateinit var itemsAdapter: MovementItemsAdapter
     private var originalProductItems: List<MovementItem> = listOf()
+    private var taxPercentage: Double = 21.0
+    private var taxAmount: Double = 0.0
+    private var itemsSubtotal: Double = 0.0 // Suma de todos los ítems (cantidad * costo)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,8 +63,9 @@ class MovementEditActivity : AppCompatActivity() {
         currentMovement = intent.getParcelableExtra<Movement>("MOVEMENT")
         supportActionBar?.title =
             if (currentMovement != null) "Editar Movimiento" else "Agregar Movimiento"
-        binding.dateInput.setOnClickListener { showDatePickerDialog() }
+        binding.dateInput.setOnClickListener { showMovementDateTimePickerDialog() }
         binding.deliveryDateTimeInput.setOnClickListener { showDateTimePickerDialog() }
+        binding.taxPercentageInput.addTextChangedListener(createTaxPercentageWatcher())
         binding.itemsRecyclerView.layoutManager = LinearLayoutManager(this)
         itemsAdapter = MovementItemsAdapter(
             movementItems,
@@ -81,8 +85,8 @@ class MovementEditActivity : AppCompatActivity() {
                     itemType = "item",
                     onConfirm = {
                         movementItems.removeAt(position)
-                        itemsAdapter.updateItems(movementItems)
-                        recalcTotalAmount()
+                        itemsAdapter.updateItems(movementItems.toMutableList())
+                        recalcTotalAmount() // Need to recalculate after deletion
                     }
                 )
             },
@@ -94,8 +98,13 @@ class MovementEditActivity : AppCompatActivity() {
                     "recipes" -> repository.recipesLiveData.value?.find { it.id == collectionId }?.name
                         ?: "Desconocido"
 
-                    "custom" -> movementItems.find { it.collection == "custom" && it.customName != null }?.customName
-                        ?: "Personalizado"
+                    "custom" -> {
+                        val customItem = movementItems.find { it.collection == "custom" && it.collectionId == collectionId }
+                        when (customItem?.customName) {
+                            "tax" -> "Impuestos"
+                            else -> customItem?.customName ?: "Personalizado"
+                        }
+                    }
 
                     else -> "Desconocido"
                 }
@@ -119,7 +128,7 @@ class MovementEditActivity : AppCompatActivity() {
         setupMovementTypeSpinner()
         currentMovement?.let { movement ->
             selectedDate = movement.movementDate
-            binding.dateInput.setText(formatDate(movement.movementDate))
+            binding.dateInput.setText(formatDateTime(movement.movementDate))
             binding.totalAmountInput.setText(movement.totalAmount.toString())
             val movementTypeText = when (movement.type) {
                 EMovementType.PURCHASE -> "Compra"
@@ -159,15 +168,39 @@ class MovementEditActivity : AppCompatActivity() {
                 }
             } else {
                 binding.shippingRow.visibility = View.GONE
+                binding.taxCard.visibility = View.VISIBLE
             }
             movementItems.clear()
-            movementItems.addAll(movement.items)
-            itemsAdapter.updateItems(movementItems)
+            val taxItem = movement.items.find { it.collection == "custom" && it.customName == "tax" }
+            val regularItems = movement.items.filter { it.collection != "custom" || it.customName != "tax" }
+            
+            movementItems.addAll(regularItems)
+            itemsAdapter.updateItems(movementItems.toMutableList())
+            
+            if (movement.type == EMovementType.PURCHASE) {
+                if (taxItem != null) {
+                    binding.taxPercentageInput.setText(taxItem.quantity.toString())
+                    binding.taxAmountInput.setText(taxItem.cost.toString())
+                    taxPercentage = taxItem.quantity
+                    taxAmount = taxItem.cost
+                } else {
+                    binding.taxPercentageInput.setText("0")
+                    binding.taxAmountInput.setText("0.00")
+                    taxPercentage = 0.0
+                    taxAmount = 0.0
+                }
+            } else if (movement.type == EMovementType.SALE) {
+                binding.taxPercentageInput.setText("0")
+                binding.taxAmountInput.setText("0.00")
+                taxPercentage = 0.0
+                taxAmount = 0.0
+            }
+            
             recalcTotalAmount()
             originalProductItems =
                 movement.items.filter { it.collection == "products" }.map { it.copy() }
         } ?: run {
-            binding.dateInput.setText(formatDate(selectedDate))
+            binding.dateInput.setText(formatDateTime(selectedDate))
         }
         binding.movementTypeSpinner.setOnItemClickListener { _, _, position, _ ->
             val movementTypes = listOf("Compra", "Venta")
@@ -183,11 +216,25 @@ class MovementEditActivity : AppCompatActivity() {
             
             if (selectedType == "Venta") {
                 binding.shippingRow.visibility = View.VISIBLE
+                binding.taxCard.visibility = View.GONE
+                binding.taxPercentageInput.setText("0")
+                binding.taxAmountInput.setText("0.00")
+                taxPercentage = 0.0
+                taxAmount = 0.0
+                recalcTotalAmount()
             } else {
                 binding.shippingRow.visibility = View.GONE
                 binding.shippingCostInput.setText("0.0")
                 binding.shippingAddressInput.setText("")
                 binding.shippingCheckBox.isChecked = false
+                binding.taxCard.visibility = View.VISIBLE
+                if (currentMovement == null) {
+                    binding.taxPercentageInput.setText("21")
+                    taxPercentage = 21.0
+                    recalcTotalAmount()
+                } else {
+                    recalcTotalAmount()
+                }
             }
         }
         binding.shippingCheckBox.setOnCheckedChangeListener { _, isChecked ->
@@ -265,7 +312,7 @@ class MovementEditActivity : AppCompatActivity() {
                 } else {
                     val newItem = MovementItem("custom", "", customName, 1.0, 1.0)
                     movementItems.add(newItem)
-                    itemsAdapter.updateItems(movementItems)
+                    itemsAdapter.updateItems(movementItems.toMutableList())
                     recalcTotalAmount()
                 }
                 dialog.dismiss()
@@ -276,6 +323,27 @@ class MovementEditActivity : AppCompatActivity() {
 
         dialog.show()
     }
+
+
+    /**
+     * Creates a TextWatcher for the tax percentage input.
+     */
+    private fun createTaxPercentageWatcher(): android.text.TextWatcher {
+        return object : android.text.TextWatcher {
+            override fun afterTextChanged(s: android.text.Editable?) {
+                val percentage = s.toString().toDoubleOrNull() ?: 0.0
+                val validPercentage = if (percentage < 0) 0.0 else percentage
+                if (percentage != validPercentage) {
+                    binding.taxPercentageInput.setText(validPercentage.toString())
+                }
+                taxPercentage = validPercentage
+                recalcTotalAmount()
+            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        }
+    }
+
 
     /**
      * Sets up the person spinner with the provided list, filtered by movement type.
@@ -320,17 +388,23 @@ class MovementEditActivity : AppCompatActivity() {
     }
 
     /**
-     * Displays a DatePickerDialog to select a date.
+     * Displays a DateTimePickerDialog to select date and time for movement.
      */
-    private fun showDatePickerDialog() {
+    private fun showMovementDateTimePickerDialog() {
         val calendar = Calendar.getInstance().apply { time = selectedDate }
+        
         val year = calendar.get(Calendar.YEAR)
         val month = calendar.get(Calendar.MONTH)
         val day = calendar.get(Calendar.DAY_OF_MONTH)
-        DatePickerDialog(this, { _, selectedYear, selectedMonth, selectedDay ->
-            calendar.set(selectedYear, selectedMonth, selectedDay)
-            selectedDate = calendar.time
-            binding.dateInput.setText(formatDate(selectedDate))
+        val hour = calendar.get(Calendar.HOUR_OF_DAY)
+        val minute = calendar.get(Calendar.MINUTE)
+
+        android.app.DatePickerDialog(this, { _, selectedYear, selectedMonth, selectedDay ->
+            android.app.TimePickerDialog(this, { _, selectedHour, selectedMinute ->
+                calendar.set(selectedYear, selectedMonth, selectedDay, selectedHour, selectedMinute)
+                selectedDate = calendar.time
+                binding.dateInput.setText(formatDateTime(selectedDate))
+            }, hour, minute, true).show()
         }, year, month, day).show()
     }
 
@@ -364,17 +438,30 @@ class MovementEditActivity : AppCompatActivity() {
     }
 
     /**
-     * Recalculates the total amount based on item cost, quantity and shipping cost if shipping is enabled.
+     * Recalculates the total amount based on item cost, quantity, tax and shipping cost if shipping is enabled.
      */
     private fun recalcTotalAmount() {
-        val itemsTotal = movementItems.sumOf { it.cost * it.quantity }
+        itemsSubtotal = movementItems.sumOf { it.cost * it.quantity }
+        
+        binding.subtotalAmountText.text = String.format("$%.2f", itemsSubtotal)
+        binding.subtotalSection.visibility = if (movementItems.isNotEmpty()) View.VISIBLE else View.GONE
+        
         val shippingCost =
             if (binding.shippingRow.visibility == View.VISIBLE && binding.shippingCheckBox.isChecked) {
                 binding.shippingCostInput.text.toString().toDoubleOrNull() ?: 0.0
             } else 0.0
-        val total = itemsTotal + shippingCost
-        binding.totalAmountInput.setText(total.toString())
-        binding.itemsHeader.visibility = View.VISIBLE // Siempre visible
+        
+        val currentTaxAmount = if (binding.taxCard.visibility == View.VISIBLE) {
+            taxPercentage = binding.taxPercentageInput.text.toString().toDoubleOrNull() ?: 0.0
+            taxAmount = itemsSubtotal * (taxPercentage / 100.0)
+            binding.taxAmountInput.setText(String.format("%.2f", taxAmount))
+            taxAmount
+        } else 0.0
+        
+        val total = itemsSubtotal + currentTaxAmount + shippingCost
+        binding.totalAmountInput.setText(String.format("%.2f", total))
+        
+        binding.itemsHeader.visibility = View.VISIBLE
         binding.itemsHeadersContainer.visibility = if (movementItems.isNotEmpty()) View.VISIBLE else View.GONE
     }
 
@@ -451,7 +538,7 @@ class MovementEditActivity : AppCompatActivity() {
                         1.0
                     )
                     movementItems.add(newItem)
-                    itemsAdapter.updateItems(movementItems)
+                    itemsAdapter.updateItems(movementItems.toMutableList())
                     recalcTotalAmount()
                 }
                 dialog.dismiss()
@@ -515,6 +602,18 @@ class MovementEditActivity : AppCompatActivity() {
             CustomToast.showError(this, "El monto total debe ser un número válido.")
             return false
         }
+        
+        if (movementItems.isEmpty()) {
+            CustomToast.showError(this, "Debe agregar al menos un ítem al movimiento.")
+            return false
+        }
+        
+        for (item in movementItems) {
+            if (item.quantity <= 0) {
+                CustomToast.showError(this, "Las cantidades de los ítems deben ser mayores a 0.")
+                return false
+            }
+        }
         val movementTypeText = binding.movementTypeSpinner.text.toString()
         if (movementTypeText == "Venta" && binding.shippingCheckBox.isChecked) {
             val shippingCostStr = binding.shippingCostInput.text.toString().trim()
@@ -557,13 +656,24 @@ class MovementEditActivity : AppCompatActivity() {
                 Shipment(addressId = "", shippingCost = 0.0)
             }
         } else null
+        
+        val itemsToSave = movementItems.toMutableList()
+        if (movementType == EMovementType.PURCHASE) {
+            val taxPercentage = binding.taxPercentageInput.text.toString().toDoubleOrNull() ?: 0.0
+            if (taxPercentage > 0) {
+                val taxAmount = itemsSubtotal * (taxPercentage / 100.0)
+                val taxItem = MovementItem("custom", "tax", "tax", taxAmount, taxPercentage)
+                itemsToSave.add(taxItem)
+            }
+        }
+        
         return Movement(
             id = currentMovement?.id ?: "",
             type = movementType,
             personId = selectedPerson?.id ?: "",
             movementDate = selectedDate,
             totalAmount = totalAmount,
-            items = movementItems,
+            items = itemsToSave,
             shipment = shipment,
             deliveryDate = selectedDeliveryDate
         )
