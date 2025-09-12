@@ -12,38 +12,53 @@ class MovementItemsAdapter(
     private var items: MutableList<MovementItem>,
     private val onItemChanged: () -> Unit,  // Callback when an item is updated
     private val onDeleteClicked: (Int) -> Unit,  // Callback with the item position to delete
-    // Callback to get the display name (without saving it) from collection and collectionId
     private val getDisplayName: (collection: String, collectionId: String) -> String
 ) : RecyclerView.Adapter<MovementItemsAdapter.ViewHolder>() {
 
     inner class ViewHolder(val binding: ItemMovementBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: MovementItem, position: Int) {
-            // Mostrar el nombre usando el callback (incluye la lógica para productos, recetas y personalizados)
             binding.itemNameTextView.text = getDisplayName(item.collection, item.collectionId)
-            // Mostrar cantidad y costo actual
+            
             binding.quantityEditText.setText(item.quantity.toString())
+            binding.quantityEditText.isEnabled = true
             binding.costEditText.setText(item.cost.toString())
+            binding.costEditText.isEnabled = true
 
-            // Botón para eliminar el ítem
             binding.deleteItemButton.setOnClickListener {
                 onDeleteClicked(position)
             }
 
-            // TextWatcher para detectar cambios manuales en el campo de cantidad
             binding.quantityEditText.addTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(s: Editable?) {
-                    val newQuantity = s.toString().toDoubleOrNull()
-                    // Si el valor es nulo o menor o igual a 0, se establece en 1.0
-                    if (newQuantity == null || newQuantity <= 0.0) {
+                    val text = s.toString()
+                    val newQuantity = text.toDoubleOrNull()
+                    
+                    if (text.isEmpty()) {
+                        if (items[position].quantity != 0.0) {
+                            items[position].quantity = 0.0
+                            onItemChanged()
+                        }
+                        return
+                    }
+                    
+                    val decimalParts = text.split(".")
+                    if (decimalParts.size == 2 && decimalParts[1].length > 3) {
                         binding.quantityEditText.removeTextChangedListener(this)
-                        binding.quantityEditText.setText("1.0")
-                        binding.quantityEditText.setSelection(binding.quantityEditText.text.length)
+                        val truncatedText = decimalParts[0] + "." + decimalParts[1].substring(0, 3)
+                        binding.quantityEditText.setText(truncatedText)
+                        binding.quantityEditText.setSelection(truncatedText.length)
                         binding.quantityEditText.addTextChangedListener(this)
-                        item.quantity = 1.0
-                        onItemChanged()
-                    } else if (newQuantity != item.quantity) {
-                        item.quantity = newQuantity
+                        val truncatedQuantity = truncatedText.toDoubleOrNull() ?: 0.0
+                        if (items[position].quantity != truncatedQuantity) {
+                            items[position].quantity = truncatedQuantity
+                            onItemChanged()
+                        }
+                        return
+                    }
+                    
+                    if (newQuantity != null && newQuantity != items[position].quantity) {
+                        items[position].quantity = newQuantity
                         onItemChanged()
                     }
                 }
@@ -51,12 +66,11 @@ class MovementItemsAdapter(
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             })
 
-            // TextWatcher para el costo
             binding.costEditText.addTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(s: Editable?) {
                     val newCost = s.toString().toDoubleOrNull() ?: 0.0
-                    if (newCost != item.cost) {
-                        item.cost = newCost
+                    if (newCost != items[position].cost) {
+                        items[position].cost = newCost
                         onItemChanged()
                     }
                 }
@@ -78,7 +92,8 @@ class MovementItemsAdapter(
     override fun getItemCount(): Int = items.size
 
     fun updateItems(newItems: MutableList<MovementItem>) {
-        items = newItems
+        items.clear()
+        items.addAll(newItems)
         notifyDataSetChanged()
     }
 }

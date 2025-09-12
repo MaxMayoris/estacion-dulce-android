@@ -64,6 +64,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v3.2** - Enhanced movement editing with date/time picker, improved quantity input validation (allows values > 0 with up to 3 decimals), and added dedicated tax section for purchases with automatic calculation and 21% default
 - **v3.1** - Fixed infinite loader issue in HomeActivity, standardized all save buttons to "GUARDAR" with consistent styling, and enlarged loader icon size
 - **v3.0** - Firebase Cloud Functions integration for automatic cost cascading and stock management, modern UI redesign for movement/recipe editing, person type standardization, movement date handling improvements, full-screen custom loader, comprehensive code cleanup and comment optimization
 - **v2.2** - Multiple image support for recipes, profit percentage calculation, modernized delete dialogs, enhanced table formatting, and code cleanup
