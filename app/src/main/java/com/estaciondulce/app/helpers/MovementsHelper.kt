@@ -12,7 +12,6 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
             "totalAmount" to movement.totalAmount,
             "items" to movement.items,
             "shipment" to movement.shipment,
-            "deliveryDate" to movement.deliveryDate,
             "delta" to movement.delta,
             "appliedAt" to movement.appliedAt,
             "createdAt" to movement.createdAt
@@ -35,7 +34,6 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
             "totalAmount" to movement.totalAmount,
             "items" to movement.items,
             "shipment" to movement.shipment,
-            "deliveryDate" to movement.deliveryDate,
             "delta" to movement.delta,
             "appliedAt" to movement.appliedAt,
             "createdAt" to movement.createdAt

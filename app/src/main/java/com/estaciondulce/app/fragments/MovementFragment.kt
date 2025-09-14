@@ -25,6 +25,9 @@ class MovementFragment : Fragment() {
     private var _binding: FragmentMovementBinding? = null
     private val binding get() = _binding!!
     private val repository = FirestoreRepository
+    
+    // Tab state
+    private var selectedTab: String = "sale" // Default to sale tab
 
     /**
      * Formats a date to Spanish format: "dd-mes hh:mm"
@@ -58,17 +61,26 @@ class MovementFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        repository.movementsLiveData.observe(viewLifecycleOwner) { movements ->
-            setupTableView(movements)
+        repository.movementsLiveData.observe(viewLifecycleOwner) { _ ->
+            // Apply current filter (selected tab + search)
+            filterMovements(binding.searchBar.text.toString())
         }
         repository.personsLiveData.observe(viewLifecycleOwner) {
-            repository.movementsLiveData.value?.let { movements ->
-                setupTableView(movements)
-            }
+            // Apply current filter (selected tab + search)
+            filterMovements(binding.searchBar.text.toString())
         }
 
         binding.addMovementButton.setOnClickListener {
             openMovementEditActivity(null)
+        }
+
+        // Setup tab click listeners
+        binding.saleTab.setOnClickListener {
+            selectTab("sale")
+        }
+        
+        binding.purchaseTab.setOnClickListener {
+            selectTab("purchase")
         }
 
         binding.searchBar.addTextChangedListener(object : TextWatcher {
@@ -103,12 +115,40 @@ class MovementFragment : Fragment() {
     }
 
     /**
+     * Handles tab selection and updates UI accordingly.
+     */
+    private fun selectTab(tabType: String) {
+        selectedTab = tabType
+        
+        // Update tab visual states
+        when (tabType) {
+            "sale" -> {
+                binding.saleTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_selected_background)
+                binding.saleTab.setTextColor(resources.getColor(com.estaciondulce.app.R.color.white, null))
+                binding.purchaseTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_unselected_background)
+                binding.purchaseTab.setTextColor(resources.getColor(com.estaciondulce.app.R.color.text_secondary, null))
+            }
+            "purchase" -> {
+                binding.purchaseTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_selected_background)
+                binding.purchaseTab.setTextColor(resources.getColor(com.estaciondulce.app.R.color.white, null))
+                binding.saleTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_unselected_background)
+                binding.saleTab.setTextColor(resources.getColor(com.estaciondulce.app.R.color.text_secondary, null))
+            }
+        }
+        
+        // Refresh table with tab filter + search
+        filterMovements(binding.searchBar.text.toString())
+    }
+
+    /**
      * Configures the table with the list of movements.
-     * The table displays Fecha, Nombre (obtained via personId), Monto, and Tipo (Compra o Venta).
+     * The table displays Fecha, Nombre (obtained via personId), and Monto (Tipo column removed).
+     * Movements are automatically sorted by date in descending order (newest first).
      */
     private fun setupTableView(movements: List<Movement>) {
+        // Movements are already filtered by tab type in filterMovements
         val sortedList = movements.sortedByDescending { it.movementDate }
-        val columnConfigs = listOf("Fecha", "Nombre", "Monto", "Tipo").toColumnConfigs(currencyColumns = setOf(2))
+        val columnConfigs = listOf("Fecha", "Nombre", "Monto").toColumnConfigs(currencyColumns = setOf(2))
         binding.movementTable.setupTableWithConfigs(
             columnConfigs = columnConfigs,
             data = sortedList,
@@ -122,16 +162,10 @@ class MovementFragment : Fragment() {
                     repository.personsLiveData.value?.find { it.id == movement.personId }?.let {
                         "${it.name} ${it.lastName}"
                     } ?: "Desconocido"
-                val movementTypeDisplay = when (movement.type) {
-                    EMovementType.PURCHASE -> "Compra"
-                    EMovementType.SALE -> "Venta"
-                    else -> "No disponible"
-                }
                 listOf(
                     dateString,
                     personName,
-                    movement.totalAmount,
-                    movementTypeDisplay
+                    movement.totalAmount
                 )
             },
             pageSize = 10,
@@ -139,38 +173,44 @@ class MovementFragment : Fragment() {
                 val movement = item as Movement
                 when (columnIndex) {
                     0 -> formatDateToSpanish(movement.movementDate)
-
                     1 -> repository.personsLiveData.value?.find { it.id == movement.personId }
                         ?.let {
                             "${it.name} ${it.lastName}"
                         } ?: "Desconocido"
-
                     2 -> movement.totalAmount
-                    3 -> when (movement.type) {
-                        EMovementType.PURCHASE -> "Compra"
-                        EMovementType.SALE -> "Venta"
-                        else -> "No disponible"
-                    }
-
                     else -> null
                 }
-            }
+            },
+            enableColumnSorting = false
         )
     }
 
     /**
-     * Filters the list of movements based on the search query and updates the table.
-     * The filter is applied on the person's name retrieved via personId.
+     * Filters the list of movements by selected tab type and name search.
+     * Movements are automatically sorted by date in descending order (newest first).
+     * Search is limited to the "Nombre" field only.
      */
-    private fun filterMovements(query: String) {
+    private fun filterMovements(searchQuery: String = "") {
         val movements = repository.movementsLiveData.value ?: emptyList()
-        val filteredList = movements.filter { movement ->
-            val personName =
-                repository.personsLiveData.value?.find { it.id == movement.personId }?.let {
-                    "${it.name} ${it.lastName}"
-                } ?: ""
-            personName.contains(query, ignoreCase = true)
+        
+        // First filter by selected tab type
+        val tabFilteredMovements = when (selectedTab) {
+            "sale" -> movements.filter { it.type == EMovementType.SALE }
+            "purchase" -> movements.filter { it.type == EMovementType.PURCHASE }
+            else -> movements
         }
+        
+        // Then filter by name search if provided
+        val filteredList = if (searchQuery.isEmpty()) {
+            tabFilteredMovements
+        } else {
+            tabFilteredMovements.filter { movement ->
+                val personName = repository.personsLiveData.value?.find { it.id == movement.personId }
+                    ?.let { "${it.name} ${it.lastName}" } ?: ""
+                personName.contains(searchQuery, ignoreCase = true)
+            }
+        }
+        
         setupTableView(filteredList)
     }
 
@@ -186,13 +226,13 @@ class MovementFragment : Fragment() {
         
         DeleteConfirmationDialog.show(
             context = requireContext(),
-            itemName = "$movementType de $personName por $${formattedAmount}",
+            itemName = "$movementType a $personName por $${formattedAmount}",
             itemType = "movimiento",
             onConfirm = {
                 MovementsHelper().deleteMovement(
                     movementId = movement.id,
                     onSuccess = {
-                        CustomToast.showSuccess(requireContext(), "$movementType de $personName eliminada correctamente.")
+                        CustomToast.showSuccess(requireContext(), "$movementType a $personName eliminada correctamente.")
                     },
                     onError = {
                         CustomToast.showError(requireContext(), "Error al eliminar el movimiento.")

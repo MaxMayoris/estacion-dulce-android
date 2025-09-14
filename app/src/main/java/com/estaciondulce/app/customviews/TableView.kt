@@ -53,7 +53,8 @@ class TableView<T> @JvmOverloads constructor(
         data: List<T>,
         adapter: RecyclerView.Adapter<*>,
         pageSize: Int = 10,
-        columnValueGetter: ((T, Int) -> Comparable<*>?)
+        columnValueGetter: ((T, Int) -> Comparable<*>?),
+        enableColumnSorting: Boolean = true
     ) {
         this.pageSize = pageSize
         this.originalData = data
@@ -61,7 +62,7 @@ class TableView<T> @JvmOverloads constructor(
         this.columnValueGetter = columnValueGetter
         this.totalPages = (data.size + pageSize - 1) / pageSize
 
-        generateHeaders(columnHeaders)
+        generateHeaders(columnHeaders, enableColumnSorting)
         recyclerView.adapter = paginatedAdapter
         showPage(0)
     }
@@ -74,7 +75,8 @@ class TableView<T> @JvmOverloads constructor(
         data: List<T>,
         adapter: RecyclerView.Adapter<*>,
         pageSize: Int = 10,
-        columnValueGetter: ((T, Int) -> Comparable<*>?)
+        columnValueGetter: ((T, Int) -> Comparable<*>?),
+        enableColumnSorting: Boolean = true
     ) {
         this.pageSize = pageSize
         this.originalData = data
@@ -89,7 +91,7 @@ class TableView<T> @JvmOverloads constructor(
         }
 
         val headers = columnConfigs.map { it.header }
-        generateHeaders(headers)
+        generateHeaders(headers, enableColumnSorting)
         recyclerView.adapter = paginatedAdapter
         showPage(0)
     }
@@ -126,18 +128,35 @@ class TableView<T> @JvmOverloads constructor(
     /**
      * Generates header views.
      */
-    private fun generateHeaders(columnHeaders: List<String>) {
+    private fun generateHeaders(columnHeaders: List<String>, enableColumnSorting: Boolean = true) {
+        // Store original headers for sorting indicators
+        storedHeaders = columnHeaders
+        
+        // Clear existing headers if the number of columns changed
+        if (headerContainer.childCount != columnHeaders.size + 1) {
+            headerContainer.removeAllViews()
+        }
+        
+        // Create headers if they don't exist or were cleared
         if (headerContainer.childCount == 0) {
             columnHeaders.forEachIndexed { index, _ ->
                 val textView = TextView(context).apply {
+                    // Fixed layout params to prevent shrinking
                     layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply {
                         weight = 1f
+                        // Ensure minimum width to prevent shrinking
+                        minimumWidth = 100
                     }
                     setPadding(16, 16, 16, 16)
                     setTextColor(context.getColor(R.color.table_header_text))
                     textAlignment = TEXT_ALIGNMENT_CENTER
+                    // Always keep BOLD to maintain consistent layout
                     setTypeface(null, Typeface.BOLD)
-                    setOnClickListener { sortByColumn(index) }
+                    // Make clickable only if sorting is enabled
+                    isClickable = enableColumnSorting
+                    if (enableColumnSorting) {
+                        setOnClickListener { sortByColumn(index) }
+                    }
                 }
                 headerContainer.addView(textView)
             }
@@ -145,22 +164,33 @@ class TableView<T> @JvmOverloads constructor(
             val deleteHeader = TextView(context).apply {
                 layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply {
                     weight = 0.5f
+                    // Ensure minimum width to prevent shrinking
+                    minimumWidth = 60
                 }
                 setPadding(16, 16, 16, 16)
                 textAlignment = TEXT_ALIGNMENT_CENTER
+                // Keep consistent typeface
+                setTypeface(null, Typeface.BOLD)
             }
             headerContainer.addView(deleteHeader)
         }
         columnHeaders.forEachIndexed { index, header ->
             val textView = headerContainer.getChildAt(index) as? TextView ?: return@forEachIndexed
-            val isSortedColumn = index == sortedColumnIndex
-            val directionIndicator = when {
-                isSortedColumn && sortedColumnDirection -> " ▲"
-                isSortedColumn && !sortedColumnDirection -> " ▼"
-                else -> ""
+            if (enableColumnSorting) {
+                val isSortedColumn = index == sortedColumnIndex
+                val directionIndicator = when {
+                    isSortedColumn && sortedColumnDirection -> " ▲"
+                    isSortedColumn && !sortedColumnDirection -> " ▼"
+                    else -> ""
+                }
+                // Only update text, don't change typeface to maintain layout consistency
+                textView.text = "$header$directionIndicator"
+                // Keep typeface consistent - don't change BOLD/NORMAL to avoid layout changes
+                textView.setTypeface(null, Typeface.BOLD)
+            } else {
+                textView.text = header
+                textView.setTypeface(null, Typeface.BOLD)
             }
-            textView.text = "$header$directionIndicator"
-            textView.setTypeface(null, if (isSortedColumn) Typeface.BOLD else Typeface.NORMAL)
         }
         val deleteHeader = headerContainer.getChildAt(columnHeaders.size) as? TextView
         deleteHeader?.text = ""
@@ -176,6 +206,7 @@ class TableView<T> @JvmOverloads constructor(
             sortedColumnIndex = columnIndex
             sortedColumnDirection = true
         }
+        
         val valueGetter = columnValueGetter ?: return
         originalData = originalData.sortedWith(Comparator { a, b ->
             @Suppress("UNCHECKED_CAST")
@@ -189,10 +220,41 @@ class TableView<T> @JvmOverloads constructor(
                 else -> if (sortedColumnDirection) aValue.compareTo(bValue) else bValue.compareTo(aValue)
             }
         })
-        val headers = (0 until headerContainer.childCount).map { index ->
-            (headerContainer.getChildAt(index) as TextView).text.toString().removeSuffix(" ▲").removeSuffix(" ▼")
-        }
-        generateHeaders(headers)
+        
+        // Update sorting indicators without regenerating headers
+        updateSortingIndicators()
         showPage(0)
+    }
+
+    /**
+     * Updates sorting indicators on headers without regenerating the layout.
+     */
+    private fun updateSortingIndicators() {
+        // Get the original header texts (without indicators) from stored headers
+        val originalHeaders = getStoredHeaders()
+        
+        originalHeaders.forEachIndexed { index, header ->
+            val textView = headerContainer.getChildAt(index) as? TextView ?: return@forEachIndexed
+            val directionIndicator = when {
+                index == sortedColumnIndex && sortedColumnDirection -> " ▲"
+                index == sortedColumnIndex && !sortedColumnDirection -> " ▼"
+                else -> ""
+            }
+            textView.text = "$header$directionIndicator"
+            // Keep typeface consistent - don't change layout
+            textView.setTypeface(null, Typeface.BOLD)
+        }
+    }
+
+    /**
+     * Stores original header texts for sorting indicators.
+     */
+    private var storedHeaders: List<String> = emptyList()
+
+    /**
+     * Gets the stored original header texts.
+     */
+    private fun getStoredHeaders(): List<String> {
+        return storedHeaders
     }
 }

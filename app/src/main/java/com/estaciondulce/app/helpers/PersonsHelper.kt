@@ -8,8 +8,7 @@ class PersonsHelper(private val genericHelper: GenericHelper = GenericHelper()) 
         val personData = mapOf(
             "name" to person.name,
             "lastName" to person.lastName,
-            "phoneNumberPrefix" to person.phoneNumberPrefix,
-            "phoneNumberSuffix" to person.phoneNumberSuffix,
+            "phones" to person.phones,
             "type" to person.type
         )
         genericHelper.addDocument(
@@ -26,8 +25,7 @@ class PersonsHelper(private val genericHelper: GenericHelper = GenericHelper()) 
         val personData = mapOf(
             "name" to person.name,
             "lastName" to person.lastName,
-            "phoneNumberPrefix" to person.phoneNumberPrefix,
-            "phoneNumberSuffix" to person.phoneNumberSuffix,
+            "phones" to person.phones,
             "type" to person.type
         )
         genericHelper.updateDocument(

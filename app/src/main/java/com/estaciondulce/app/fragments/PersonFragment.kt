@@ -23,6 +23,9 @@ class PersonFragment : Fragment() {
     private val binding get() = _binding!!
     private val personsHelper = PersonsHelper()
     private val repository = FirestoreRepository
+    
+    // Tab state
+    private var selectedTab: String = "client" // Default to client tab
 
     override fun onCreateView(
         inflater: android.view.LayoutInflater,
@@ -35,17 +38,26 @@ class PersonFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        repository.personsLiveData.observe(viewLifecycleOwner) { persons ->
-            setupTableView(persons)
+        repository.personsLiveData.observe(viewLifecycleOwner) { _ ->
+            // Apply current filter (empty search + selected tab)
+            filterPersons("")
         }
         repository.categoriesLiveData.observe(viewLifecycleOwner) {
-            repository.personsLiveData.value?.let { persons ->
-                setupTableView(persons)
-            }
+            // Apply current filter (empty search + selected tab)
+            filterPersons("")
         }
 
         binding.addPersonButton.setOnClickListener {
             openPersonEditActivity(null)
+        }
+
+        // Setup tab click listeners
+        binding.clientTab.setOnClickListener {
+            selectTab("client")
+        }
+        
+        binding.providerTab.setOnClickListener {
+            selectTab("provider")
         }
 
         binding.searchBar.addTextChangedListener(object : TextWatcher {
@@ -80,33 +92,145 @@ class PersonFragment : Fragment() {
     }
 
     /**
-     * Configura la tabla con la lista de personas.
+     * Handles tab selection and updates UI accordingly.
+     */
+    private fun selectTab(tabType: String) {
+        selectedTab = tabType
+        
+        // Update tab visual states
+        when (tabType) {
+            "client" -> {
+                binding.clientTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_selected_background)
+                binding.clientTab.setTextColor(resources.getColor(com.estaciondulce.app.R.color.white, null))
+                binding.providerTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_unselected_background)
+                binding.providerTab.setTextColor(resources.getColor(com.estaciondulce.app.R.color.text_secondary, null))
+            }
+            "provider" -> {
+                binding.providerTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_selected_background)
+                binding.providerTab.setTextColor(resources.getColor(com.estaciondulce.app.R.color.white, null))
+                binding.clientTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_unselected_background)
+                binding.clientTab.setTextColor(resources.getColor(com.estaciondulce.app.R.color.text_secondary, null))
+            }
+        }
+        
+        // Refresh table with current filter
+        val currentFilter = binding.searchBar.text.toString()
+        filterPersons(currentFilter)
+    }
+
+    /**
+     * Configura la tabla con la lista de personas según el tab seleccionado.
      */
     private fun setupTableView(persons: List<Person>) {
+        // Persons are already filtered by tab type and search query in filterPersons
         val sortedList = persons.sortedBy { it.name }
 
+        // Setup column headers and data based on selected tab
+        val (columnHeaders, columnValueGetter) = when (selectedTab) {
+            "client" -> {
+                val headers = listOf("Nombre", "Teléfono")
+                val getter: (Any, Int) -> String? = { item, columnIndex ->
+                    val person = item as Person
+                    when (columnIndex) {
+                        0 -> "${person.name} ${person.lastName}"
+                        1 -> {
+                            if (person.phones.isNotEmpty()) {
+                                val firstPhone = person.phones.first()
+                                if (firstPhone.phoneNumberPrefix.isNotEmpty() && firstPhone.phoneNumberSuffix.isNotEmpty()) {
+                                    "${firstPhone.phoneNumberPrefix} ${firstPhone.phoneNumberSuffix}"
+                                } else {
+                                    "Sin teléfono"
+                                }
+                            } else {
+                                "Sin teléfono"
+                            }
+                        }
+                        else -> null
+                    }
+                }
+                Pair(headers, getter)
+            }
+            "provider" -> {
+                val headers = listOf("Nombre", "Teléfono")
+                val getter: (Any, Int) -> String? = { item, columnIndex ->
+                    val person = item as Person
+                    when (columnIndex) {
+                        0 -> "${person.name} ${person.lastName}"
+                        1 -> {
+                            if (person.phones.isNotEmpty()) {
+                                val firstPhone = person.phones.first()
+                                if (firstPhone.phoneNumberPrefix.isNotEmpty() && firstPhone.phoneNumberSuffix.isNotEmpty()) {
+                                    "${firstPhone.phoneNumberPrefix} ${firstPhone.phoneNumberSuffix}"
+                                } else {
+                                    "Sin teléfono"
+                                }
+                            } else {
+                                "Sin teléfono"
+                            }
+                        }
+                        else -> null
+                    }
+                }
+                Pair(headers, getter)
+            }
+            else -> {
+                val headers = listOf("Nombre", "Tipo")
+                val getter: (Any, Int) -> String? = { item, columnIndex ->
+                    val person = item as Person
+                    when (columnIndex) {
+                        0 -> "${person.name} ${person.lastName}"
+                        1 -> EPersonType.getDisplayValue(person.type)
+                        else -> null
+                    }
+                }
+                Pair(headers, getter)
+            }
+        }
+
         binding.personTable.setupTable(
-            columnHeaders = listOf("Nombre", "Tipo"),
+            columnHeaders = columnHeaders,
             data = sortedList,
             adapter = PersonAdapter(
                 personList = sortedList,
                 onRowClick = { person -> editPerson(person) },
                 onDeleteClick = { person -> deletePerson(person) }
             ) { person ->
-                listOf(
-                    "${person.name} ${person.lastName}",
-                    EPersonType.getDisplayValue(person.type)
-                )
+                // This function should return the same number of elements as columnHeaders
+                when (selectedTab) {
+                    "client" -> listOf(
+                        "${person.name} ${person.lastName}",
+                        if (person.phones.isNotEmpty()) {
+                            val firstPhone = person.phones.first()
+                            if (firstPhone.phoneNumberPrefix.isNotEmpty() && firstPhone.phoneNumberSuffix.isNotEmpty()) {
+                                "${firstPhone.phoneNumberPrefix} ${firstPhone.phoneNumberSuffix}"
+                            } else {
+                                "Sin teléfono"
+                            }
+                        } else {
+                            "Sin teléfono"
+                        }
+                    )
+                    "provider" -> listOf(
+                        "${person.name} ${person.lastName}",
+                        if (person.phones.isNotEmpty()) {
+                            val firstPhone = person.phones.first()
+                            if (firstPhone.phoneNumberPrefix.isNotEmpty() && firstPhone.phoneNumberSuffix.isNotEmpty()) {
+                                "${firstPhone.phoneNumberPrefix} ${firstPhone.phoneNumberSuffix}"
+                            } else {
+                                "Sin teléfono"
+                            }
+                        } else {
+                            "Sin teléfono"
+                        }
+                    )
+                    else -> listOf(
+                        "${person.name} ${person.lastName}",
+                        EPersonType.getDisplayValue(person.type)
+                    )
+                }
             },
             pageSize = 10,
-            columnValueGetter = { item, columnIndex ->
-                val person = item as Person
-                when (columnIndex) {
-                    0 -> "${person.name} ${person.lastName}"
-                    1 -> EPersonType.getDisplayValue(person.type)
-                    else -> null
-                }
-            }
+            columnValueGetter = columnValueGetter
         )
     }
 
@@ -115,9 +239,24 @@ class PersonFragment : Fragment() {
      */
     private fun filterPersons(query: String) {
         val persons = repository.personsLiveData.value ?: emptyList()
-        val filteredList = persons.filter {
-            it.name.contains(query, ignoreCase = true)
+        
+        // First filter by selected tab type
+        val tabFilteredPersons = when (selectedTab) {
+            "client" -> persons.filter { it.type == "CLIENT" }
+            "provider" -> persons.filter { it.type == "PROVIDER" }
+            else -> persons
         }
+        
+        // Then filter by search query
+        val filteredList = if (query.isEmpty()) {
+            tabFilteredPersons
+        } else {
+            tabFilteredPersons.filter {
+                it.name.contains(query, ignoreCase = true) || 
+                it.lastName.contains(query, ignoreCase = true)
+            }
+        }
+        
         setupTableView(filteredList)
     }
 
@@ -129,6 +268,22 @@ class PersonFragment : Fragment() {
     }
 
     private fun deletePerson(person: Person) {
+        // Check if person has associated movements
+        val associatedMovements = repository.movementsLiveData.value?.filter { it.personId == person.id } ?: emptyList()
+        
+        if (associatedMovements.isNotEmpty()) {
+            // Show error message if person has movements
+            val movementCount = associatedMovements.size
+            val movementText = if (movementCount == 1) "movimiento" else "movimientos"
+            CustomToast.showError(
+                requireContext(), 
+                "No se puede eliminar esta persona porque tiene $movementCount $movementText asociado${if (movementCount > 1) "s" else ""}. " +
+                "Elimine primero los movimientos para poder eliminar la persona."
+            )
+            return
+        }
+        
+        // Proceed with deletion if no movements are associated
         DeleteConfirmationDialog.show(
             context = requireContext(),
             itemName = "${person.name} ${person.lastName}",

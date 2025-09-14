@@ -6,6 +6,47 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <!-- Tabs for Person Type -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/tabs_background"
+        android:padding="4dp">
+
+        <TextView
+            android:id="@+id/clientTab"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Cliente"
+            android:textAlignment="center"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:padding="8dp"
+            android:background="@drawable/tab_selected_background"
+            android:textColor="@color/white"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/providerTab"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Proveedor"
+            android:textAlignment="center"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:padding="8dp"
+            android:background="@drawable/tab_unselected_background"
+            android:textColor="@color/text_secondary"
+            android:clickable="true"
+            android:focusable="true" />
+
+    </LinearLayout>
+
     <!-- Search Bar -->
     <EditText
         android:id="@+id/searchBar"
