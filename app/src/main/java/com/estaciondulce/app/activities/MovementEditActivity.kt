@@ -211,22 +211,30 @@ class MovementEditActivity : AppCompatActivity() {
             if (movement.type == EMovementType.SALE) {
                 binding.shippingRow.visibility = View.VISIBLE
                 binding.discountCard.visibility = View.VISIBLE
-                val shippingCost = movement.shipment?.cost ?: 0.0
-                binding.shippingCostInput.setText(shippingCost.toString())
-                binding.shippingCheckBox.isChecked = shippingCost != 0.0
-                if (binding.shippingCheckBox.isChecked) {
+                
+                // Check if shipment node exists
+                val hasShipment = movement.shipment != null
+                binding.shippingCheckBox.isChecked = hasShipment
+                
+                if (hasShipment) {
+                    val shippingCost = movement.shipment?.cost ?: 0.0
+                    binding.shippingCostInput.setText(shippingCost.toString())
+                    
                     binding.deliveryDateTimeContainer.visibility = View.VISIBLE
                     binding.shippingAddressContainer.visibility = View.VISIBLE
+                    
                     movement.shipment?.date?.let { shipmentDate ->
                         selectedDeliveryDate = shipmentDate
                         binding.deliveryDateTimeInput.setText(formatDateTime(shipmentDate))
                     }
+                    
                     if (movement.shipment?.addressId?.isNotEmpty() == true) {
                         val address =
                             repository.addressesLiveData.value?.find { it.id == movement.shipment.addressId }
                         binding.shippingAddressInput.setText(address?.rawAddress ?: "")
                     }
                 } else {
+                    binding.shippingCostInput.setText("0.0")
                     binding.deliveryDateTimeContainer.visibility = View.GONE
                     binding.shippingAddressContainer.visibility = View.GONE
                 }
