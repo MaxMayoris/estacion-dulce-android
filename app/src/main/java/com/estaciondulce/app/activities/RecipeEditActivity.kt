@@ -328,23 +328,13 @@ class RecipeEditActivity : AppCompatActivity() {
             val sectionName = sectionView.findViewById<TextView>(R.id.sectionName)
             val productSearchBar = sectionView.findViewById<EditText>(R.id.productSearchBar)
             val productContainer = sectionView.findViewById<LinearLayout>(R.id.productContainer)
-            val removeSectionButton = sectionView.findViewById<Button>(R.id.removeSectionButton)
+            val removeSectionButton = sectionView.findViewById<com.google.android.material.button.MaterialButton>(R.id.removeSectionButton)
             sectionView.tag = section.id
             sectionName.text = section.name
-            productSearchBar.addTextChangedListener(object : TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) { }
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                    val query = s.toString().trim()
-                    if (query.length >= 3) {
-                        repository.productsLiveData.value?.let { productsList ->
-                            val filtered = productsList.filter { it.name.contains(query, ignoreCase = true) }
-                                .associate { it.id to Pair(it.name, it.cost) }
-                            showProductSearchPopup(productSearchBar, filtered.entries.toList(), section)
-                        }
-                    }
-                }
-                override fun afterTextChanged(s: Editable?) { }
-            })
+            
+            productSearchBar.setOnClickListener {
+                showProductSelectionModal(section)
+            }
             removeSectionButton.setOnClickListener {
                 showConfirmationDialog("¿Está seguro de eliminar la sección ${section.name}?") {
                     selectedSections.remove(section)
@@ -367,6 +357,66 @@ class RecipeEditActivity : AppCompatActivity() {
             }
             binding.sectionsContainer.addView(sectionView)
         }
+    }
+
+    private fun showProductSelectionModal(section: RecipeSection) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_product_search, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val searchEditText = dialogView.findViewById<EditText>(R.id.searchEditText)
+        val productsRecyclerView = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.productsRecyclerView)
+        val emptyState = dialogView.findViewById<LinearLayout>(R.id.emptyState)
+        val closeButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.closeButton)
+
+        productsRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        
+        val allProducts = repository.productsLiveData.value ?: emptyList()
+        val availableProducts = allProducts.filter { product ->
+            !section.products.any { it.productId == product.id }
+        }.sortedBy { it.name }
+
+        val dialogAdapter = ProductSearchAdapter(availableProducts) { selectedProduct ->
+            dialog.dismiss()
+            showQuantitySelectionDialog(selectedProduct, section)
+        }
+        
+        productsRecyclerView.adapter = dialogAdapter
+
+        searchEditText.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {}
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s?.toString() ?: ""
+                
+                if (query.length < 3) {
+                    productsRecyclerView.visibility = View.GONE
+                    emptyState.visibility = View.GONE
+                    dialogAdapter.updateProducts(emptyList())
+                } else {
+                    val filtered = availableProducts.filter { 
+                        it.name.contains(query, ignoreCase = true) 
+                    }.sortedBy { it.name }
+                    
+                    if (filtered.isEmpty()) {
+                        productsRecyclerView.visibility = View.GONE
+                        emptyState.visibility = View.VISIBLE
+                    } else {
+                        productsRecyclerView.visibility = View.VISIBLE
+                        emptyState.visibility = View.GONE
+                        dialogAdapter.updateProducts(filtered)
+                    }
+                }
+            }
+        })
+
+        closeButton.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     private fun showProductSearchPopup(@Suppress("UNUSED_PARAMETER") anchor: View, products: List<Map.Entry<String, Pair<String, Double>>>, section: RecipeSection) {

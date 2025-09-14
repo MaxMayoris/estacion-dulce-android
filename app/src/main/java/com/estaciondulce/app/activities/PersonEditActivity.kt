@@ -6,6 +6,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Bundle
 import android.view.MenuItem
+import android.view.View
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
 import com.estaciondulce.app.databinding.ActivityPersonEditBinding
@@ -38,6 +39,8 @@ class PersonEditActivity : AppCompatActivity() {
     private val phoneItems = mutableListOf<android.view.View>()
     private var selectedTab = "information"
     private val repository = FirestoreRepository
+    private var tabsVisible = false
+    private var emptyMessageView: android.widget.TextView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,11 +82,36 @@ class PersonEditActivity : AppCompatActivity() {
         // Set up movements functionality
         binding.addMovementButton.setOnClickListener { addMovement() }
         
+        // Initialize tab visibility based on person state
+        initializeTabVisibility()
+        
         // Load movements if editing existing person
         currentPerson?.let { person ->
             if (person.id.isNotEmpty()) {
                 loadMovements(person.id)
             }
+        }
+    }
+
+    /**
+     * Initializes tab visibility based on whether the person is new or existing.
+     */
+    private fun initializeTabVisibility() {
+        val isNewPerson = currentPerson == null || currentPerson?.id?.isEmpty() == true
+        
+        if (isNewPerson) {
+            // Hide tabs for new persons
+            tabsVisible = false
+            binding.informationTab.visibility = View.GONE
+            binding.movementsTab.visibility = View.GONE
+            binding.informationTabContent.visibility = View.VISIBLE
+            binding.movementsTabContent.visibility = View.GONE
+        } else {
+            // Show tabs for existing persons
+            tabsVisible = true
+            binding.informationTab.visibility = View.VISIBLE
+            binding.movementsTab.visibility = View.VISIBLE
+            selectTab("information") // Default to information tab
         }
     }
 
@@ -102,8 +130,8 @@ class PersonEditActivity : AppCompatActivity() {
                 binding.movementsTab.setTextColor(getColor(com.estaciondulce.app.R.color.text_secondary))
                 
                 // Show/hide content
-                binding.informationTabContent.visibility = android.view.View.VISIBLE
-                binding.movementsTabContent.visibility = android.view.View.GONE
+                binding.informationTabContent.visibility = View.VISIBLE
+                binding.movementsTabContent.visibility = View.GONE
             }
             "movements" -> {
                 // Update tab appearance
@@ -113,8 +141,8 @@ class PersonEditActivity : AppCompatActivity() {
                 binding.informationTab.setTextColor(getColor(com.estaciondulce.app.R.color.text_secondary))
                 
                 // Show/hide content
-                binding.informationTabContent.visibility = android.view.View.GONE
-                binding.movementsTabContent.visibility = android.view.View.VISIBLE
+                binding.informationTabContent.visibility = View.GONE
+                binding.movementsTabContent.visibility = View.VISIBLE
                 
                 // Load movements if not already loaded
                 currentPerson?.let { person ->
@@ -139,30 +167,41 @@ class PersonEditActivity : AppCompatActivity() {
      */
     private fun setupMovementsTable(movements: List<Movement>) {
         val sortedMovements = movements.sortedByDescending { it.movementDate }
-        val columnConfigs = listOf("Fecha", "Monto").toColumnConfigs(currencyColumns = setOf(1))
         
-        binding.movementsTable.setupTableWithConfigs(
-            columnConfigs = columnConfigs,
-            data = sortedMovements,
-            adapter = MovementAdapter(
-                movementList = sortedMovements,
-                onRowClick = { movement -> editMovement(movement) },
-                onDeleteClick = { movement -> deleteMovement(movement) }
-            ) { movement ->
-                val dateString = formatDateToSpanish(movement.movementDate)
-                listOf(dateString, movement.totalAmount)
-            },
-            pageSize = 10,
-            columnValueGetter = { item, columnIndex ->
-                val movement = item as Movement
-                when (columnIndex) {
-                    0 -> formatDateToSpanish(movement.movementDate)
-                    1 -> movement.totalAmount
-                    else -> null
-                }
-            },
-            enableColumnSorting = false
-        )
+        if (sortedMovements.isEmpty()) {
+            // Show empty state message
+            binding.movementsTable.visibility = View.GONE
+            showEmptyMovementsMessage()
+        } else {
+            // Hide empty message and show table
+            hideEmptyMovementsMessage()
+            binding.movementsTable.visibility = View.VISIBLE
+            
+            val columnConfigs = listOf("Fecha", "Monto").toColumnConfigs(currencyColumns = setOf(1))
+            
+            binding.movementsTable.setupTableWithConfigs(
+                columnConfigs = columnConfigs,
+                data = sortedMovements,
+                adapter = MovementAdapter(
+                    movementList = sortedMovements,
+                    onRowClick = { movement -> editMovement(movement) },
+                    onDeleteClick = { movement -> deleteMovement(movement) }
+                ) { movement ->
+                    val dateString = formatDateToSpanish(movement.movementDate)
+                    listOf(dateString, movement.totalAmount)
+                },
+                pageSize = 10,
+                columnValueGetter = { item, columnIndex ->
+                    val movement = item as Movement
+                    when (columnIndex) {
+                        0 -> formatDateToSpanish(movement.movementDate)
+                        1 -> movement.totalAmount
+                        else -> null
+                    }
+                },
+                enableColumnSorting = false
+            )
+        }
     }
 
     /**
@@ -183,6 +222,46 @@ class PersonEditActivity : AppCompatActivity() {
             .replace("octubre", "oct")
             .replace("noviembre", "nov")
             .replace("diciembre", "dic")
+    }
+
+    /**
+     * Shows the empty movements message.
+     */
+    private fun showEmptyMovementsMessage() {
+        if (emptyMessageView == null) {
+            emptyMessageView = android.widget.TextView(this).apply {
+                text = "Sin Movimientos"
+                textSize = 16f
+                textAlignment = View.TEXT_ALIGNMENT_CENTER
+                setTextColor(getColor(com.estaciondulce.app.R.color.text_secondary))
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    gravity = android.view.Gravity.CENTER
+                    topMargin = 64.dpToPx()
+                }
+            }
+            binding.movementsTabContent.addView(emptyMessageView, 0) // Add at the beginning
+        }
+    }
+
+    /**
+     * Hides the empty movements message.
+     */
+    private fun hideEmptyMovementsMessage() {
+        emptyMessageView?.let { messageView ->
+            binding.movementsTabContent.removeView(messageView)
+            emptyMessageView = null
+        }
+    }
+
+    /**
+     * Extension function to convert dp to pixels.
+     */
+    private fun Int.dpToPx(): Int {
+        val density = resources.displayMetrics.density
+        return (this * density).toInt()
     }
 
     /**
@@ -599,9 +678,16 @@ class PersonEditActivity : AppCompatActivity() {
         if (currentPerson == null) {
             personsHelper.addPerson(
                 person = personToSave,
-                onSuccess = { _ ->
+                onSuccess = { savedPerson ->
                     customLoader.hide()
                     CustomToast.showSuccess(this, "Persona añadida correctamente.")
+                    
+                    // Update currentPerson with the saved person data (including the new ID)
+                    currentPerson = savedPerson
+                    
+                    // Show tabs now that person has an ID
+                    initializeTabVisibility()
+                    
                     setResult(Activity.RESULT_OK)
                     finish()
                 },

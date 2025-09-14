@@ -17,8 +17,15 @@ class MovementItemsAdapter(
 
     inner class ViewHolder(val binding: ItemMovementBinding) :
         RecyclerView.ViewHolder(binding.root) {
+        
+        private var quantityWatcher: TextWatcher? = null
+        private var costWatcher: TextWatcher? = null
+        
         fun bind(item: MovementItem, position: Int) {
             binding.itemNameTextView.text = getDisplayName(item.collection, item.collectionId)
+            
+            quantityWatcher?.let { binding.quantityEditText.removeTextChangedListener(it) }
+            costWatcher?.let { binding.costEditText.removeTextChangedListener(it) }
             
             binding.quantityEditText.setText(item.quantity.toString())
             binding.quantityEditText.isEnabled = true
@@ -29,7 +36,7 @@ class MovementItemsAdapter(
                 onDeleteClicked(position)
             }
 
-            binding.quantityEditText.addTextChangedListener(object : TextWatcher {
+            quantityWatcher = object : TextWatcher {
                 override fun afterTextChanged(s: Editable?) {
                     val text = s.toString()
                     val newQuantity = text.toDoubleOrNull()
@@ -44,11 +51,11 @@ class MovementItemsAdapter(
                     
                     val decimalParts = text.split(".")
                     if (decimalParts.size == 2 && decimalParts[1].length > 3) {
-                        binding.quantityEditText.removeTextChangedListener(this)
+                        quantityWatcher?.let { binding.quantityEditText.removeTextChangedListener(it) }
                         val truncatedText = decimalParts[0] + "." + decimalParts[1].substring(0, 3)
                         binding.quantityEditText.setText(truncatedText)
                         binding.quantityEditText.setSelection(truncatedText.length)
-                        binding.quantityEditText.addTextChangedListener(this)
+                        quantityWatcher?.let { binding.quantityEditText.addTextChangedListener(it) }
                         val truncatedQuantity = truncatedText.toDoubleOrNull() ?: 0.0
                         if (items[position].quantity != truncatedQuantity) {
                             items[position].quantity = truncatedQuantity
@@ -64,11 +71,35 @@ class MovementItemsAdapter(
                 }
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            })
+            }
 
-            binding.costEditText.addTextChangedListener(object : TextWatcher {
+            costWatcher = object : TextWatcher {
                 override fun afterTextChanged(s: Editable?) {
-                    val newCost = s.toString().toDoubleOrNull() ?: 0.0
+                    val text = s.toString()
+                    val newCost = text.toDoubleOrNull() ?: 0.0
+                    
+                    if (text.isEmpty()) {
+                        if (items[position].cost != 0.01) {
+                            items[position].cost = 0.01
+                            binding.costEditText.setText("0.01")
+                            binding.costEditText.setSelection(binding.costEditText.text.length)
+                            onItemChanged()
+                        }
+                        return
+                    }
+                    
+                    if (newCost <= 0.0) {
+                        binding.costEditText.removeTextChangedListener(this)
+                        binding.costEditText.setText("0.01")
+                        binding.costEditText.setSelection(binding.costEditText.text.length)
+                        binding.costEditText.addTextChangedListener(this)
+                        if (items[position].cost != 0.01) {
+                            items[position].cost = 0.01
+                            onItemChanged()
+                        }
+                        return
+                    }
+                    
                     if (newCost != items[position].cost) {
                         items[position].cost = newCost
                         onItemChanged()
@@ -76,7 +107,10 @@ class MovementItemsAdapter(
                 }
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            })
+            }
+            
+            quantityWatcher?.let { binding.quantityEditText.addTextChangedListener(it) }
+            costWatcher?.let { binding.costEditText.addTextChangedListener(it) }
         }
     }
 
