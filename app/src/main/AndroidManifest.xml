@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:name=".MyApp"
@@ -19,6 +21,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.EstacionDulceApp"
         tools:targetApi="31">
+
+        <!-- Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_key" />
 
         <!-- FileProvider for camera images -->
         <provider
@@ -46,6 +53,9 @@
         <activity android:name=".activities.RecipeEditActivity" />
         <activity android:name=".activities.PersonEditActivity" />
         <activity android:name=".activities.MovementEditActivity" />
+        <activity android:name=".activities.AddressPickerActivity" />
+        <activity android:name=".activities.ShipmentEditActivity" />
+        <activity android:name=".activities.KitchenOrderEditActivity" />
     </application>
 
 </manifest>

@@ -4,12 +4,13 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="12dp"
+    android:padding="8dp"
     android:layout_marginHorizontal="4dp"
-    android:layout_marginVertical="2dp"
+    android:layout_marginVertical="1dp"
     android:gravity="center_vertical"
     android:background="@drawable/table_row_background"
-    android:elevation="2dp">
+    android:elevation="2dp"
+    android:minHeight="48dp">
 
     <!-- Product Details -->
     <LinearLayout
@@ -20,21 +21,44 @@
         android:orientation="horizontal"
         android:gravity="center_vertical" />
 
-    <!-- Delete Icon Column -->
+    <!-- Action Icons Column - Dynamic width based on visible icons -->
     <LinearLayout
-        android:layout_width="0dp"
+        android:id="@+id/iconsContainer"
+        android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:layout_weight="0.5"
         android:gravity="center"
-        android:padding="8dp">
+        android:padding="2dp"
+        android:orientation="horizontal"
+        android:minWidth="0dp">
 
         <ImageView
             android:id="@+id/deleteIcon"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:src="@drawable/ic_remove_modern"
             android:contentDescription="Eliminar"
             android:scaleType="fitCenter"
-            android:adjustViewBounds="false" />
+            android:adjustViewBounds="false"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/actionIcon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_progress"
+            android:contentDescription="Acción"
+            android:scaleType="fitCenter"
+            android:adjustViewBounds="false"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/mapsIcon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@android:drawable/ic_menu_mylocation"
+            android:contentDescription="Ver en Google Maps"
+            android:scaleType="fitCenter"
+            android:adjustViewBounds="false"
+            android:visibility="gone" />
     </LinearLayout>
 </LinearLayout>

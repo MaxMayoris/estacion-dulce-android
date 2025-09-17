@@ -15,7 +15,7 @@
         android:layout_height="24dp"
         android:layout_marginEnd="12dp"
         android:src="@drawable/ic_phone"
-        app:tint="@color/button_gradient_start" />
+        app:tint="@android:color/holo_blue_dark" />
 
     <!-- Phone Number -->
     <TextView
@@ -25,7 +25,7 @@
         android:layout_weight="1"
         android:text="264 1234567"
         android:textSize="16sp"
-        android:textColor="@color/text_primary"
+        android:textColor="@android:color/black"
         android:textStyle="bold"
         android:clickable="true"
         android:focusable="true"
@@ -35,32 +35,32 @@
     <!-- Copy Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/copyPhoneButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_marginEnd="8dp"
         android:contentDescription="Copiar número de teléfono"
-        app:backgroundTint="@color/button_gradient_start"
-        app:cornerRadius="24dp"
+        app:backgroundTint="@android:color/holo_blue_dark"
+        app:cornerRadius="20dp"
         app:icon="@drawable/ic_copy"
         app:iconGravity="textStart"
         app:iconPadding="0dp"
         app:iconSize="20dp"
-        app:iconTint="@color/white"
+        app:iconTint="@android:color/white"
         style="@style/Widget.Material3.Button.IconButton" />
 
     <!-- Delete Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/deletePhoneButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:contentDescription="Eliminar teléfono"
-        app:backgroundTint="@color/error_red"
-        app:cornerRadius="24dp"
+        app:backgroundTint="@android:color/holo_red_dark"
+        app:cornerRadius="20dp"
         app:icon="@drawable/ic_delete"
         app:iconGravity="textStart"
         app:iconPadding="0dp"
         app:iconSize="20dp"
-        app:iconTint="@color/white"
+        app:iconTint="@android:color/white"
         style="@style/Widget.Material3.Button.IconButton" />
 
 </LinearLayout>

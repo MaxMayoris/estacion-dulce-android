@@ -11,6 +11,8 @@ import com.estaciondulce.app.fragments.MovementFragment
 import com.estaciondulce.app.fragments.PersonFragment
 import com.estaciondulce.app.fragments.ProductFragment
 import com.estaciondulce.app.fragments.RecipeFragment
+import com.estaciondulce.app.fragments.ShipmentFragment
+import com.estaciondulce.app.fragments.KitchenOrderFragment
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.utils.CustomToast
@@ -27,6 +29,7 @@ class HomeActivity : AppCompatActivity() {
     private val recipeFragment = RecipeFragment()
     private val personFragment = PersonFragment()
     private val movementFragment = MovementFragment()
+    private val shipmentFragment = ShipmentFragment()
 
     /**
      * Initializes the activity, sets up Firestore listeners,
@@ -51,7 +54,7 @@ class HomeActivity : AppCompatActivity() {
         FirestoreRepository.sectionsLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.personsLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.movementsLiveData.observe(this, dataLoadedObserver)
-        FirestoreRepository.addressesLiveData.observe(this, dataLoadedObserver)
+        FirestoreRepository.shipmentSettingsLiveData.observe(this) { checkDataLoaded() }
 
         setupDashboardCards()
         setupLogoutButton()
@@ -80,6 +83,16 @@ class HomeActivity : AppCompatActivity() {
 
         findViewById<MaterialCardView>(R.id.movementsCard).setOnClickListener {
             loadFragment(movementFragment, "Movimientos")
+            showFragmentContainer()
+        }
+
+        findViewById<MaterialCardView>(R.id.kitchenOrdersCard).setOnClickListener {
+            loadFragment(KitchenOrderFragment(), "Pedidos")
+            showFragmentContainer()
+        }
+
+        findViewById<MaterialCardView>(R.id.shipmentsCard).setOnClickListener {
+            loadFragment(shipmentFragment, "Envios")
             showFragmentContainer()
         }
     }
@@ -156,9 +169,9 @@ class HomeActivity : AppCompatActivity() {
         val sectionsLoaded = FirestoreRepository.sectionsLiveData.value != null
         val personsLoaded = FirestoreRepository.personsLiveData.value != null
         val movementsLoaded = FirestoreRepository.movementsLiveData.value != null
-        val addressesLoaded = FirestoreRepository.addressesLiveData.value != null
+        val shipmentSettingsLoaded = FirestoreRepository.shipmentSettingsLiveData.value != null
 
-        if (recipesLoaded && productsLoaded && measuresLoaded && categoriesLoaded && sectionsLoaded && personsLoaded && movementsLoaded && addressesLoaded) {
+        if (recipesLoaded && productsLoaded && measuresLoaded && categoriesLoaded && sectionsLoaded && personsLoaded && movementsLoaded && shipmentSettingsLoaded) {
             loader.hide()
         }
     }

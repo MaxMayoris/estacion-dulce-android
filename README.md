@@ -12,6 +12,8 @@ Estación Dulce is a mobile application designed to manage all aspects of a bake
 - **Recipe Management**: Creation and cost calculation
 - **Customer Management**: Registration and contact
 - **Transactions**: Input and output control
+- **Kitchen Orders**: Order tracking and status management
+- **Shipment Management**: Delivery tracking and status updates
 - **Dashboard**: Business overview
 
 ## 🛠️ Technologies
@@ -64,6 +66,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v4.0** - Added product sales with salePrice field, implemented unified product/recipe search in sales, created shipment management system with status tracking, enhanced ProductEditActivity with improved UI layout, and implemented comprehensive kitchen orders system with automatic order creation, status tracking, and delivery integration
 - **v3.5** - Enhanced RecipeEditActivity with modal product selection, improved table height consistency across all fragments using ConstraintLayout, updated delete button styling, and optimized column labels for better mobile display
 - **v3.4** - Fixed shipment data loading when editing existing movements
 - **v3.3** - Enhanced PersonEditActivity with tabbed interface for information and movements, improved PersonFragment with phone columns for both clients and providers, added movement deletion validation to prevent orphaned records, implemented auto-configuration of movement types based on person type, and standardized deletion dialog text formatting

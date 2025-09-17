@@ -11,9 +11,11 @@ import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
 import com.estaciondulce.app.databinding.ActivityPersonEditBinding
 import com.estaciondulce.app.helpers.PersonsHelper
+import com.estaciondulce.app.helpers.AddressesHelper
 import com.estaciondulce.app.models.Person
 import com.estaciondulce.app.models.Phone
 import com.estaciondulce.app.models.Movement
+import com.estaciondulce.app.models.Address
 import com.estaciondulce.app.models.EPersonType
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
@@ -34,13 +36,21 @@ class PersonEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPersonEditBinding
     private val personsHelper = PersonsHelper() // Usamos el helper para personas
+    private val addressesHelper = AddressesHelper()
     private lateinit var customLoader: CustomLoader
     private var currentPerson: Person? = null
     private val phoneItems = mutableListOf<android.view.View>()
+    private val addressItems = mutableListOf<android.view.View>()
     private var selectedTab = "information"
     private val repository = FirestoreRepository
     private var tabsVisible = false
     private var emptyMessageView: android.widget.TextView? = null
+    
+    // Draft system for addresses - changes are kept in memory until save
+    private val originalAddresses = mutableListOf<Address>()
+    private val newAddresses = mutableListOf<Address>()
+    private val editedAddresses = mutableListOf<Address>()
+    private val deletedAddressIds = mutableSetOf<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,6 +84,7 @@ class PersonEditActivity : AppCompatActivity() {
 
         binding.savePersonButton.setOnClickListener { savePerson() }
         binding.addPhoneButton.setOnClickListener { showAddPhoneDialog() }
+        binding.addAddressButton.setOnClickListener { showAddAddressDialog() }
         
         // Set up tabs
         binding.informationTab.setOnClickListener { selectTab("information") }
@@ -85,10 +96,11 @@ class PersonEditActivity : AppCompatActivity() {
         // Initialize tab visibility based on person state
         initializeTabVisibility()
         
-        // Load movements if editing existing person
+        // Load movements and addresses if editing existing person
         currentPerson?.let { person ->
             if (person.id.isNotEmpty()) {
                 loadMovements(person.id)
+                loadAddresses(person.id)
             }
         }
     }
@@ -205,10 +217,10 @@ class PersonEditActivity : AppCompatActivity() {
     }
 
     /**
-     * Formats date to Spanish format: "dd-mes hh:mm"
+     * Formats date to Spanish format: "dd mes hh:mm"
      */
     private fun formatDateToSpanish(date: java.util.Date): String {
-        val sdf = SimpleDateFormat("dd-MMM HH:mm", Locale("es"))
+        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale("es"))
         val formatted = sdf.format(date)
         return formatted.replace("sept.", "sep")
             .replace("enero", "ene")
@@ -324,10 +336,11 @@ class PersonEditActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Reload movements when returning from MovementEditActivity
+        // Reload movements and addresses when returning from other activities
         currentPerson?.let { person ->
             if (person.id.isNotEmpty()) {
                 loadMovements(person.id)
+                loadAddresses(person.id)
             }
         }
     }
@@ -576,6 +589,309 @@ class PersonEditActivity : AppCompatActivity() {
             .show()
     }
 
+    /**
+     * Loads addresses for the current person.
+     */
+    private fun loadAddresses(personId: String) {
+        addressesHelper.getAddressesForPerson(
+            personId = personId,
+            onSuccess = { addresses ->
+                // Store original addresses for draft system
+                originalAddresses.clear()
+                originalAddresses.addAll(addresses)
+                setupAddressesList(getCurrentAddresses())
+            },
+            onError = { exception ->
+                CustomToast.showError(this, "Error al cargar direcciones: ${exception.message}")
+            }
+        )
+    }
+
+    /**
+     * Gets the current addresses combining original, new, and edited addresses, excluding deleted ones.
+     */
+    private fun getCurrentAddresses(): List<Address> {
+        val currentAddresses = mutableListOf<Address>()
+        
+        // Add original addresses that haven't been deleted or edited
+        originalAddresses.forEach { original ->
+            if (!deletedAddressIds.contains(original.id)) {
+                // Check if this address was edited
+                val editedVersion = editedAddresses.find { it.id == original.id }
+                if (editedVersion != null) {
+                    currentAddresses.add(editedVersion)
+                } else {
+                    // Use original address (AddressPickerActivity now returns properly formatted addresses)
+                    currentAddresses.add(original)
+                }
+            }
+        }
+        
+        // Add new addresses (already formatted correctly)
+        currentAddresses.addAll(newAddresses)
+        
+        return currentAddresses.sortedBy { it.id }
+    }
+
+
+    /**
+     * Sets up the addresses list display.
+     */
+    private fun setupAddressesList(addresses: List<Address>) {
+        // Clear existing address items
+        addressItems.clear()
+        binding.addressesContainer.removeAllViews()
+
+        // Sort addresses by creation order (oldest first) and add each address as a display item
+        addresses.sortedBy { it.id }.forEach { address ->
+            addAddressDisplayItem(address)
+        }
+    }
+
+    /**
+     * Shows the add address dialog.
+     */
+    private fun showAddAddressDialog() {
+        // Skip the dialog and go directly to address picker with default label
+        openAddressPicker("Dirección")
+    }
+
+    /**
+     * Opens the AddressPickerActivity.
+     */
+    private fun openAddressPicker(label: String) {
+        currentPerson?.let { person ->
+            if (person.id.isEmpty()) {
+                CustomToast.showError(this, "Debe guardar la persona primero antes de agregar direcciones.")
+                return
+            }
+
+            customLoader.show()
+            val intent = Intent(this, AddressPickerActivity::class.java)
+            intent.putExtra(AddressPickerActivity.EXTRA_PERSON_ID, person.id)
+            intent.putExtra(AddressPickerActivity.EXTRA_ADDRESS_LABEL, label)
+            @Suppress("DEPRECATION")
+            startActivityForResult(intent, 1001)
+        } ?: run {
+            CustomToast.showError(this, "Debe guardar la persona primero antes de agregar direcciones.")
+        }
+    }
+
+    /**
+     * Handles the result from AddressPickerActivity.
+     */
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        
+        if (requestCode == 1001 && resultCode == RESULT_OK) {
+            // Adding new address
+            @Suppress("DEPRECATION")
+            val address = data?.getParcelableExtra(AddressPickerActivity.RESULT_ADDRESS) as? Address
+            address?.let {
+                saveAddress(it)
+            } ?: run {
+                customLoader.hide()
+                CustomToast.showError(this, "Error al obtener la nueva dirección.")
+            }
+        } else if (requestCode == 1002 && resultCode == RESULT_OK) {
+            // Editing existing address
+            @Suppress("DEPRECATION")
+            val address = data?.getParcelableExtra(AddressPickerActivity.RESULT_ADDRESS) as? Address
+            address?.let {
+                updateAddress(it)
+            } ?: run {
+                customLoader.hide()
+                CustomToast.showError(this, "Error al obtener la dirección editada.")
+            }
+        } else if (requestCode == 1001 || requestCode == 1002) {
+            // AddressPicker was canceled
+            customLoader.hide()
+            CustomToast.showWarning(this, "Operación cancelada.")
+        }
+    }
+
+    /**
+     * Adds a new address to the draft list (not saved to database yet).
+     */
+    private fun saveAddress(address: Address) {
+        customLoader.hide()
+        
+        // Add to new addresses list
+        newAddresses.add(address)
+        
+        // Refresh the display
+        setupAddressesList(getCurrentAddresses())
+        
+        CustomToast.showSuccess(this, "Dirección agregada (se guardará al confirmar).")
+    }
+
+    /**
+     * Adds an address display item to the addresses container.
+     */
+    private fun addAddressDisplayItem(address: Address) {
+        val addressDisplayView = layoutInflater.inflate(com.estaciondulce.app.R.layout.item_address_display, binding.addressesContainer, false)
+        
+        val addressLabelText = addressDisplayView.findViewById<android.widget.TextView>(com.estaciondulce.app.R.id.addressLabelText)
+        val addressText = addressDisplayView.findViewById<android.widget.TextView>(com.estaciondulce.app.R.id.addressText)
+        val addressDetailText = addressDisplayView.findViewById<android.widget.TextView>(com.estaciondulce.app.R.id.addressDetailText)
+        val editLabelButton = addressDisplayView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.editLabelButton)
+        val editButton = addressDisplayView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.editAddressButton)
+        val deleteButton = addressDisplayView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.deleteAddressButton)
+        
+        // Set address data
+        addressLabelText.text = address.label
+        addressText.text = address.formattedAddress
+        
+        // Set address detail
+        if (address.detail.isNotEmpty()) {
+            addressDetailText.text = address.detail
+            addressDetailText.visibility = View.VISIBLE
+        } else {
+            addressDetailText.visibility = View.GONE
+        }
+        
+        // Set up edit label button
+        editLabelButton.setOnClickListener {
+            editAddressLabel(address)
+        }
+        
+        // Set up edit button (now opens map picker)
+        editButton.setOnClickListener {
+            editAddressLocation(address)
+        }
+        
+        // Set up delete button
+        deleteButton.setOnClickListener {
+            deleteAddress(address)
+        }
+        
+        // Add to container at the end and track it
+        binding.addressesContainer.addView(addressDisplayView)
+        addressItems.add(addressDisplayView)
+    }
+
+    /**
+     * Edits an existing address label.
+     */
+    private fun editAddressLabel(address: Address) {
+        val dialogView = layoutInflater.inflate(com.estaciondulce.app.R.layout.dialog_add_address, null)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val addressLabelInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(com.estaciondulce.app.R.id.addressLabelInput)
+        val addressDetailInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(com.estaciondulce.app.R.id.addressDetailInput)
+        val confirmButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.confirmButton)
+        val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.cancelButton)
+
+        // Pre-fill current values
+        addressLabelInput.setText(address.label)
+        addressDetailInput.setText(address.detail)
+        dialog.setTitle("Editar Dirección")
+
+        // Set up buttons
+        confirmButton.setOnClickListener {
+            val newLabel = addressLabelInput.text.toString().trim()
+            val newDetail = addressDetailInput.text.toString().trim()
+            
+            if (newLabel.isEmpty()) {
+                CustomToast.showError(this, "Ingrese una etiqueta para la dirección.")
+                return@setOnClickListener
+            }
+
+            if (newDetail.length > 128) {
+                CustomToast.showError(this, "Los detalles no pueden superar los 128 caracteres.")
+                return@setOnClickListener
+            }
+
+            val updatedAddress = address.copy(label = newLabel, detail = newDetail)
+            updateAddress(updatedAddress)
+            dialog.dismiss()
+        }
+
+        cancelButton.setOnClickListener { dialog.dismiss() }
+
+        dialog.show()
+    }
+
+    /**
+     * Edits an existing address location by opening the map picker.
+     */
+    private fun editAddressLocation(address: Address) {
+        currentPerson?.let { person ->
+            customLoader.show()
+            val intent = Intent(this, AddressPickerActivity::class.java)
+            intent.putExtra(AddressPickerActivity.EXTRA_PERSON_ID, person.id)
+            intent.putExtra(AddressPickerActivity.EXTRA_ADDRESS_LABEL, address.label)
+            intent.putExtra(AddressPickerActivity.EXTRA_EDIT_MODE, true)
+            intent.putExtra(AddressPickerActivity.EXTRA_ADDRESS_TO_EDIT, address)
+            @Suppress("DEPRECATION")
+            startActivityForResult(intent, 1002) // Different request code for editing
+        }
+    }
+
+    /**
+     * Updates an existing address.
+     */
+    private fun updateAddress(address: Address) {
+        customLoader.hide()
+        
+        // Check if this is a new address or an existing one
+        val isNewAddress = newAddresses.any { it.id == address.id }
+        
+        if (isNewAddress) {
+            // Update in new addresses list
+            val index = newAddresses.indexOfFirst { it.id == address.id }
+            if (index != -1) {
+                newAddresses[index] = address
+            }
+        } else {
+            // Update in edited addresses list
+            val existingEditedIndex = editedAddresses.indexOfFirst { it.id == address.id }
+            if (existingEditedIndex != -1) {
+                editedAddresses[existingEditedIndex] = address
+            } else {
+                editedAddresses.add(address)
+            }
+        }
+        
+        // Refresh the display
+        setupAddressesList(getCurrentAddresses())
+        
+        CustomToast.showSuccess(this, "Dirección actualizada (se guardará al confirmar).")
+    }
+
+    /**
+     * Marks an address for deletion (not deleted from database until save).
+     */
+    private fun deleteAddress(address: Address) {
+        DeleteConfirmationDialog.show(
+            context = this,
+            itemName = "${address.label}: ${address.formattedAddress}",
+            itemType = "dirección",
+            onConfirm = {
+                // Check if this is a new address (not yet saved)
+                val isNewAddress = newAddresses.any { it.id == address.id }
+                
+                if (isNewAddress) {
+                    // Remove from new addresses list
+                    newAddresses.removeAll { it.id == address.id }
+                } else {
+                    // Mark as deleted
+                    deletedAddressIds.add(address.id)
+                    // Remove from edited addresses if it was there
+                    editedAddresses.removeAll { it.id == address.id }
+                }
+                
+                // Refresh the display
+                setupAddressesList(getCurrentAddresses())
+                
+                CustomToast.showSuccess(this, "Dirección eliminada (se confirmará al guardar).")
+            }
+        )
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             android.R.id.home -> {
@@ -679,17 +995,20 @@ class PersonEditActivity : AppCompatActivity() {
             personsHelper.addPerson(
                 person = personToSave,
                 onSuccess = { savedPerson ->
-                    customLoader.hide()
-                    CustomToast.showSuccess(this, "Persona añadida correctamente.")
-                    
                     // Update currentPerson with the saved person data (including the new ID)
                     currentPerson = savedPerson
                     
-                    // Show tabs now that person has an ID
-                    initializeTabVisibility()
-                    
-                    setResult(Activity.RESULT_OK)
-                    finish()
+                    // Save all addresses after person is created
+                    saveAllAddresses {
+                        customLoader.hide()
+                        CustomToast.showSuccess(this, "Persona y direcciones guardadas correctamente.")
+                        
+                        // Show tabs now that person has an ID
+                        initializeTabVisibility()
+                        
+                        setResult(Activity.RESULT_OK)
+                        finish()
+                    }
                 },
                 onError = { exception ->
                     customLoader.hide()
@@ -701,14 +1020,78 @@ class PersonEditActivity : AppCompatActivity() {
                 personId = currentPerson!!.id,
                 person = personToSave,
                 onSuccess = {
-                    customLoader.hide()
-                    CustomToast.showSuccess(this, "Persona actualizada correctamente.")
-                    setResult(Activity.RESULT_OK)
-                    finish()
+                    // Save all addresses after person is updated
+                    saveAllAddresses {
+                        customLoader.hide()
+                        CustomToast.showSuccess(this, "Persona y direcciones actualizadas correctamente.")
+                        setResult(Activity.RESULT_OK)
+                        finish()
+                    }
                 },
                 onError = { exception ->
                     customLoader.hide()
                     CustomToast.showError(this, "Error al actualizar la persona: ${exception.message}")
+                }
+            )
+        }
+    }
+
+    /**
+     * Saves all address changes (new, edited, deleted) to the database.
+     */
+    private fun saveAllAddresses(onComplete: () -> Unit) {
+        val personId = currentPerson?.id ?: return
+        
+        var operationsCompleted = 0
+        val totalOperations = newAddresses.size + editedAddresses.size + deletedAddressIds.size
+        
+        if (totalOperations == 0) {
+            onComplete()
+            return
+        }
+        
+        fun checkIfAllOperationsCompleted() {
+            operationsCompleted++
+            if (operationsCompleted >= totalOperations) {
+                onComplete()
+            }
+        }
+        
+        // Save new addresses
+        newAddresses.forEach { address ->
+            addressesHelper.addAddressToPerson(
+                personId = personId,
+                address = address,
+                onSuccess = { checkIfAllOperationsCompleted() },
+                onError = { exception ->
+                    CustomToast.showError(this, "Error al guardar nueva dirección: ${exception.message}")
+                    checkIfAllOperationsCompleted()
+                }
+            )
+        }
+        
+        // Update edited addresses
+        editedAddresses.forEach { address ->
+            addressesHelper.updateAddressInPerson(
+                personId = personId,
+                address = address,
+                onSuccess = { checkIfAllOperationsCompleted() },
+                onError = { exception ->
+                    CustomToast.showError(this, "Error al actualizar dirección: ${exception.message}")
+                    checkIfAllOperationsCompleted()
+                }
+            )
+        }
+        
+        // Delete marked addresses
+        deletedAddressIds.forEach { addressId ->
+            addressesHelper.deleteAddressFromPerson(
+                personId = personId,
+                addressId = addressId,
+                onSuccess = { checkIfAllOperationsCompleted() },
+                onError = { exception ->
+                    CustomToast.showError(this, "Error al eliminar dirección: ${exception.message}")
+                    checkIfAllOperationsCompleted()
                 }
             )
         }

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_width="400dp"
+    android:layout_height="600dp"
     android:orientation="vertical"
     android:background="@drawable/dialog_background"
     android:padding="0dp">
@@ -91,8 +91,7 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/itemsRecyclerView"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="400dp"
         android:padding="8dp"
         android:clipToPadding="false" />
 
@@ -100,7 +99,7 @@
     <LinearLayout
         android:id="@+id/emptyState"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="400dp"
         android:orientation="vertical"
         android:gravity="center"
         android:padding="20dp"
@@ -116,7 +115,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="No se encontraron resultados"
+            android:text="Escribe al menos 3 caracteres para buscar"
             android:textColor="@color/text_secondary"
             android:textSize="16sp"
             android:gravity="center" />
@@ -125,7 +124,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Intenta con otros términos de búsqueda"
+            android:text="Busca productos, recetas o personaliza un ítem"
             android:textColor="@color/text_secondary"
             android:textSize="14sp"
             android:gravity="center" />

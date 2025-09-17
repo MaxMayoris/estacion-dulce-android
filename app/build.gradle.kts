@@ -11,8 +11,8 @@ android {
         applicationId = "com.estaciondulce.app"
         minSdk = 30
         targetSdk = 35
-        versionCode = 11
-        versionName = "3.5"
+        versionCode = 12
+        versionName = "4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -33,11 +33,15 @@ android {
             dimension = "environment"
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
+            buildConfigField("String", "GOOGLE_MAPS_API_KEY", "\"${project.findProperty("GOOGLE_MAPS_API_KEY_DEV") ?: ""}\"")
+            resValue("string", "google_maps_key", project.findProperty("GOOGLE_MAPS_API_KEY_DEV") as String? ?: "")
         }
         create("prod") {
             dimension = "environment"
             applicationIdSuffix = ".prod"
             versionNameSuffix = "-prod"
+            buildConfigField("String", "GOOGLE_MAPS_API_KEY", "\"${project.findProperty("GOOGLE_MAPS_API_KEY_PROD") ?: ""}\"")
+            resValue("string", "google_maps_key", project.findProperty("GOOGLE_MAPS_API_KEY_PROD") as String? ?: "")
         }
     }
 
@@ -53,6 +57,11 @@ android {
         debug {
             isDebuggable = true
         }
+    }
+
+    buildFeatures {
+        viewBinding = true
+        buildConfig = true
     }
 
     compileOptions {
@@ -79,6 +88,9 @@ dependencies {
     // Google Play Services
     implementation(libs.play.services.base)
     implementation(libs.play.services.tasks)
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation("com.google.android.libraries.places:places:3.3.0")
 
     // AndroidX / Material
     implementation(libs.androidx.core.ktx)

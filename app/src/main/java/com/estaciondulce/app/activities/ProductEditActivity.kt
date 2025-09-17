@@ -48,33 +48,10 @@ class ProductEditActivity : AppCompatActivity() {
             binding.productNameInput.setText(product.name)
             binding.productStockInput.setText(product.quantity.toString())
             binding.productCostInput.setText(product.cost.toString())
+            binding.productSalePriceInput.setText(product.salePrice.toString())
             binding.productMinimumQuantityInput.setText(product.minimumQuantity.toString())
         }
 
-        binding.stockDecrementButton.setOnClickListener {
-            adjustValue(
-                binding.productStockInput,
-                -1.0
-            )
-        }
-        binding.stockIncrementButton.setOnClickListener {
-            adjustValue(
-                binding.productStockInput,
-                1.0
-            )
-        }
-        binding.minQtyDecrementButton.setOnClickListener {
-            adjustValue(
-                binding.productMinimumQuantityInput,
-                -1.0
-            )
-        }
-        binding.minQtyIncrementButton.setOnClickListener {
-            adjustValue(
-                binding.productMinimumQuantityInput,
-                1.0
-            )
-        }
 
         binding.saveProductButton.setOnClickListener { saveProduct() }
     }
@@ -110,14 +87,6 @@ class ProductEditActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Adjusts the numeric value in the given EditText by a delta and rounds to two decimals.
-     */
-    private fun adjustValue(editText: EditText, delta: Double) {
-        val currentVal = editText.text.toString().toDoubleOrNull() ?: 0.0
-        val newVal = (currentVal + delta).coerceAtLeast(0.0)
-        editText.setText(String.format("%.2f", newVal))
-    }
 
     /**
      * Checks if the product name is unique (ignoring case) using global products LiveData.
@@ -149,8 +118,13 @@ class ProductEditActivity : AppCompatActivity() {
             return false
         }
         val cost = binding.productCostInput.text.toString().toDoubleOrNull() ?: -1.0
-        if (cost <= 0) {
+        if (cost < 0) {
             CustomToast.showError(this, "El costo no puede ser menor a 0.")
+            return false
+        }
+        val salePrice = binding.productSalePriceInput.text.toString().toDoubleOrNull() ?: -1.0
+        if (salePrice < 0) {
+            CustomToast.showError(this, "El precio de venta no puede ser menor a 0.")
             return false
         }
         val minQty = binding.productMinimumQuantityInput.text.toString().toDoubleOrNull() ?: -1.0
@@ -176,10 +150,12 @@ class ProductEditActivity : AppCompatActivity() {
         val name = binding.productNameInput.text.toString().trim()
         val stock = binding.productStockInput.text.toString().toDoubleOrNull() ?: 0.0
         val cost = binding.productCostInput.text.toString().toDoubleOrNull() ?: 0.0
+        val salePrice = binding.productSalePriceInput.text.toString().toDoubleOrNull() ?: 0.0
         val minQty = binding.productMinimumQuantityInput.text.toString().toDoubleOrNull() ?: 0.0
 
         val roundedStock = Math.round(stock * 100.0) / 100.0
         val roundedCost = Math.round(cost * 100.0) / 100.0
+        val roundedSalePrice = Math.round(salePrice * 100.0) / 100.0
         val roundedMinQty = Math.round(minQty * 100.0) / 100.0
 
         val measureName = binding.measureDropdown.text.toString()
@@ -191,6 +167,7 @@ class ProductEditActivity : AppCompatActivity() {
             name = name,
             quantity = roundedStock,
             cost = roundedCost,
+            salePrice = roundedSalePrice,
             minimumQuantity = roundedMinQty,
             measure = measureId
         )

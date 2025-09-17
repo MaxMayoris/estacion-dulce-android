@@ -82,22 +82,18 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <GridLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:columnCount="2"
-            android:useDefaultMargins="true"
-            android:alignmentMode="alignMargins"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:padding="8dp">
 
             <!-- Products Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/productsCard"
                 style="@style/DashboardCardStyle"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_gravity="fill_horizontal"
                 android:layout_margin="8dp"
                 android:clickable="true"
                 android:focusable="true"
@@ -143,10 +139,8 @@
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/recipesCard"
                 style="@style/DashboardCardStyle"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_gravity="fill_horizontal"
                 android:layout_margin="8dp"
                 android:clickable="true"
                 android:focusable="true"
@@ -192,10 +186,8 @@
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/personsCard"
                 style="@style/DashboardCardStyle"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_gravity="fill_horizontal"
                 android:layout_margin="8dp"
                 android:clickable="true"
                 android:focusable="true"
@@ -241,10 +233,8 @@
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/movementsCard"
                 style="@style/DashboardCardStyle"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_columnWeight="1"
-                android:layout_gravity="fill_horizontal"
                 android:layout_margin="8dp"
                 android:clickable="true"
                 android:focusable="true"
@@ -286,7 +276,101 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-        </GridLayout>
+            <!-- Kitchen Orders Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/kitchenOrdersCard"
+                style="@style/DashboardCardStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="24dp">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/ic_kitchen"
+                        android:tint="@color/button_gradient_start"
+                        android:contentDescription="Pedidos" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="20dp"
+                        android:text="Pedidos"
+                        android:textSize="18sp"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@android:drawable/ic_media_play"
+                        android:tint="@color/button_gradient_start"
+                        android:contentDescription="Ir a pedidos" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Shipments Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/shipmentsCard"
+                style="@style/DashboardCardStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="24dp">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/ic_shipment"
+                        android:tint="@color/button_gradient_start"
+                        android:contentDescription="Envíos" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="20dp"
+                        android:text="Envíos"
+                        android:textSize="18sp"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@android:drawable/ic_media_play"
+                        android:tint="@color/button_gradient_start"
+                        android:contentDescription="Ir a envíos" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
 
     </ScrollView>
 

@@ -13,5 +13,6 @@ data class Product(
     val quantity: Double = 0.0,
     val minimumQuantity: Double = 0.0,
     val cost: Double = 0.0,
+    val salePrice: Double = 0.0,
     val measure: String = ""
 ) : Parcelable, Identifiable

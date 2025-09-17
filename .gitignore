@@ -18,3 +18,11 @@ local.properties
 app/src/dev/google-services.json
 app/src/prod/google-services.json
 **/google-services.json
+
+# Environment variables and API keys
+.env
+.env.local
+.env.*.local
+
+# Gradle properties with sensitive data
+gradle.properties

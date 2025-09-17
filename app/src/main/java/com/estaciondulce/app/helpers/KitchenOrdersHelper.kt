@@ -1,0 +1,174 @@
+package com.estaciondulce.app.helpers
+
+import com.estaciondulce.app.models.KitchenOrder
+import com.estaciondulce.app.models.EKitchenOrderStatus
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import java.util.*
+
+/**
+ * Helper class for Firestore operations on kitchen orders
+ */
+class KitchenOrdersHelper {
+
+    private val db = FirebaseFirestore.getInstance()
+
+    /**
+     * Add kitchen orders for a movement
+     */
+    fun addKitchenOrdersForMovement(
+        movementId: String,
+        kitchenOrders: List<KitchenOrder>,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        try {
+            val batch = db.batch()
+            
+            kitchenOrders.forEach { kitchenOrder ->
+                val kitchenOrderRef = db.collection("movements")
+                    .document(movementId)
+                    .collection("kitchenOrders")
+                    .document()
+                
+                val kitchenOrderData = mapOf(
+                    "productId" to kitchenOrder.productId,
+                    "name" to kitchenOrder.name,
+                    "quantity" to kitchenOrder.quantity,
+                    "status" to kitchenOrder.status.name,
+                    "createdAt" to kitchenOrder.createdAt,
+                    "updatedAt" to kitchenOrder.updatedAt
+                )
+                
+                batch.set(kitchenOrderRef, kitchenOrderData)
+            }
+            
+            batch.commit()
+                .addOnSuccessListener { onSuccess() }
+                .addOnFailureListener { onError(it) }
+        } catch (e: Exception) {
+            onError(e)
+        }
+    }
+
+    /**
+     * Get kitchen orders for a movement
+     */
+    fun getKitchenOrdersForMovement(
+        movementId: String,
+        onSuccess: (List<KitchenOrder>) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        db.collection("movements")
+            .document(movementId)
+            .collection("kitchenOrders")
+            .orderBy("createdAt", Query.Direction.ASCENDING)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val kitchenOrders = snapshot.documents.mapNotNull { document ->
+                    try {
+                        KitchenOrder(
+                            id = document.id,
+                            productId = document.getString("productId") ?: "",
+                            name = document.getString("name") ?: "",
+                            quantity = document.getDouble("quantity") ?: 0.0,
+                            status = EKitchenOrderStatus.valueOf(document.getString("status") ?: "PENDING"),
+                            createdAt = (document.getDate("createdAt") ?: Date()),
+                            updatedAt = (document.getDate("updatedAt") ?: Date())
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                onSuccess(kitchenOrders)
+            }
+            .addOnFailureListener { onError(it) }
+    }
+
+    /**
+     * Update kitchen order status
+     */
+    fun updateKitchenOrderStatus(
+        movementId: String,
+        kitchenOrderId: String,
+        newStatus: EKitchenOrderStatus,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        val kitchenOrderRef = db.collection("movements")
+            .document(movementId)
+            .collection("kitchenOrders")
+            .document(kitchenOrderId)
+        
+        val updateData = mapOf(
+            "status" to newStatus.name,
+            "updatedAt" to Date()
+        )
+        
+        kitchenOrderRef.update(updateData)
+            .addOnSuccessListener { 
+                val movementsHelper = MovementsHelper()
+                movementsHelper.updateMovementKitchenOrderStatus(
+                    movementId = movementId,
+                    onSuccess = onSuccess,
+                    onError = onError
+                )
+            }
+            .addOnFailureListener { onError(it) }
+    }
+
+    /**
+     * Delete kitchen orders for a movement
+     */
+    fun deleteKitchenOrdersForMovement(
+        movementId: String,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        db.collection("movements")
+            .document(movementId)
+            .collection("kitchenOrders")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val batch = db.batch()
+                snapshot.documents.forEach { document ->
+                    batch.delete(document.reference)
+                }
+                batch.commit()
+                    .addOnSuccessListener { onSuccess() }
+                    .addOnFailureListener { onError(it) }
+            }
+            .addOnFailureListener { onError(it) }
+    }
+
+    /**
+     * Get all kitchen orders across all movements
+     */
+    fun getAllKitchenOrders(
+        onSuccess: (List<KitchenOrder>) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        db.collectionGroup("kitchenOrders")
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val kitchenOrders = snapshot.documents.mapNotNull { document ->
+                    try {
+                        KitchenOrder(
+                            id = document.id,
+                            productId = document.getString("productId") ?: "",
+                            name = document.getString("name") ?: "",
+                            quantity = document.getDouble("quantity") ?: 0.0,
+                            status = EKitchenOrderStatus.valueOf(document.getString("status") ?: "PENDING"),
+                            createdAt = (document.getDate("createdAt") ?: Date()),
+                            updatedAt = (document.getDate("updatedAt") ?: Date())
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                onSuccess(kitchenOrders)
+            }
+            .addOnFailureListener { onError(it) }
+    }
+}

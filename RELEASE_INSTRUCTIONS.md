@@ -22,9 +22,11 @@ When the user says "haz el release" or similar, follow these steps:
 - Verify `private val skipLoginForDebug = false` in `LoginActivity.kt`
 - If it's `true`, change it to `false` (prevents accidental debug mode in release)
 
-### 5. Compile and Verify
-- Run `.\gradlew assembleDevDebug` to ensure no compilation errors
-- Check for any remaining warnings
+### 5. Compile and Verify Warnings
+- Run `.\gradlew assembleDevDebug --warning-mode all` to check for warnings
+- Fix ALL warnings found (deprecation, unused variables, etc.)
+- Repeat compilation until NO warnings remain
+- Only proceed when build is completely clean (0 warnings, 0 errors)
 
 ## Example Release Process
 
@@ -42,8 +44,8 @@ versionName = "3.5"
 # 4. Check debug settings
 # Verify skipLoginForDebug = false in LoginActivity.kt
 
-# 5. Compile
-.\gradlew assembleDevDebug
+# 5. Compile and check warnings
+.\gradlew assembleDevDebug --warning-mode all
 ```
 
 ## Files to Check for Cleanup

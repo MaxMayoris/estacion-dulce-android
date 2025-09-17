@@ -10,6 +10,11 @@ import java.util.Date
 @Parcelize
 data class Shipment(
     val addressId: String = "",
+    val formattedAddress: String = "",
+    val lat: Double = 0.0,
+    val lng: Double = 0.0,
+    val calculatedCost: Double = 0.0,
     val cost: Double = 0.0,
-    val date: Date? = null
+    val date: Date? = null,
+    val status: EShipmentStatus = EShipmentStatus.PENDING
 ) : Parcelable

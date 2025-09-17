@@ -16,5 +16,13 @@ class MovementAdapter(
 
     override fun bindRow(binding: TableRowDynamicBinding, item: Movement, position: Int) {
         bindRowContent(binding, getCellValues(item, position))
+        
+        // Show only delete icon for movements
+        binding.deleteIcon.visibility = android.view.View.VISIBLE
+        binding.actionIcon.visibility = android.view.View.GONE
+        binding.mapsIcon.visibility = android.view.View.GONE
+        
+        // Configure dynamic icon spacing
+        configureIconSpacing(binding)
     }
 }

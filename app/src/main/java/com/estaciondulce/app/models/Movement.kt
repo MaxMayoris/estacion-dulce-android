@@ -19,5 +19,7 @@ data class Movement(
     val shipment: Shipment? = null,
     val delta: @RawValue Map<String, Double> = mapOf(),
     val appliedAt: Date? = null,
-    val createdAt: Date? = null
+    val createdAt: Date? = null,
+    val detail: String = "",
+    val kitchenOrderStatus: EKitchenOrderStatus? = null
 ) : Parcelable, Identifiable

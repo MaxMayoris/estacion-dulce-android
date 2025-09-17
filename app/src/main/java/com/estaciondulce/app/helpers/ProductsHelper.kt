@@ -14,6 +14,7 @@ class ProductsHelper(private val genericHelper: GenericHelper = GenericHelper())
             "name" to product.name,
             "quantity" to product.quantity,
             "cost" to product.cost,
+            "salePrice" to product.salePrice,
             "measure" to product.measure,
             "minimumQuantity" to product.minimumQuantity
         )
@@ -43,6 +44,7 @@ class ProductsHelper(private val genericHelper: GenericHelper = GenericHelper())
             "name" to product.name,
             "quantity" to product.quantity,
             "cost" to product.cost,
+            "salePrice" to product.salePrice,
             "measure" to product.measure,
             "minimumQuantity" to product.minimumQuantity
         )

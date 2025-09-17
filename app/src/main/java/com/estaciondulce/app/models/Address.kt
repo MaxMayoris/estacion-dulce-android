@@ -9,7 +9,7 @@ import kotlinx.parcelize.Parcelize
 @Parcelize
 data class Address(
     override var id: String = "",
-    val personId: String = "",
+    val label: String = "",
     val rawAddress: String = "",
     val formattedAddress: String = "",
     val placeId: String = "",
@@ -19,5 +19,6 @@ data class Address(
     val city: String? = null,
     val state: String? = null,
     val postalCode: String? = null,
-    val country: String? = null
+    val country: String? = null,
+    val detail: String = ""
 ) : Parcelable, Identifiable

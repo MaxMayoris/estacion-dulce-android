@@ -10,6 +10,7 @@ import com.estaciondulce.app.models.Person
 import com.estaciondulce.app.models.Product
 import com.estaciondulce.app.models.Recipe
 import com.estaciondulce.app.models.Section
+import com.estaciondulce.app.models.ShipmentSettings
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 
@@ -27,7 +28,7 @@ object FirestoreRepository {
     val sectionsLiveData = MutableLiveData<List<Section>>()
     val personsLiveData = MutableLiveData<List<Person>>()
     val movementsLiveData = MutableLiveData<List<Movement>>()
-    val addressesLiveData = MutableLiveData<List<Address>>()
+    val shipmentSettingsLiveData = MutableLiveData<ShipmentSettings?>()
 
     private var productsListener: ListenerRegistration? = null
     private var recipesListener: ListenerRegistration? = null
@@ -36,7 +37,7 @@ object FirestoreRepository {
     private var sectionsListener: ListenerRegistration? = null
     private var personsListener: ListenerRegistration? = null
     private var movementsListener: ListenerRegistration? = null
-    private var addressesListener: ListenerRegistration? = null
+    private var shipmentSettingsListener: ListenerRegistration? = null
 
     /**
      * Starts real-time snapshot listeners for all collections.
@@ -120,15 +121,13 @@ object FirestoreRepository {
                 movementsLiveData.postValue(movements)
             }
 
-        addressesListener = firestore.collection("addresses")
+        shipmentSettingsListener = firestore.collection("settings").document("shipment")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     return@addSnapshotListener
                 }
-                val addresses = snapshot?.documents?.mapNotNull { doc ->
-                    doc.toObject(Address::class.java)?.apply { id = doc.id }
-                } ?: emptyList()
-                addressesLiveData.postValue(addresses)
+                val settings = snapshot?.toObject(ShipmentSettings::class.java)
+                shipmentSettingsLiveData.postValue(settings)
             }
 
     }
@@ -141,5 +140,6 @@ object FirestoreRepository {
         sectionsListener?.remove()
         personsListener?.remove()
         movementsListener?.remove()
+        shipmentSettingsListener?.remove()
     }
 }

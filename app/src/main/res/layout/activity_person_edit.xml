@@ -195,14 +195,34 @@
                     android:textStyle="bold" />
 
                 <!-- Teléfonos de Contacto Section -->
-                <TextView
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal"
                     android:layout_marginBottom="12dp"
-                    android:text="Teléfonos"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Teléfonos"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/addPhoneButton"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:text="+"
+                        android:textSize="20sp"
+                        android:textColor="@color/white"
+                        app:cornerRadius="24dp"
+                        app:backgroundTint="@color/button_gradient_start"
+                        android:contentDescription="Agregar teléfono" />
+
+                </LinearLayout>
 
                 <!-- Phones Container -->
                 <LinearLayout
@@ -212,22 +232,61 @@
                     android:orientation="vertical"
                     android:layout_marginBottom="16dp" />
 
-                <!-- Add Phone Button -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/addPhoneButton"
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Addresses Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/white">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal"
                     android:layout_marginBottom="16dp"
-                    android:text="Agregar teléfono"
-                    android:textSize="14sp"
-                    app:backgroundTint="@color/button_gradient_start"
-                    app:cornerRadius="8dp"
-                    app:icon="@drawable/ic_plus"
-                    app:iconGravity="textStart"
-                    app:iconPadding="8dp"
-                    app:iconSize="18dp"
-                    app:iconTint="@color/white"
-                    style="@style/Widget.Material3.Button" />
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Direcciones"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/addAddressButton"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:text="+"
+                        android:textSize="20sp"
+                        android:textColor="@color/white"
+                        app:cornerRadius="24dp"
+                        app:backgroundTint="@color/button_gradient_start"
+                        android:contentDescription="Agregar dirección" />
+
+                </LinearLayout>
+
+                <!-- Addresses Container -->
+                <LinearLayout
+                    android:id="@+id/addressesContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="16dp" />
 
             </LinearLayout>
 
