@@ -156,6 +156,7 @@ class RecipeEditActivity : AppCompatActivity() {
             binding.recipeSalePriceInput.setText(String.format("%.2f", r.salePrice))
             binding.recipeOnSaleCheckbox.isChecked = r.onSale
             binding.recipeOnSaleQueryCheckbox.isChecked = r.onSaleQuery
+            binding.recipeCustomizableCheckbox.isChecked = r.customizable
             binding.recipeUnitInput.setText(r.unit.toString())
             binding.recipeDescriptionInput.setText(r.description)
             existingImageUrls.clear()
@@ -204,6 +205,13 @@ class RecipeEditActivity : AppCompatActivity() {
         loader.show()
         binding.saveRecipeButton.setOnClickListener { saveRecipe() }
         
+        // Setup customizable checkbox listener
+        binding.recipeCustomizableCheckbox.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                showCustomizableConfirmationDialog()
+            }
+        }
+        
         binding.addImageButton.setOnClickListener { 
             val totalCurrentImages = existingImageUrls.size + tempImageUrls.size
             if (totalCurrentImages < 5) {
@@ -214,6 +222,30 @@ class RecipeEditActivity : AppCompatActivity() {
         }
         
         loader.hide()
+    }
+    
+    private fun showCustomizableConfirmationDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_customizable_confirmation, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+        
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        
+        dialogView.findViewById<Button>(R.id.cancelButton).setOnClickListener {
+            binding.recipeCustomizableCheckbox.isChecked = false
+            dialog.dismiss()
+        }
+        
+        dialogView.findViewById<Button>(R.id.confirmButton).setOnClickListener {
+            // Activate other checkboxes automatically
+            binding.recipeOnSaleCheckbox.isChecked = true
+            binding.recipeOnSaleQueryCheckbox.isChecked = true
+            dialog.dismiss()
+        }
+        
+        dialog.show()
     }
 
     private fun setupCategorySelector(categoriesMap: Map<String, String>) {
@@ -740,6 +772,7 @@ class RecipeEditActivity : AppCompatActivity() {
             unit = binding.recipeUnitInput.text.toString().toIntOrNull() ?: 1,
             onSale = binding.recipeOnSaleCheckbox.isChecked,
             onSaleQuery = binding.recipeOnSaleQueryCheckbox.isChecked,
+            customizable = binding.recipeCustomizableCheckbox.isChecked,
             images = (existingImageUrls + tempImageUrls).toList(),
             description = binding.recipeDescriptionInput.text.toString(),
             categories = selectedCategories.toList(),
@@ -1104,37 +1137,47 @@ class RecipeEditActivity : AppCompatActivity() {
         val suggestedPrice = binding.recipeSuggestedPriceInput.text.toString().trim()
         val salePrice = binding.recipeSalePriceInput.text.toString().trim()
         val unitStr = binding.recipeUnitInput.text.toString().trim()
+        val isCustomizable = binding.recipeCustomizableCheckbox.isChecked
 
         if (name.isEmpty()) {
             Toast.makeText(this, "El nombre de la receta es obligatorio.", Toast.LENGTH_SHORT).show()
             onValidationComplete(false)
             return
         }
-        if (cost.isEmpty()) {
-            Toast.makeText(this, "El costo es obligatorio.", Toast.LENGTH_SHORT).show()
-            onValidationComplete(false)
-            return
+        
+        // Skip cost and price validations for customizable recipes
+        if (!isCustomizable) {
+            if (cost.isEmpty()) {
+                Toast.makeText(this, "El costo es obligatorio.", Toast.LENGTH_SHORT).show()
+                onValidationComplete(false)
+                return
+            }
+            if (suggestedPrice.isEmpty()) {
+                Toast.makeText(this, "El precio sugerido es obligatorio.", Toast.LENGTH_SHORT).show()
+                onValidationComplete(false)
+                return
+            }
+            if (salePrice.isEmpty()) {
+                Toast.makeText(this, "El precio de venta es obligatorio.", Toast.LENGTH_SHORT).show()
+                onValidationComplete(false)
+                return
+            }
         }
-        if (suggestedPrice.isEmpty()) {
-            Toast.makeText(this, "El precio sugerido es obligatorio.", Toast.LENGTH_SHORT).show()
-            onValidationComplete(false)
-            return
-        }
-        if (salePrice.isEmpty()) {
-            Toast.makeText(this, "El precio de venta es obligatorio.", Toast.LENGTH_SHORT).show()
-            onValidationComplete(false)
-            return
-        }
+        
         if (unitStr.isEmpty() || (unitStr.toDoubleOrNull() ?: 0.0) < 1.0) {
             Toast.makeText(this, "Las unidades por receta deben ser al menos 1.", Toast.LENGTH_SHORT).show()
             onValidationComplete(false)
             return
         }
-        for (section in selectedSections) {
-            if (section.products.isEmpty()) {
-                Toast.makeText(this, "La sección '${section.name}' debe tener al menos un producto.", Toast.LENGTH_SHORT).show()
-                onValidationComplete(false)
-                return
+        
+        // Skip product validations for customizable recipes
+        if (!isCustomizable) {
+            for (section in selectedSections) {
+                if (section.products.isEmpty()) {
+                    Toast.makeText(this, "La sección '${section.name}' debe tener al menos un producto.", Toast.LENGTH_SHORT).show()
+                    onValidationComplete(false)
+                    return
+                }
             }
         }
         val recipeNewName = binding.recipeNameInput.text.toString().trim()

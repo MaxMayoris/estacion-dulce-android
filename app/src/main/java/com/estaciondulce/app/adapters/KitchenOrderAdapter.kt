@@ -51,7 +51,7 @@ class KitchenOrderAdapter(
         private val onRowClick: (Movement) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(movement: Movement, position: Int) {
+        fun bind(movement: Movement, @Suppress("UNUSED_PARAMETER") position: Int) {
             val cellValues = attributeGetter(movement)
             bindRowContent(cellValues)
             

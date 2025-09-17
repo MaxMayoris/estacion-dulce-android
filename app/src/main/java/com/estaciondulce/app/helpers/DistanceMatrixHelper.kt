@@ -33,7 +33,6 @@ class DistanceMatrixHelper {
         // For now, we'll use a mock calculation since we don't have the API key
         // In a real implementation, you would make an HTTP request to Google Distance Matrix API
         
-        Log.d(TAG, "Calculating distance from $origin to $destination")
         
         // Mock calculation - replace with actual API call
         val mockDistance = calculateMockDistance(origin, destination)
@@ -64,7 +63,6 @@ class DistanceMatrixHelper {
                 LatLng(destLat, destLng)
             )
             
-            Log.d(TAG, "Calculated distance: ${distance}km")
             return distance
             
         } catch (e: Exception) {
@@ -102,7 +100,6 @@ class DistanceMatrixHelper {
         litersPerKm: Double
     ): Double {
         val cost = (distanceKm / litersPerKm) * fuelPrice // Formula: (distancia_en_km / litersPerKm) × fuelPrice
-        Log.d(TAG, "Shipping cost calculation: (${distanceKm}km / ${litersPerKm}) * ${fuelPrice}ARS = ${cost}ARS")
         return cost
     }
 }

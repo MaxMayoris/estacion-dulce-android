@@ -34,14 +34,10 @@ class ShipmentTableAdapter(
         val cellValues = getCellValues(item, position)
         bindRowContentWithColors(binding, cellValues, item)
         
-        // Show action buttons instead of delete button
+        // Show only maps button, hide action and delete buttons
         binding.deleteIcon.visibility = View.GONE
-        binding.actionIcon.visibility = View.VISIBLE
+        binding.actionIcon.visibility = View.GONE
         binding.mapsIcon.visibility = View.VISIBLE
-        
-        // Set up action icon
-        binding.actionIcon.setImageResource(com.estaciondulce.app.R.drawable.ic_progress)
-        binding.actionIcon.setOnClickListener { onActionClick(item) }
         
         // Set up maps icon
         binding.mapsIcon.setImageResource(android.R.drawable.ic_menu_mylocation)

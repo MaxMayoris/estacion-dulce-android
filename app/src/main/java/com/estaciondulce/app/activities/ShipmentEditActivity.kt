@@ -6,14 +6,20 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.ActivityShipmentEditBinding
 import com.estaciondulce.app.models.EShipmentStatus
 import com.estaciondulce.app.models.Movement
 import com.estaciondulce.app.models.MovementItem
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
+import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.helpers.AddressesHelper
+import com.estaciondulce.app.helpers.MovementsHelper
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -25,14 +31,17 @@ class ShipmentEditActivity : AppCompatActivity() {
     private lateinit var binding: ActivityShipmentEditBinding
     private var movement: Movement? = null
     private val addressesHelper = AddressesHelper()
+    private lateinit var customLoader: CustomLoader
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityShipmentEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        customLoader = CustomLoader(this)
         setupToolbar()
         loadMovementData()
+        setupStatusButton()
     }
 
     private fun setupToolbar() {
@@ -59,6 +68,7 @@ class ShipmentEditActivity : AppCompatActivity() {
         }
 
         displayShipmentData()
+        setupStatusButton()
     }
 
     private fun displayShipmentData() {
@@ -243,6 +253,160 @@ class ShipmentEditActivity : AppCompatActivity() {
         } else {
             CustomToast.showError(this, "No hay aplicación de teléfono disponible.")
         }
+    }
+
+    private fun setupStatusButton() {
+        binding.statusActionButton.setOnClickListener {
+            movement?.let { movement ->
+                showStatusChangeDialog(movement)
+            }
+        }
+        
+        // Hide button if status is DELIVERED or CANCELED
+        movement?.shipment?.status?.let { status ->
+            if (status == EShipmentStatus.DELIVERED || status == EShipmentStatus.CANCELED) {
+                binding.statusActionButton.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun showStatusChangeDialog(movement: Movement) {
+        val currentStatus = movement.shipment?.status
+        
+        when (currentStatus) {
+            EShipmentStatus.PENDING -> {
+                showPendingToInProgressDialog(movement)
+            }
+            EShipmentStatus.IN_PROGRESS -> {
+                showInProgressOptionsDialog(movement)
+            }
+            EShipmentStatus.DELIVERED, EShipmentStatus.CANCELED -> {
+                CustomToast.showInfo(this, "Este envío ya está finalizado")
+                return
+            }
+            null -> {
+                CustomToast.showError(this, "Estado de envío no válido")
+                return
+            }
+        }
+    }
+
+    private fun showPendingToInProgressDialog(movement: Movement) {
+        if (movement.kitchenOrderStatus != com.estaciondulce.app.models.EKitchenOrderStatus.READY) {
+            CustomToast.showError(this, "No se puede iniciar el envío. El pedido debe estar listo en cocina.")
+            return
+        }
+        
+        val dialogView = layoutInflater.inflate(R.layout.dialog_change_shipment_status, null)
+        
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+        
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        
+        setupDialogContent(dialogView, dialog, movement, listOf(EShipmentStatus.IN_PROGRESS))
+        dialog.show()
+    }
+    
+    private fun showInProgressOptionsDialog(movement: Movement) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_change_shipment_status, null)
+        
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+        
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        
+        setupDialogContent(dialogView, dialog, movement, listOf(EShipmentStatus.DELIVERED, EShipmentStatus.CANCELED))
+        dialog.show()
+    }
+
+    private fun setupDialogContent(
+        dialogView: View,
+        dialog: androidx.appcompat.app.AlertDialog,
+        movement: Movement,
+        nextStatuses: List<EShipmentStatus>
+    ) {
+        val subtitleText = dialogView.findViewById<TextView>(R.id.subtitleText)
+        val singleActionButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.singleActionButton)
+        val twoActionButtonsContainer = dialogView.findViewById<LinearLayout>(R.id.twoActionButtonsContainer)
+        val deliveredButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.deliveredButton)
+        val canceledButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.canceledButton)
+
+        when (nextStatuses.size) {
+            1 -> {
+                val nextStatus = nextStatuses[0]
+                subtitleText.text = "El envío pasará a: ${getStatusText(nextStatus).uppercase()}"
+                singleActionButton.visibility = View.VISIBLE
+                twoActionButtonsContainer.visibility = View.GONE
+                
+                singleActionButton.setOnClickListener {
+                    updateShipmentStatus(movement, nextStatus)
+                    dialog.dismiss()
+                }
+            }
+            2 -> {
+                subtitleText.text = "Selecciona el nuevo estado:"
+                singleActionButton.visibility = View.GONE
+                twoActionButtonsContainer.visibility = View.VISIBLE
+                
+                deliveredButton.setOnClickListener {
+                    updateShipmentStatus(movement, EShipmentStatus.DELIVERED)
+                    dialog.dismiss()
+                }
+                
+                canceledButton.setOnClickListener {
+                    updateShipmentStatus(movement, EShipmentStatus.CANCELED)
+                    dialog.dismiss()
+                }
+            }
+        }
+    }
+
+    private fun updateShipmentStatus(movement: Movement, newStatus: EShipmentStatus) {
+        val updatedShipment = movement.shipment?.copy(status = newStatus)
+        
+        val updatedKitchenOrderStatus = if (newStatus == EShipmentStatus.DELIVERED) {
+            com.estaciondulce.app.models.EKitchenOrderStatus.DONE
+        } else {
+            movement.kitchenOrderStatus
+        }
+        
+        val updatedMovement = movement.copy(
+            shipment = updatedShipment,
+            kitchenOrderStatus = updatedKitchenOrderStatus
+        )
+        
+        val movementsHelper = MovementsHelper()
+        
+        customLoader.show()
+        
+        movementsHelper.updateMovement(
+            movementId = movement.id,
+            movement = updatedMovement,
+            updateKitchenOrders = false,
+            onSuccess = {
+                customLoader.hide()
+                val message = if (newStatus == EShipmentStatus.DELIVERED) {
+                    "Envío marcado como entregado y pedido completado"
+                } else {
+                    "Estado actualizado correctamente"
+                }
+                CustomToast.showSuccess(this, message)
+                
+                // Update local movement and refresh UI
+                this.movement = updatedMovement
+                loadMovementData()
+                setupStatusButton()
+            },
+            onError = { exception ->
+                customLoader.hide()
+                CustomToast.showError(this, "Error al actualizar estado: ${exception.message}")
+            }
+        )
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

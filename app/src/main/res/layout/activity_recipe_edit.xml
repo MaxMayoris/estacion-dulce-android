@@ -110,6 +110,16 @@
                         android:text="Consultar"
                         android:textSize="16sp"
                         android:textColor="@color/text_primary"
+                        android:buttonTint="@color/button_gradient_start"
+                        android:layout_marginEnd="16dp"/>
+
+                    <CheckBox
+                        android:id="@+id/recipeCustomizableCheckbox"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Customizable"
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
                         android:buttonTint="@color/button_gradient_start"/>
 
                 </LinearLayout>

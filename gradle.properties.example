@@ -1,12 +1,8 @@
 # Gradle Properties Example
 # Copy this file to gradle.properties and fill in your actual values
 
-# Firebase Configuration
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_APP_ID=your-app-id
-FIREBASE_API_KEY=your-api-key
-FIREBASE_STORAGE_BUCKET=your-storage-bucket
-FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+GOOGLE_MAPS_API_KEY_DEV=key_here
+GOOGLE_MAPS_API_KEY_PROD=key_here
 
 # Other sensitive configuration
 # Add any other sensitive keys or configuration here

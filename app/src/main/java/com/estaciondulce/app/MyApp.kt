@@ -39,7 +39,6 @@ class MyApp : Application() {
 
         provider?.let {
             FirebaseAppCheck.getInstance().installAppCheckProviderFactory(it)
-            Log.d("MyApp", "AppCheck provider installed: $providerClassName")
         }
 
         // Optional: trigger token fetch early to surface errors

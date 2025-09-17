@@ -35,7 +35,6 @@ class ShipmentSettingsHelper {
                     val settings = snapshot.toObject(ShipmentSettings::class.java)
                     settings?.let { nonNullSettings ->
                         _shipmentSettings.value = nonNullSettings
-                        android.util.Log.d("ShipmentSettingsHelper", "Shipment settings updated: $nonNullSettings")
                     }
                 } catch (e: Exception) {
                     android.util.Log.e("ShipmentSettingsHelper", "Error parsing shipment settings: ${e.message}")

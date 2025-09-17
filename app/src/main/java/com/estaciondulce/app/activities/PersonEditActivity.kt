@@ -652,8 +652,25 @@ class PersonEditActivity : AppCompatActivity() {
      * Shows the add address dialog.
      */
     private fun showAddAddressDialog() {
-        // Skip the dialog and go directly to address picker with default label
-        openAddressPicker("Dirección")
+        // Check if person is saved or if we're in draft mode
+        if (currentPerson?.id?.isNotEmpty() == true) {
+            // Person is saved, use normal flow
+            openAddressPicker("Dirección")
+        } else {
+            // Person not saved yet, use draft mode
+            openAddressPickerDraft("Dirección")
+        }
+    }
+
+    /**
+     * Opens the AddressPickerActivity for draft mode (person not saved yet).
+     */
+    private fun openAddressPickerDraft(label: String) {
+        val intent = Intent(this, AddressPickerActivity::class.java)
+        intent.putExtra(AddressPickerActivity.EXTRA_ADDRESS_LABEL, label)
+        intent.putExtra(AddressPickerActivity.EXTRA_DRAFT_MODE, true)
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, 1003) // Different request code for draft mode
     }
 
     /**
@@ -703,7 +720,16 @@ class PersonEditActivity : AppCompatActivity() {
                 customLoader.hide()
                 CustomToast.showError(this, "Error al obtener la dirección editada.")
             }
-        } else if (requestCode == 1001 || requestCode == 1002) {
+        } else if (requestCode == 1003 && resultCode == RESULT_OK) {
+            // Adding new address in draft mode
+            @Suppress("DEPRECATION")
+            val address = data?.getParcelableExtra(AddressPickerActivity.RESULT_ADDRESS) as? Address
+            address?.let {
+                addDraftAddress(it)
+            } ?: run {
+                CustomToast.showError(this, "Error al obtener la nueva dirección.")
+            }
+        } else if (requestCode == 1001 || requestCode == 1002 || requestCode == 1003) {
             // AddressPicker was canceled
             customLoader.hide()
             CustomToast.showWarning(this, "Operación cancelada.")
@@ -716,6 +742,19 @@ class PersonEditActivity : AppCompatActivity() {
     private fun saveAddress(address: Address) {
         customLoader.hide()
         
+        // Add to new addresses list
+        newAddresses.add(address)
+        
+        // Refresh the display
+        setupAddressesList(getCurrentAddresses())
+        
+        CustomToast.showSuccess(this, "Dirección agregada (se guardará al confirmar).")
+    }
+
+    /**
+     * Adds a new address to the draft list for new persons (not saved to database yet).
+     */
+    private fun addDraftAddress(address: Address) {
         // Add to new addresses list
         newAddresses.add(address)
         

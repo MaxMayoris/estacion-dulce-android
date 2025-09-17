@@ -314,8 +314,7 @@ class MovementEditActivity : AppCompatActivity() {
         
         // Initialize shipment settings
         shipmentSettingsHelper.startListening()
-        shipmentSettingsHelper.shipmentSettings.observe(this) { settings ->
-            android.util.Log.d("MovementEdit", "Shipment settings updated: $settings")
+        shipmentSettingsHelper.shipmentSettings.observe(this) { _ ->
         }
         binding.finalShippingCostInput.addTextChangedListener(object : android.text.TextWatcher {
             override fun afterTextChanged(s: android.text.Editable?) {
@@ -333,10 +332,8 @@ class MovementEditActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         
         if (requestCode == 2001 && resultCode == RESULT_OK) {
-            android.util.Log.d("MovementEdit", "onActivityResult - Intent extras: ${data?.extras?.keySet()}")
-            @Suppress("DEPRECATION")
-            val address = data?.getParcelableExtra<Address>("result_address")
-            android.util.Log.d("MovementEdit", "onActivityResult - AddressPicker returned: ${address?.id}, label: ${address?.label}")
+        @Suppress("DEPRECATION")
+        val address = data?.getParcelableExtra<Address>("result_address")
             
             if (address != null) {
                 // Get the selected person to save the address
@@ -344,14 +341,12 @@ class MovementEditActivity : AppCompatActivity() {
                 val selectedPerson = personsList.find { "${it.name} ${it.lastName}" == selectedPersonName }
                 
                 if (selectedPerson != null) {
-                    android.util.Log.d("MovementEdit", "Saving new address to Firestore for person: ${selectedPerson.id}")
                     
                     // Save the address to Firestore
                     addressesHelper.addAddressToPerson(
                         personId = selectedPerson.id,
                         address = address,
                         onSuccess = { savedAddress ->
-                            android.util.Log.d("MovementEdit", "Address saved successfully: ${savedAddress.id}")
                             selectedAddress = savedAddress
                             val displayText = "${savedAddress.label}: ${savedAddress.formattedAddress}"
                             binding.shippingAddressInput.setText(displayText)
@@ -375,7 +370,6 @@ class MovementEditActivity : AppCompatActivity() {
                 CustomToast.showError(this, "Error al obtener la nueva dirección.")
             }
         } else if (requestCode == 2001 && resultCode == RESULT_CANCELED) {
-            android.util.Log.d("MovementEdit", "AddressPicker canceled")
             customLoader.hide()
             CustomToast.showWarning(this, "Creación de dirección cancelada.")
         }
@@ -427,7 +421,7 @@ class MovementEditActivity : AppCompatActivity() {
                 if (itemExists) {
                     CustomToast.showError(this, "Este ítem ya fue agregado al movimiento.")
                 } else {
-                    val newItem = MovementItem("custom", "", customName, 0.01, 1.0)
+                    val newItem = MovementItem("custom", "", customName, 1.0, 1.0)
                     movementItems.add(newItem)
                     itemsAdapter.notifyItemInserted(movementItems.size - 1)
                     recalcTotalAmount()
@@ -466,10 +460,8 @@ class MovementEditActivity : AppCompatActivity() {
      * Shows the address selection dialog.
      */
     private fun showAddressSelectionDialog() {
-        android.util.Log.d("MovementEdit", "showAddressSelectionDialog() called")
         
         val selectedPersonName = binding.personSpinner.text.toString()
-        android.util.Log.d("MovementEdit", "Selected person name: '$selectedPersonName'")
         
         if (selectedPersonName.isEmpty()) {
             android.util.Log.w("MovementEdit", "No person selected")
@@ -478,7 +470,6 @@ class MovementEditActivity : AppCompatActivity() {
         }
 
         val selectedPerson = personsList.find { "${it.name} ${it.lastName}" == selectedPersonName }
-        android.util.Log.d("MovementEdit", "Found person: ${selectedPerson?.id}, name: ${selectedPerson?.name} ${selectedPerson?.lastName}")
         
         if (selectedPerson == null) {
             android.util.Log.e("MovementEdit", "Person not found in personsList")
@@ -486,7 +477,6 @@ class MovementEditActivity : AppCompatActivity() {
             return
         }
 
-        android.util.Log.d("MovementEdit", "Creating dialog for person: ${selectedPerson.id}")
         
         val dialogView = layoutInflater.inflate(com.estaciondulce.app.R.layout.dialog_address_selection, null)
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
@@ -498,25 +488,19 @@ class MovementEditActivity : AppCompatActivity() {
         val addressesRecyclerView = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(com.estaciondulce.app.R.id.addressesRecyclerView)
         val emptyState = dialogView.findViewById<android.widget.LinearLayout>(com.estaciondulce.app.R.id.emptyState)
         val closeButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.closeButton)
-        android.util.Log.d("MovementEdit", "Dialog views found - searchEditText: ${searchEditText != null}, addressesRecyclerView: ${addressesRecyclerView != null}, emptyState: ${emptyState != null}, closeButton: ${closeButton != null}")
 
         addressesRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
 
         // Load addresses for the selected person
-        android.util.Log.d("MovementEdit", "Loading addresses for person: ${selectedPerson.id}")
         addressesHelper.getAddressesForPerson(
             personId = selectedPerson.id,
             onSuccess = { addresses ->
-                android.util.Log.d("MovementEdit", "Addresses loaded successfully: ${addresses.size} addresses found")
-                addresses.forEach { address ->
-                    android.util.Log.d("MovementEdit", "Address: id=${address.id}, label=${address.label}, formattedAddress=${address.formattedAddress}")
+                addresses.forEach { _ ->
                 }
                 
                 val sortedAddresses = addresses.sortedBy { it.label }
-                android.util.Log.d("MovementEdit", "Addresses sorted, creating adapter with ${sortedAddresses.size} addresses")
                 
                 val dialogAdapter = AddressSelectionAdapter(sortedAddresses) { selectedAddress ->
-                    android.util.Log.d("MovementEdit", "AddressSelectionAdapter callback triggered for address: ${selectedAddress.id}")
                     this.selectedAddress = selectedAddress
                     val displayText = "${selectedAddress.label}: ${selectedAddress.formattedAddress}"
                     binding.shippingAddressInput.setText(displayText)
@@ -524,21 +508,15 @@ class MovementEditActivity : AppCompatActivity() {
                     // Calculate shipping cost automatically when address is selected
                     calculateShippingCostForAddress(selectedAddress)
                     
-                    android.util.Log.d("MovementEdit", "Address selected and set in input: id=${selectedAddress.id}, label=${selectedAddress.label}, formattedAddress=${selectedAddress.formattedAddress}")
-                    android.util.Log.d("MovementEdit", "About to dismiss dialog")
                     dialog.dismiss()
-                    android.util.Log.d("MovementEdit", "Dialog dismissed")
                 }
                 
                 addressesRecyclerView.adapter = dialogAdapter
-                android.util.Log.d("MovementEdit", "Adapter set on RecyclerView")
 
                 if (sortedAddresses.isEmpty()) {
-                    android.util.Log.d("MovementEdit", "No addresses found, showing empty state")
                     addressesRecyclerView.visibility = View.GONE
                     emptyState.visibility = View.VISIBLE
                 } else {
-                    android.util.Log.d("MovementEdit", "Addresses found, showing RecyclerView")
                     addressesRecyclerView.visibility = View.VISIBLE
                     emptyState.visibility = View.GONE
                 }
@@ -572,13 +550,10 @@ class MovementEditActivity : AppCompatActivity() {
 
 
         closeButton.setOnClickListener {
-            android.util.Log.d("MovementEdit", "Close button clicked")
             dialog.dismiss()
         }
 
-        android.util.Log.d("MovementEdit", "About to show dialog")
         dialog.show()
-        android.util.Log.d("MovementEdit", "Dialog shown")
     }
 
 
@@ -905,7 +880,7 @@ class MovementEditActivity : AppCompatActivity() {
                         com.estaciondulce.app.models.ItemType.PRODUCT -> {
                             if (isPurchase) {
                                 val cost = repository.productsLiveData.value?.find { it.id == selectedItem.id }?.cost ?: 0.0
-                                if (cost <= 0.0) 0.01 else cost
+                                if (cost <= 0.0) 1.0 else cost
                             } else {
                                 selectedItem.price
                             }
@@ -913,7 +888,7 @@ class MovementEditActivity : AppCompatActivity() {
                         com.estaciondulce.app.models.ItemType.RECIPE -> {
                             val recipe = repository.recipesLiveData.value?.find { it.id == selectedItem.id }
                             val cost = if (isPurchase) recipe?.cost ?: 0.0 else recipe?.salePrice ?: 0.0
-                            if (cost <= 0.0) 0.01 else cost
+                            if (cost <= 0.0) 1.0 else cost
                         }
                     }
                     val newItem = MovementItem(
@@ -1062,7 +1037,6 @@ class MovementEditActivity : AppCompatActivity() {
      * Extracts a Movement object from the input fields.
      */
     private fun getMovementFromInputs(): Movement {
-        android.util.Log.d("MovementEdit", "getMovementFromInputs() called")
         
         val selectedPersonName = binding.personSpinner.text.toString()
         val selectedPerson = personsList.find { "${it.name} ${it.lastName}" == selectedPersonName }
@@ -1070,9 +1044,6 @@ class MovementEditActivity : AppCompatActivity() {
         val movementType = if (movementTypeText == "Venta") EMovementType.SALE else EMovementType.PURCHASE
         val totalAmount = binding.totalAmountInput.text.toString().trim().toDoubleOrNull() ?: 0.0
         
-        android.util.Log.d("MovementEdit", "Movement data - person: $selectedPersonName, type: $movementTypeText, totalAmount: $totalAmount")
-        android.util.Log.d("MovementEdit", "Selected address: ${selectedAddress?.id}, label: ${selectedAddress?.label}")
-        android.util.Log.d("MovementEdit", "Shipping checkbox checked: ${binding.shippingCheckBox.isChecked}")
         val shipment = if (movementType == EMovementType.SALE) {
             if (binding.shippingCheckBox.isChecked && selectedAddress != null) {
                 val finalShippingCost =
@@ -1087,7 +1058,6 @@ class MovementEditActivity : AppCompatActivity() {
                     date = selectedDeliveryDate,
                     status = if (currentMovement == null) EShipmentStatus.PENDING else (currentMovement!!.shipment?.status ?: EShipmentStatus.PENDING)
                 )
-                android.util.Log.d("MovementEdit", "Creating shipment with addressId: ${shipmentData.addressId}, calculatedCost: ${shipmentData.calculatedCost}, cost: ${shipmentData.cost}, status: ${shipmentData.status}")
                 shipmentData
             } else {
                 null // Save as null when checkbox is unchecked
@@ -1125,18 +1095,15 @@ class MovementEditActivity : AppCompatActivity() {
      * Saves the movement (create or update) and cascades product updates to recipes.
      */
     private fun saveMovement() {
-        android.util.Log.d("MovementEdit", "saveMovement() called")
         
         if (!validateInputs()) {
             android.util.Log.w("MovementEdit", "Validation failed, not saving movement")
             return
         }
         
-        android.util.Log.d("MovementEdit", "Validation passed, proceeding to save")
         customLoader.show()
         
         val movementToSave = getMovementFromInputs()
-        android.util.Log.d("MovementEdit", "Movement object created, shipment: ${movementToSave.shipment}")
         saveMovementToFirestore(movementToSave)
     }
 

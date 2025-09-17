@@ -24,7 +24,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="20dp"
-        android:text="El item pasará a: PREPARANDO"
+        android:text="El envío pasará a: EN PROGRESO"
         android:textSize="14sp"
         android:textColor="@color/text_secondary"
         android:gravity="center" />
@@ -37,7 +37,7 @@
         android:orientation="vertical"
         android:gravity="center">
 
-        <!-- Single Action Button (for PENDING -> PREPARING) -->
+        <!-- Single Action Button (for PENDING -> IN_PROGRESS) -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/singleActionButton"
             android:layout_width="wrap_content"
@@ -51,14 +51,14 @@
             android:paddingBottom="8dp"
             app:backgroundTint="@color/button_gradient_start"
             app:cornerRadius="20dp"
-            app:icon="@drawable/ic_ready"
+            app:icon="@drawable/ic_step_forward"
             app:iconGravity="textStart"
             app:iconPadding="8dp"
             app:iconSize="16dp"
             app:iconTint="@color/white"
             style="@style/Widget.Material3.Button" />
 
-        <!-- Two Action Buttons (for PREPARING -> READY/CANCELED) -->
+        <!-- Two Action Buttons (for IN_PROGRESS -> DELIVERED/CANCELED) -->
         <LinearLayout
             android:id="@+id/twoActionButtonsContainer"
             android:layout_width="match_parent"
@@ -68,10 +68,11 @@
             android:visibility="gone">
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/readyButton"
+                android:id="@+id/deliveredButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Listo"
+                android:layout_marginEnd="8dp"
+                android:text="Entregado"
                 android:textSize="14sp"
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
@@ -86,8 +87,27 @@
                 app:iconTint="@color/white"
                 style="@style/Widget.Material3.Button" />
 
-        </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/canceledButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Cancelado"
+                android:textSize="14sp"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                app:backgroundTint="@color/error_red"
+                app:cornerRadius="20dp"
+                app:icon="@android:drawable/ic_menu_close_clear_cancel"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconSize="16dp"
+                app:iconTint="@color/white"
+                style="@style/Widget.Material3.Button" />
 
+        </LinearLayout>
     </LinearLayout>
 
 </LinearLayout>

@@ -47,7 +47,7 @@
                 android:contentDescription="Cambiar estado"
                 app:backgroundTint="@color/button_gradient_start"
                 app:cornerRadius="18dp"
-                app:icon="@drawable/ic_progress"
+                app:icon="@drawable/ic_step_forward"
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
                 app:iconSize="18dp"

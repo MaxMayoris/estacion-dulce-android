@@ -147,6 +147,7 @@ class KitchenOrderEditActivity : AppCompatActivity() {
         
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setView(dialogView)
+            .setCancelable(true)
             .create()
         
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
@@ -208,8 +209,15 @@ class KitchenOrderEditActivity : AppCompatActivity() {
         val statusColor = getStatusColor(kitchenOrder.status)
         itemStatus.text = statusTextValue
         itemStatus.setTextColor(statusColor)
-        statusActionButton.setOnClickListener {
-            showStatusUpdateDialog(kitchenOrder)
+        
+        // Hide button if status is READY (no next step available)
+        if (kitchenOrder.status == EKitchenOrderStatus.READY) {
+            statusActionButton.visibility = View.GONE
+        } else {
+            statusActionButton.visibility = View.VISIBLE
+            statusActionButton.setOnClickListener {
+                showStatusUpdateDialog(kitchenOrder)
+            }
         }
 
         return itemView
@@ -227,6 +235,7 @@ class KitchenOrderEditActivity : AppCompatActivity() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_change_kitchen_order_status, null)
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setView(dialogView)
+            .setCancelable(true)
             .create()
 
         setupDialogContent(dialogView, dialog, kitchenOrder, nextStatuses)
@@ -243,8 +252,6 @@ class KitchenOrderEditActivity : AppCompatActivity() {
         val singleActionButton = dialogView.findViewById<MaterialButton>(R.id.singleActionButton)
         val twoActionButtonsContainer = dialogView.findViewById<LinearLayout>(R.id.twoActionButtonsContainer)
         val readyButton = dialogView.findViewById<MaterialButton>(R.id.readyButton)
-        val cancelButton = dialogView.findViewById<MaterialButton>(R.id.cancelButton)
-        val cancelDialogButton = dialogView.findViewById<MaterialButton>(R.id.cancelDialogButton)
 
         when (nextStatuses.size) {
             1 -> {
@@ -267,16 +274,7 @@ class KitchenOrderEditActivity : AppCompatActivity() {
                     updateKitchenOrderStatus(kitchenOrder, EKitchenOrderStatus.READY)
                     dialog.dismiss()
                 }
-                
-                cancelButton.setOnClickListener {
-                    updateKitchenOrderStatus(kitchenOrder, EKitchenOrderStatus.CANCELED)
-                    dialog.dismiss()
-                }
             }
-        }
-
-        cancelDialogButton.setOnClickListener {
-            dialog.dismiss()
         }
     }
 

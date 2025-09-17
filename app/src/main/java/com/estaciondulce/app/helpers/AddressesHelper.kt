@@ -11,8 +11,6 @@ class AddressesHelper(private val genericHelper: GenericHelper = GenericHelper()
      * Adds an address to a person's addresses subcollection.
      */
     fun addAddressToPerson(personId: String, address: Address, onSuccess: (Address) -> Unit, onError: (Exception) -> Unit) {
-        android.util.Log.d("AddressesHelper", "addAddressToPerson called for personId: $personId")
-        android.util.Log.d("AddressesHelper", "Address data: label=${address.label}, formattedAddress=${address.formattedAddress}, lat=${address.latitude}, lng=${address.longitude}")
         
         val addressData = mapOf(
             "label" to address.label,
@@ -29,13 +27,11 @@ class AddressesHelper(private val genericHelper: GenericHelper = GenericHelper()
             "detail" to address.detail
         )
 
-        android.util.Log.d("AddressesHelper", "Saving to Firestore: persons/$personId/addresses")
         firestore.collection("persons")
             .document(personId)
             .collection("addresses")
             .add(addressData)
             .addOnSuccessListener { documentReference ->
-                android.util.Log.d("AddressesHelper", "Address saved successfully with ID: ${documentReference.id}")
                 onSuccess(address.copy(id = documentReference.id))
             }
             .addOnFailureListener { exception ->

@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v4.1** - Added customizable recipes feature with optional product/cost validation bypass, improved address management with draft mode for person creation, enhanced Google Maps integration with dropdown address suggestions, updated movement item pricing to use 1.0 as default instead of 0.01, and implemented consistent modal styling across status change dialogs
 - **v4.0** - Added product sales with salePrice field, implemented unified product/recipe search in sales, created shipment management system with status tracking, enhanced ProductEditActivity with improved UI layout, and implemented comprehensive kitchen orders system with automatic order creation, status tracking, and delivery integration
 - **v3.5** - Enhanced RecipeEditActivity with modal product selection, improved table height consistency across all fragments using ConstraintLayout, updated delete button styling, and optimized column labels for better mobile display
 - **v3.4** - Fixed shipment data loading when editing existing movements

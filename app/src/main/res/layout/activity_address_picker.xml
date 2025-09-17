@@ -16,13 +16,36 @@
         android:background="@android:color/white"
         android:padding="8dp">
 
-        <!-- Google Places Autocomplete Fragment -->
-        <fragment
-            android:id="@+id/autocomplete_fragment"
-            android:name="com.google.android.libraries.places.widget.AutocompleteSupportFragment"
+        <!-- Search Input -->
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/AddressPickerAutocompleteStyle" />
+            android:hint="Buscar dirección"
+            app:startIconDrawable="@drawable/ic_search_scaled"
+            app:boxStrokeColor="@color/button_gradient_start"
+            app:hintTextColor="@color/button_gradient_start"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/searchEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Address Suggestions RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/addressSuggestionsRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:maxHeight="200dp"
+            android:visibility="gone"
+            android:background="@android:color/white"
+            android:elevation="4dp" />
 
         <!-- Address Display -->
         <TextView

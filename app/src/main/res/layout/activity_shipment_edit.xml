@@ -356,7 +356,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="16dp">
+                    android:padding="16dp"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:layout_width="0dp"
@@ -375,6 +376,21 @@
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:textColor="@android:color/darker_gray" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/statusActionButton"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="8dp"
+                        android:contentDescription="Cambiar estado"
+                        app:backgroundTint="@color/button_gradient_start"
+                        app:cornerRadius="18dp"
+                        app:icon="@drawable/ic_step_forward"
+                        app:iconGravity="textStart"
+                        app:iconPadding="0dp"
+                        app:iconSize="18dp"
+                        app:iconTint="@color/white"
+                        style="@style/Widget.Material3.Button.IconButton" />
 
                 </LinearLayout>
 

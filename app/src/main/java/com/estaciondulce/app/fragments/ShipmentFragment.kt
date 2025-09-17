@@ -76,9 +76,7 @@ class ShipmentFragment : Fragment() {
                     intent.putExtra("movementId", movement.id)
                     startActivity(intent)
                 },
-                onActionClick = { movement ->
-                    showStatusChangeDialog(movement)
-                },
+                onActionClick = { _ -> }, // No longer used
                 onMapsClick = { movement ->
                     openGoogleMaps(movement)
                 }

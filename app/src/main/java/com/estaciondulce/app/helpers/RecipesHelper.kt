@@ -20,6 +20,7 @@ class RecipesHelper(
             "profitPercentage" to recipe.profitPercentage,
             "onSale" to recipe.onSale,
             "onSaleQuery" to recipe.onSaleQuery, // Added onSaleQuery
+            "customizable" to recipe.customizable, // Added customizable
             "unit" to recipe.unit,
             "images" to recipe.images,
             "description" to recipe.description,
@@ -51,6 +52,7 @@ class RecipesHelper(
             "profitPercentage" to recipe.profitPercentage,
             "onSale" to recipe.onSale,
             "onSaleQuery" to recipe.onSaleQuery, // Added onSaleQuery
+            "customizable" to recipe.customizable, // Added customizable
             "unit" to recipe.unit,
             "images" to recipe.images,
             "description" to recipe.description,
