@@ -32,11 +32,7 @@ Estación Dulce is a mobile application designed to manage all aspects of a bake
 
 1. Clone the repository
 2. Configure Firebase
-3. Set up secure configuration:
-   - Copy `gradle.properties.example` to `gradle.properties`
-   - Fill in your actual Firebase configuration values
-   - **Never commit `gradle.properties` to version control**
-4. Build with Android Studio
+3. Build with Android Studio
 
 ## 🔐 Security
 
