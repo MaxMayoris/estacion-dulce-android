@@ -1,16 +1,15 @@
 package com.estaciondulce.app.helpers
 
-import com.estaciondulce.app.models.Person
+import com.estaciondulce.app.models.parcelables.Person
+import com.estaciondulce.app.models.dtos.PersonDTO
+import com.estaciondulce.app.models.mappers.toDTO
+import com.estaciondulce.app.models.mappers.toMap
 
 class PersonsHelper(private val genericHelper: GenericHelper = GenericHelper()) {
 
     fun addPerson(person: Person, onSuccess: (Person) -> Unit, onError: (Exception) -> Unit) {
-        val personData = mapOf(
-            "name" to person.name,
-            "lastName" to person.lastName,
-            "phones" to person.phones,
-            "type" to person.type
-        )
+        val personDTO = person.toDTO()
+        val personData = personDTO.toMap()
         genericHelper.addDocument(
             collectionName = "persons",
             data = personData,
@@ -22,12 +21,8 @@ class PersonsHelper(private val genericHelper: GenericHelper = GenericHelper()) 
     }
 
     fun updatePerson(personId: String, person: Person, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
-        val personData = mapOf(
-            "name" to person.name,
-            "lastName" to person.lastName,
-            "phones" to person.phones,
-            "type" to person.type
-        )
+        val personDTO = person.toDTO()
+        val personData = personDTO.toMap()
         genericHelper.updateDocument(
             collectionName = "persons",
             documentId = personId,

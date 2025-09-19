@@ -11,8 +11,8 @@ import com.estaciondulce.app.activities.MovementEditActivity
 import com.estaciondulce.app.adapters.MovementAdapter
 import com.estaciondulce.app.databinding.FragmentMovementBinding
 import com.estaciondulce.app.helpers.MovementsHelper
-import com.estaciondulce.app.models.EMovementType
-import com.estaciondulce.app.models.Movement
+import com.estaciondulce.app.models.enums.EMovementType
+import com.estaciondulce.app.models.parcelables.Movement
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.DeleteConfirmationDialog
 import com.estaciondulce.app.utils.CustomToast

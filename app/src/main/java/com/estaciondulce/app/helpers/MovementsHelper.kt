@@ -1,31 +1,22 @@
 package com.estaciondulce.app.helpers
 
-import com.estaciondulce.app.models.Movement
-import com.estaciondulce.app.models.MovementItem
-import com.estaciondulce.app.models.KitchenOrder
-import com.estaciondulce.app.models.EKitchenOrderStatus
-import com.estaciondulce.app.models.EMovementType
+import com.estaciondulce.app.models.parcelables.Movement
+import com.estaciondulce.app.models.parcelables.KitchenOrder
+import com.estaciondulce.app.models.enums.EKitchenOrderStatus
+import com.estaciondulce.app.models.enums.EMovementType
+import com.estaciondulce.app.models.dtos.MovementDTO
+import com.estaciondulce.app.models.mappers.*
 import com.estaciondulce.app.repository.FirestoreRepository
 import java.util.*
 
 class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()) {
 
     private val kitchenOrdersHelper = KitchenOrdersHelper()
+    
 
     fun addMovement(movement: Movement, onSuccess: (Movement) -> Unit, onError: (Exception) -> Unit) {
-        val movementData = mapOf(
-            "type" to movement.type?.name,
-            "personId" to movement.personId,
-            "movementDate" to movement.movementDate,
-            "totalAmount" to movement.totalAmount,
-            "items" to movement.items,
-            "shipment" to movement.shipment,
-            "delta" to movement.delta,
-            "appliedAt" to movement.appliedAt,
-            "createdAt" to movement.createdAt,
-            "detail" to movement.detail,
-            "kitchenOrderStatus" to movement.kitchenOrderStatus?.name
-        )
+        val movementDTO = movement.toDTO()
+        val movementData = movementDTO.toMap()
         genericHelper.addDocument(
             collectionName = "movements",
             data = movementData,
@@ -49,19 +40,8 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
     }
 
     fun updateMovement(movementId: String, movement: Movement, updateKitchenOrders: Boolean, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
-        val movementData = mapOf(
-            "type" to movement.type?.name,
-            "personId" to movement.personId,
-            "movementDate" to movement.movementDate,
-            "totalAmount" to movement.totalAmount,
-            "items" to movement.items,
-            "shipment" to movement.shipment,
-            "delta" to movement.delta,
-            "appliedAt" to movement.appliedAt,
-            "createdAt" to movement.createdAt,
-            "detail" to movement.detail,
-            "kitchenOrderStatus" to movement.kitchenOrderStatus?.name
-        )
+        val movementDTO = movement.toDTO()
+        val movementData = movementDTO.toMap()
         genericHelper.updateDocument(
             collectionName = "movements",
             documentId = movementId,

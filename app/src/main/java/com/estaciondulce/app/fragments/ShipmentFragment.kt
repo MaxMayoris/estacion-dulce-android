@@ -15,12 +15,13 @@ import com.estaciondulce.app.R
 import com.estaciondulce.app.activities.ShipmentEditActivity
 import com.estaciondulce.app.adapters.ShipmentTableAdapter
 import com.estaciondulce.app.databinding.FragmentShipmentBinding
-import com.estaciondulce.app.models.EShipmentStatus
-import com.estaciondulce.app.models.Movement
+import com.estaciondulce.app.models.enums.EDeliveryType
+import com.estaciondulce.app.models.enums.EShipmentStatus
+import com.estaciondulce.app.models.enums.EKitchenOrderStatus
+import com.estaciondulce.app.models.parcelables.Movement
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.CustomLoader
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.estaciondulce.app.models.toColumnConfigs
 import java.text.SimpleDateFormat
 import java.util.*
@@ -50,7 +51,12 @@ class ShipmentFragment : Fragment() {
         customLoader = CustomLoader(requireContext())
         
         repository.movementsLiveData.observe(viewLifecycleOwner) { movements ->
-            setupTableView(movements.filter { it.shipment != null })
+            val shipmentMovements = movements.filter { it.delivery?.type == EDeliveryType.SHIPMENT.name }
+            println("DEBUG: Total movements: ${movements.size}, Shipment movements: ${shipmentMovements.size}")
+            shipmentMovements.forEach { movement ->
+                println("DEBUG: Movement ${movement.id} - delivery type: ${movement.delivery?.type}")
+            }
+            setupTableView(shipmentMovements)
         }
 
         binding.searchBar.addTextChangedListener(object : TextWatcher {
@@ -64,7 +70,8 @@ class ShipmentFragment : Fragment() {
     }
     
     private fun setupTableView(shipments: List<Movement>) {
-        val sortedList = shipments.sortedByDescending { it.shipment?.date ?: Date() }
+        println("DEBUG: setupTableView called with ${shipments.size} shipments")
+        val sortedList = shipments.sortedByDescending { it.delivery?.date ?: Date() }
         val columnConfigs = listOf("Fecha", "Cliente", "Estado").toColumnConfigs()
         binding.shipmentTable.setupTableWithConfigs(
             columnConfigs = columnConfigs,
@@ -85,12 +92,12 @@ class ShipmentFragment : Fragment() {
             columnValueGetter = { item, columnIndex ->
                 val movement = item as Movement
                 when (columnIndex) {
-                    0 -> formatDateToSpanish(movement.shipment?.date ?: Date())
+                    0 -> formatDateToSpanish(movement.delivery?.date ?: Date())
                     1 -> {
                         val person = repository.personsLiveData.value?.find { it.id == movement.personId }
                         if (person != null) "${person.name} ${person.lastName}" else "Cliente no encontrado"
                     }
-                    2 -> getStatusText(movement.shipment?.status)
+                    2 -> getStatusText(movement.delivery?.status)
                     else -> null
                 }
             }
@@ -100,26 +107,26 @@ class ShipmentFragment : Fragment() {
     private fun filterShipments(query: String) {
         val movements = repository.movementsLiveData.value ?: emptyList()
         val filteredList = movements.filter { movement ->
-            val shipment = movement.shipment
-            shipment != null && (
-                shipment.formattedAddress.contains(query, ignoreCase = true) ||
-                getStatusText(shipment.status).contains(query, ignoreCase = true)
+            val delivery = movement.delivery
+            delivery?.type == EDeliveryType.SHIPMENT.name && (
+                delivery.shipment?.formattedAddress?.contains(query, ignoreCase = true) == true ||
+                getStatusText(delivery.status).contains(query, ignoreCase = true)
             )
         }
         setupTableView(filteredList)
     }
     
     private fun showStatusChangeDialog(movement: Movement) {
-        val currentStatus = movement.shipment?.status
+        val currentStatus = movement.delivery?.status
         
         when (currentStatus) {
-            EShipmentStatus.PENDING -> {
+            "PENDING" -> {
                 showPendingToInProgressDialog(movement)
             }
-            EShipmentStatus.IN_PROGRESS -> {
+            "IN_PROGRESS" -> {
                 showInProgressOptionsDialog(movement)
             }
-            EShipmentStatus.DELIVERED, EShipmentStatus.CANCELED -> {
+            "DELIVERED", "CANCELED" -> {
                 CustomToast.showInfo(requireContext(), "Este envío ya está finalizado")
                 return
             }
@@ -131,7 +138,7 @@ class ShipmentFragment : Fragment() {
     }
     
     private fun showPendingToInProgressDialog(movement: Movement) {
-        if (movement.kitchenOrderStatus != com.estaciondulce.app.models.EKitchenOrderStatus.READY) {
+        if (movement.kitchenOrderStatus != EKitchenOrderStatus.READY) {
             CustomToast.showError(requireContext(), "No se puede iniciar el envío. El pedido debe estar listo en cocina.")
             return
         }
@@ -187,16 +194,16 @@ class ShipmentFragment : Fragment() {
     }
     
     private fun updateShipmentStatus(movement: Movement, newStatus: EShipmentStatus) {
-        val updatedShipment = movement.shipment?.copy(status = newStatus)
+        val updatedDelivery = movement.delivery?.copy(status = newStatus.name)
         
         val updatedKitchenOrderStatus = if (newStatus == EShipmentStatus.DELIVERED) {
-            com.estaciondulce.app.models.EKitchenOrderStatus.DONE
+            EKitchenOrderStatus.DONE
         } else {
             movement.kitchenOrderStatus
         }
         
         val updatedMovement = movement.copy(
-            shipment = updatedShipment,
+            delivery = updatedDelivery,
             kitchenOrderStatus = updatedKitchenOrderStatus
         )
         
@@ -224,26 +231,27 @@ class ShipmentFragment : Fragment() {
     }
     
     private fun openGoogleMaps(movement: Movement) {
-        val shipment = movement.shipment ?: return
+        val delivery = movement.delivery ?: return
         try {
-            val gmmIntentUri = android.net.Uri.parse("google.navigation:q=${shipment.lat},${shipment.lng}")
+            val gmmIntentUri = android.net.Uri.parse("google.navigation:q=${delivery.shipment?.lat},${delivery.shipment?.lng}")
             val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
             mapIntent.setPackage("com.google.android.apps.maps")
             startActivity(mapIntent)
         } catch (e: Exception) {
             // Fallback to web version
-            val webIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.google.com/maps?q=${shipment.lat},${shipment.lng}"))
+            val webIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.google.com/maps?q=${delivery.shipment?.lat},${delivery.shipment?.lng}"))
             startActivity(webIntent)
         }
     }
     
-    private fun getStatusText(status: EShipmentStatus?): String {
+    private fun getStatusText(status: String?): String {
         return when (status) {
-            EShipmentStatus.PENDING -> "Pendiente"
-            EShipmentStatus.IN_PROGRESS -> "En Progreso"
-            EShipmentStatus.DELIVERED -> "Entregado"
-            EShipmentStatus.CANCELED -> "Cancelado"
+            "PENDING" -> "Pendiente"
+            "IN_PROGRESS" -> "En Progreso"
+            "DELIVERED" -> "Entregado"
+            "CANCELED" -> "Cancelado"
             null -> "Pendiente"
+            else -> "Pendiente"
         }
     }
     

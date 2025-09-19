@@ -1,4 +1,4 @@
-package com.estaciondulce.app.models
+package com.estaciondulce.app.models.parcelables
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize

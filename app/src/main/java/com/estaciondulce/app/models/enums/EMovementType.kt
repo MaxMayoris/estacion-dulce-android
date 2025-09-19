@@ -1,4 +1,4 @@
-package com.estaciondulce.app.models
+package com.estaciondulce.app.models.enums
 
 /**
  * Movement type enumeration for financial transactions.

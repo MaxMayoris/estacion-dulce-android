@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.estaciondulce.app.R
-import com.estaciondulce.app.models.Person
+import com.estaciondulce.app.models.parcelables.Person
 
 /**
  * Adapter for displaying persons in a search dialog.

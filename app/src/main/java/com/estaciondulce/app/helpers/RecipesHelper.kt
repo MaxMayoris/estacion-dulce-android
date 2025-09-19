@@ -1,7 +1,10 @@
 package com.estaciondulce.app.helpers
 
 import android.annotation.SuppressLint
-import com.estaciondulce.app.models.Recipe
+import com.estaciondulce.app.models.parcelables.Recipe
+import com.estaciondulce.app.models.dtos.RecipeDTO
+import com.estaciondulce.app.models.mappers.toDTO
+import com.estaciondulce.app.models.mappers.toMap
 import com.estaciondulce.app.repository.FirestoreRepository
 
 /**
@@ -12,22 +15,8 @@ class RecipesHelper(
 ) {
 
     fun addRecipe(recipe: Recipe, onSuccess: (Recipe) -> Unit, onError: (Exception) -> Unit) {
-        val recipeData = mapOf(
-            "name" to recipe.name,
-            "cost" to recipe.cost,
-            "suggestedPrice" to recipe.suggestedPrice,
-            "salePrice" to recipe.salePrice,
-            "profitPercentage" to recipe.profitPercentage,
-            "onSale" to recipe.onSale,
-            "onSaleQuery" to recipe.onSaleQuery, // Added onSaleQuery
-            "customizable" to recipe.customizable, // Added customizable
-            "unit" to recipe.unit,
-            "images" to recipe.images,
-            "description" to recipe.description,
-                   "categories" to recipe.categories,
-            "sections" to recipe.sections,
-            "recipes" to recipe.recipes
-               )
+        val recipeDTO = recipe.toDTO()
+        val recipeData = recipeDTO.toMap()
                genericHelper.addDocument(
             collectionName = "recipes",
             data = recipeData,
@@ -44,22 +33,8 @@ class RecipesHelper(
         onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ) {
-        val recipeData = mapOf(
-            "name" to recipe.name,
-            "cost" to recipe.cost,
-            "suggestedPrice" to recipe.suggestedPrice,
-            "salePrice" to recipe.salePrice,
-            "profitPercentage" to recipe.profitPercentage,
-            "onSale" to recipe.onSale,
-            "onSaleQuery" to recipe.onSaleQuery, // Added onSaleQuery
-            "customizable" to recipe.customizable, // Added customizable
-            "unit" to recipe.unit,
-            "images" to recipe.images,
-            "description" to recipe.description,
-                   "categories" to recipe.categories,
-            "sections" to recipe.sections,
-            "recipes" to recipe.recipes
-               )
+        val recipeDTO = recipe.toDTO()
+        val recipeData = recipeDTO.toMap()
                genericHelper.updateDocument(
             collectionName = "recipes",
             documentId = recipeId,

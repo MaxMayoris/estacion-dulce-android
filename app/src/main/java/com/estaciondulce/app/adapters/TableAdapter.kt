@@ -91,6 +91,9 @@ abstract class TableAdapter<T>(
         if (binding.mapsIcon.visibility == android.view.View.VISIBLE) {
             visibleIcons.add(binding.mapsIcon)
         }
+        if (binding.viewIcon.visibility == android.view.View.VISIBLE) {
+            visibleIcons.add(binding.viewIcon)
+        }
         
         // Add margins between visible icons
         for (i in 1 until visibleIcons.size) {
@@ -111,6 +114,7 @@ abstract class TableAdapter<T>(
             binding.deleteIcon.visibility = android.view.View.GONE
             binding.actionIcon.visibility = android.view.View.GONE
             binding.mapsIcon.visibility = android.view.View.GONE
+            binding.viewIcon.visibility = android.view.View.GONE
             
             // Remove margins from all icons
             val layoutParams = binding.actionIcon.layoutParams as android.widget.LinearLayout.LayoutParams
@@ -120,6 +124,11 @@ abstract class TableAdapter<T>(
             val mapsLayoutParams = binding.mapsIcon.layoutParams as android.widget.LinearLayout.LayoutParams
             mapsLayoutParams.marginStart = 0
             binding.mapsIcon.layoutParams = mapsLayoutParams
+            
+            val viewLayoutParams = binding.viewIcon.layoutParams as android.widget.LinearLayout.LayoutParams
+            viewLayoutParams.marginStart = 0
+            binding.viewIcon.layoutParams = viewLayoutParams
+            
             bindRowCallback(binding, item, position)
             val isEvenRow = position % 2 == 0
             binding.root.background = binding.root.context.getDrawable(

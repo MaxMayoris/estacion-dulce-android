@@ -1,7 +1,7 @@
 package com.estaciondulce.app.adapters
 
 import com.estaciondulce.app.databinding.TableRowDynamicBinding
-import com.estaciondulce.app.models.Movement
+import com.estaciondulce.app.models.parcelables.Movement
 
 class MovementAdapter(
     movementList: List<Movement>,

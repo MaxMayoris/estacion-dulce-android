@@ -1,6 +1,9 @@
 package com.estaciondulce.app.helpers
 
-import com.estaciondulce.app.models.Product
+import com.estaciondulce.app.models.parcelables.Product
+import com.estaciondulce.app.models.dtos.ProductDTO
+import com.estaciondulce.app.models.mappers.toDTO
+import com.estaciondulce.app.models.mappers.toMap
 
 class ProductsHelper(private val genericHelper: GenericHelper = GenericHelper()) {
 
@@ -10,14 +13,8 @@ class ProductsHelper(private val genericHelper: GenericHelper = GenericHelper())
             return
         }
 
-        val productData = mapOf(
-            "name" to product.name,
-            "quantity" to product.quantity,
-            "cost" to product.cost,
-            "salePrice" to product.salePrice,
-            "measure" to product.measure,
-            "minimumQuantity" to product.minimumQuantity
-        )
+        val productDTO = product.toDTO()
+        val productData = productDTO.toMap()
 
         genericHelper.addDocument(
             collectionName = "products",
@@ -40,14 +37,8 @@ class ProductsHelper(private val genericHelper: GenericHelper = GenericHelper())
             return
         }
 
-        val productData = mapOf(
-            "name" to product.name,
-            "quantity" to product.quantity,
-            "cost" to product.cost,
-            "salePrice" to product.salePrice,
-            "measure" to product.measure,
-            "minimumQuantity" to product.minimumQuantity
-        )
+        val productDTO = product.toDTO()
+        val productData = productDTO.toMap()
 
         genericHelper.updateDocument(
             collectionName = "products",

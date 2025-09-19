@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.ItemAddressSelectionBinding
-import com.estaciondulce.app.models.Address
+import com.estaciondulce.app.models.parcelables.Address
 
 /**
  * Adapter for displaying addresses in a selection dialog.

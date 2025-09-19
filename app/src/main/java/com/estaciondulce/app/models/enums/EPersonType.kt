@@ -1,4 +1,4 @@
-package com.estaciondulce.app.models
+package com.estaciondulce.app.models.enums
 
 /**
  * Enum for person types with both English database values and Spanish display values.
@@ -37,6 +37,11 @@ enum class EPersonType(val dbValue: String, val displayValue: String) {
         }
     }
 }
+
+
+
+
+
 
 
 

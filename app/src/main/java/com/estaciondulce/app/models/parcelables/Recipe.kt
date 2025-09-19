@@ -1,9 +1,36 @@
-package com.estaciondulce.app.models
+package com.estaciondulce.app.models.parcelables
 
-import RecipeSection
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 import kotlinx.parcelize.RawValue
+
+/**
+ * Product reference with quantity for recipe ingredients.
+ */
+@Parcelize
+data class RecipeProduct(
+    val productId: String = "",
+    var quantity: Double = 0.0
+) : Parcelable
+
+/**
+ * Recipe section containing grouped ingredients with quantities.
+ */
+@Parcelize
+data class RecipeSection(
+    val id: String = "",
+    val name: String = "",
+    var products: @RawValue List<RecipeProduct> = listOf()
+) : Parcelable
+
+/**
+ * Nested recipe reference with quantity for composite recipes.
+ */
+@Parcelize
+data class RecipeNested(
+    val recipeId: String = "",
+    var quantity: Int = 0
+) : Parcelable
 
 /**
  * Recipe data model with cost calculation, pricing, and hierarchical structure.
@@ -25,7 +52,7 @@ data class Recipe(
     val categories: List<String> = listOf(),
     val sections: @RawValue List<RecipeSection> = listOf(),
     val recipes: @RawValue List<RecipeNested> = listOf()
-) : Parcelable, Identifiable {
+) : Parcelable, com.estaciondulce.app.models.Identifiable {
 
     /**
      * Calculates the profit percentage based on cost and sale price.

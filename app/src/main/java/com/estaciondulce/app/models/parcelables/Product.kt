@@ -1,4 +1,4 @@
-package com.estaciondulce.app.models
+package com.estaciondulce.app.models.parcelables
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
@@ -15,4 +15,4 @@ data class Product(
     val cost: Double = 0.0,
     val salePrice: Double = 0.0,
     val measure: String = ""
-) : Parcelable, Identifiable
+) : Parcelable, com.estaciondulce.app.models.Identifiable

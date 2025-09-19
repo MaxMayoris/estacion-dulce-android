@@ -10,10 +10,11 @@ import com.estaciondulce.app.activities.RecipeEditActivity
 import com.estaciondulce.app.adapters.RecipeAdapter
 import com.estaciondulce.app.databinding.FragmentRecipeBinding
 import com.estaciondulce.app.helpers.RecipesHelper
-import com.estaciondulce.app.models.Recipe
+import com.estaciondulce.app.models.parcelables.Recipe
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.DeleteConfirmationDialog
+import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.models.toColumnConfigs
 
 /**
@@ -128,13 +129,30 @@ class RecipeFragment : Fragment() {
             itemName = recipe.name,
             itemType = "receta",
             onConfirm = {
+                val movements = repository.movementsLiveData.value ?: emptyList()
+                val isRecipeInMovements = movements.any { movement ->
+                    movement.items.any { movementItem ->
+                        movementItem.collectionId == recipe.id && movementItem.collection == "recipes"
+                    }
+                }
+                
+                if (isRecipeInMovements) {
+                    CustomToast.showError(requireContext(), "No se puede eliminar la receta '${recipe.name}' porque está siendo usada en uno o más movimientos.")
+                    return@show
+                }
+                
+                val loader = CustomLoader(requireContext())
+                loader.show()
+                
                 recipesHelper.deleteRecipe(
                     recipeId = recipe.id,
                     onSuccess = {
+                        loader.hide()
                         CustomToast.showSuccess(requireContext(), "Receta '${recipe.name}' eliminada correctamente.")
                     },
-                    onError = {
-                        CustomToast.showError(requireContext(), "Error al eliminar la receta.")
+                    onError = { exception ->
+                        loader.hide()
+                        CustomToast.showError(requireContext(), "Error al eliminar la receta: ${exception.message}")
                     }
                 )
             }
@@ -148,7 +166,6 @@ class RecipeFragment : Fragment() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == EDIT_RECIPE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            // Global LiveData updates automatically.
         }
     }
 

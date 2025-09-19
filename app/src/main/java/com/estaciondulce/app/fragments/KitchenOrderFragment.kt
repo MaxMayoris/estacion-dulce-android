@@ -9,12 +9,11 @@ import com.estaciondulce.app.activities.KitchenOrderEditActivity
 import com.estaciondulce.app.adapters.KitchenOrderAdapter
 import com.estaciondulce.app.databinding.FragmentKitchenOrderBinding
 import com.estaciondulce.app.helpers.KitchenOrdersHelper
-import com.estaciondulce.app.models.Movement
-import com.estaciondulce.app.models.EKitchenOrderStatus
+import com.estaciondulce.app.models.enums.EDeliveryType
+import com.estaciondulce.app.models.parcelables.Movement
+import com.estaciondulce.app.models.enums.EKitchenOrderStatus
 import com.estaciondulce.app.models.toColumnConfigs
 import com.estaciondulce.app.repository.FirestoreRepository
-import com.estaciondulce.app.utils.CustomToast
-import android.graphics.Color
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -75,10 +74,10 @@ class KitchenOrderFragment : Fragment() {
                 val person = repository.personsLiveData.value?.find { it.id == movement.personId }
                 val clientName = person?.let { "${it.name} ${it.lastName}" } ?: ""
                 clientName.contains(query, ignoreCase = true) ||
-                formatDateToSpanish(movement.movementDate).contains(query, ignoreCase = true)
+                formatDateToSpanish(movement.delivery?.date ?: movement.movementDate).contains(query, ignoreCase = true)
             }
         }
-        val sortedFilteredList = filteredList.sortedByDescending { it.movementDate }
+        val sortedFilteredList = filteredList.sortedByDescending { it.delivery?.date ?: it.movementDate }
         setupTableView(sortedFilteredList)
     }
 
@@ -94,7 +93,7 @@ class KitchenOrderFragment : Fragment() {
             ) { movement ->
                 val person = repository.personsLiveData.value?.find { it.id == movement.personId }
                 val clientName = person?.let { "${it.name} ${it.lastName}" } ?: "Cliente desconocido"
-                val date = formatDateToSpanish(movement.movementDate)
+                val date = formatDateToSpanish(movement.delivery?.date ?: movement.movementDate)
                 val statusInfo = getMovementKitchenOrderStatusInfo(movement)
                 
                 listOf(
@@ -125,7 +124,7 @@ class KitchenOrderFragment : Fragment() {
             EKitchenOrderStatus.PENDING -> "Pendiente de preparación"
             EKitchenOrderStatus.PREPARING -> "En preparación"
             EKitchenOrderStatus.READY -> {
-                if (movement.shipment != null) {
+                if (movement.delivery?.type == EDeliveryType.SHIPMENT.name) {
                     "Listo para envío"
                 } else {
                     "Listo para entrega"

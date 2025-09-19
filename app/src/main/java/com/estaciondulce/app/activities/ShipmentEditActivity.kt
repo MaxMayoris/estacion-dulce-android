@@ -12,9 +12,11 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.ActivityShipmentEditBinding
-import com.estaciondulce.app.models.EShipmentStatus
-import com.estaciondulce.app.models.Movement
-import com.estaciondulce.app.models.MovementItem
+import com.estaciondulce.app.models.enums.EDeliveryType
+import com.estaciondulce.app.models.enums.EShipmentStatus
+import com.estaciondulce.app.models.parcelables.Movement
+import com.estaciondulce.app.models.parcelables.MovementItem
+import com.estaciondulce.app.models.enums.EKitchenOrderStatus
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.CustomLoader
@@ -57,11 +59,10 @@ class ShipmentEditActivity : AppCompatActivity() {
             return
         }
 
-        // Find the movement from the repository
         val movements = FirestoreRepository.movementsLiveData.value ?: emptyList()
         movement = movements.find { it.id == movementId }
 
-        if (movement == null || movement?.shipment == null) {
+        if (movement == null || movement?.delivery?.type != EDeliveryType.SHIPMENT.name) {
             CustomToast.showError(this, "Envío no encontrado")
             finish()
             return
@@ -73,32 +74,24 @@ class ShipmentEditActivity : AppCompatActivity() {
 
     private fun displayShipmentData() {
         val movement = this.movement ?: return
-        val shipment = movement.shipment ?: return
+        val delivery = movement.delivery ?: return
 
-        // Date
-        binding.dateValue.text = formatDateToSpanish(shipment.date ?: Date())
+        binding.dateValue.text = formatDateToSpanish(delivery.date)
 
-        // Person name
         val person = FirestoreRepository.personsLiveData.value?.find { it.id == movement.personId }
         binding.personValue.text = if (person != null) "${person.name} ${person.lastName}" else "Cliente no encontrado"
 
-        // Address
-        binding.addressValue.text = shipment.formattedAddress
+        binding.addressValue.text = delivery.shipment?.formattedAddress ?: ""
         
-        // Address detail
-        if (shipment.addressId.isNotEmpty()) {
-            // Try to get address detail from person's addresses
+        if (delivery.shipment?.addressId?.isNotEmpty() == true) {
             val personForAddress = FirestoreRepository.personsLiveData.value?.find { it.id == movement.personId }
             personForAddress?.let { p ->
-                // We need to load addresses to get the detail
-                loadAddressDetail(p.id, shipment.addressId)
+                loadAddressDetail(p.id, delivery.shipment.addressId)
             }
         }
 
-        // Items
         binding.itemsValue.text = formatItemsList(movement.items)
         
-        // Detail
         if (movement.detail.isNotEmpty()) {
             binding.detailValue.text = "Detalle: ${movement.detail}"
             binding.detailValue.visibility = android.view.View.VISIBLE
@@ -106,13 +99,10 @@ class ShipmentEditActivity : AppCompatActivity() {
             binding.detailValue.visibility = android.view.View.GONE
         }
 
-        // Cost
-        binding.costValue.text = "$${String.format("%.2f", shipment.cost)}"
+        binding.costValue.text = "$${String.format("%.2f", delivery.shipment?.cost ?: 0.0)}"
         
-        // Total
         binding.totalValue.text = "$${String.format("%.2f", movement.totalAmount)}"
 
-        // Phone
         val personPhone = person?.phones?.firstOrNull()
         if (personPhone != null) {
             val displayPhoneNumber = "${personPhone.phoneNumberPrefix} ${personPhone.phoneNumberSuffix}"
@@ -128,14 +118,12 @@ class ShipmentEditActivity : AppCompatActivity() {
             binding.callButton.visibility = View.GONE
         }
 
-        // Status with color
-        val statusText = getStatusText(shipment.status)
+        val statusText = getStatusText(delivery.status)
         binding.statusValue.text = statusText
-        binding.statusValue.setTextColor(getStatusColor(shipment.status))
+        binding.statusValue.setTextColor(getStatusColor(delivery.status))
 
-        // Google Maps button
         binding.googleMapsButton.setOnClickListener {
-            openGoogleMaps(shipment.lat, shipment.lng)
+            openGoogleMaps(delivery.shipment?.lat ?: 0.0, delivery.shipment?.lng ?: 0.0)
         }
     }
 
@@ -146,27 +134,30 @@ class ShipmentEditActivity : AppCompatActivity() {
             mapIntent.setPackage("com.google.android.apps.maps")
             startActivity(mapIntent)
         } catch (e: Exception) {
-            // Fallback to web version
             val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps?q=$lat,$lng"))
             startActivity(webIntent)
         }
     }
 
-    private fun getStatusText(status: EShipmentStatus): String {
+    private fun getStatusText(status: String?): String {
         return when (status) {
-            EShipmentStatus.PENDING -> "Pendiente"
-            EShipmentStatus.IN_PROGRESS -> "En Progreso"
-            EShipmentStatus.DELIVERED -> "Entregado"
-            EShipmentStatus.CANCELED -> "Cancelado"
+            "PENDING" -> "Pendiente"
+            "IN_PROGRESS" -> "En Progreso"
+            "DELIVERED" -> "Entregado"
+            "CANCELED" -> "Cancelado"
+            null -> "Pendiente"
+            else -> "Pendiente"
         }
     }
 
-    private fun getStatusColor(status: EShipmentStatus): Int {
+    private fun getStatusColor(status: String?): Int {
         return when (status) {
-            EShipmentStatus.PENDING -> Color.GRAY
-            EShipmentStatus.IN_PROGRESS -> Color.BLUE
-            EShipmentStatus.DELIVERED -> Color.GREEN
-            EShipmentStatus.CANCELED -> Color.RED
+            "PENDING" -> Color.GRAY
+            "IN_PROGRESS" -> Color.BLUE
+            "DELIVERED" -> Color.GREEN
+            "CANCELED" -> Color.RED
+            null -> Color.GRAY
+            else -> Color.GRAY
         }
     }
 
@@ -262,25 +253,24 @@ class ShipmentEditActivity : AppCompatActivity() {
             }
         }
         
-        // Hide button if status is DELIVERED or CANCELED
-        movement?.shipment?.status?.let { status ->
-            if (status == EShipmentStatus.DELIVERED || status == EShipmentStatus.CANCELED) {
+        movement?.delivery?.status?.let { status ->
+            if (status == "DELIVERED" || status == "CANCELED") {
                 binding.statusActionButton.visibility = View.GONE
             }
         }
     }
 
     private fun showStatusChangeDialog(movement: Movement) {
-        val currentStatus = movement.shipment?.status
+        val currentStatus = movement.delivery?.status
         
         when (currentStatus) {
-            EShipmentStatus.PENDING -> {
+            "PENDING" -> {
                 showPendingToInProgressDialog(movement)
             }
-            EShipmentStatus.IN_PROGRESS -> {
+            "IN_PROGRESS" -> {
                 showInProgressOptionsDialog(movement)
             }
-            EShipmentStatus.DELIVERED, EShipmentStatus.CANCELED -> {
+            "DELIVERED", "CANCELED" -> {
                 CustomToast.showInfo(this, "Este envío ya está finalizado")
                 return
             }
@@ -292,7 +282,7 @@ class ShipmentEditActivity : AppCompatActivity() {
     }
 
     private fun showPendingToInProgressDialog(movement: Movement) {
-        if (movement.kitchenOrderStatus != com.estaciondulce.app.models.EKitchenOrderStatus.READY) {
+        if (movement.kitchenOrderStatus != EKitchenOrderStatus.READY) {
             CustomToast.showError(this, "No se puede iniciar el envío. El pedido debe estar listo en cocina.")
             return
         }
@@ -339,7 +329,7 @@ class ShipmentEditActivity : AppCompatActivity() {
         when (nextStatuses.size) {
             1 -> {
                 val nextStatus = nextStatuses[0]
-                subtitleText.text = "El envío pasará a: ${getStatusText(nextStatus).uppercase()}"
+                subtitleText.text = "El envío pasará a: ${getStatusText(nextStatus.name).uppercase()}"
                 singleActionButton.visibility = View.VISIBLE
                 twoActionButtonsContainer.visibility = View.GONE
                 
@@ -367,16 +357,16 @@ class ShipmentEditActivity : AppCompatActivity() {
     }
 
     private fun updateShipmentStatus(movement: Movement, newStatus: EShipmentStatus) {
-        val updatedShipment = movement.shipment?.copy(status = newStatus)
+        val updatedDelivery = movement.delivery?.copy(status = newStatus.name)
         
         val updatedKitchenOrderStatus = if (newStatus == EShipmentStatus.DELIVERED) {
-            com.estaciondulce.app.models.EKitchenOrderStatus.DONE
+            EKitchenOrderStatus.DONE
         } else {
             movement.kitchenOrderStatus
         }
         
         val updatedMovement = movement.copy(
-            shipment = updatedShipment,
+            delivery = updatedDelivery,
             kitchenOrderStatus = updatedKitchenOrderStatus
         )
         
@@ -397,7 +387,6 @@ class ShipmentEditActivity : AppCompatActivity() {
                 }
                 CustomToast.showSuccess(this, message)
                 
-                // Update local movement and refresh UI
                 this.movement = updatedMovement
                 loadMovementData()
                 setupStatusButton()

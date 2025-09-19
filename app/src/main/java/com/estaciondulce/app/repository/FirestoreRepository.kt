@@ -2,15 +2,20 @@ package com.estaciondulce.app.repository
 
 import android.annotation.SuppressLint
 import androidx.lifecycle.MutableLiveData
-import com.estaciondulce.app.models.Address
 import com.estaciondulce.app.models.Category
 import com.estaciondulce.app.models.Measure
-import com.estaciondulce.app.models.Movement
-import com.estaciondulce.app.models.Person
-import com.estaciondulce.app.models.Product
-import com.estaciondulce.app.models.Recipe
+import com.estaciondulce.app.models.parcelables.Movement
+import com.estaciondulce.app.models.parcelables.Person
+import com.estaciondulce.app.models.parcelables.Product
+import com.estaciondulce.app.models.parcelables.Recipe
 import com.estaciondulce.app.models.Section
-import com.estaciondulce.app.models.ShipmentSettings
+import com.estaciondulce.app.models.parcelables.ShipmentSettings
+import com.estaciondulce.app.models.dtos.MovementDTO
+import com.estaciondulce.app.models.dtos.PersonDTO
+import com.estaciondulce.app.models.dtos.ProductDTO
+import com.estaciondulce.app.models.dtos.RecipeDTO
+import com.estaciondulce.app.models.dtos.ShipmentSettingsDTO
+import com.estaciondulce.app.models.mappers.*
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 
@@ -50,7 +55,7 @@ object FirestoreRepository {
                     return@addSnapshotListener
                 }
                 val products = snapshot?.documents?.mapNotNull { doc ->
-                    doc.toObject(Product::class.java)?.apply { id = doc.id }
+                    doc.toObject(ProductDTO::class.java)?.toParcelable(doc.id)
                 } ?: emptyList()
                 productsLiveData.postValue(products)
             }
@@ -61,7 +66,7 @@ object FirestoreRepository {
                     return@addSnapshotListener
                 }
                 val recipes = snapshot?.documents?.mapNotNull { doc ->
-                    doc.toObject(Recipe::class.java)?.apply { id = doc.id }
+                    doc.toObject(RecipeDTO::class.java)?.toParcelable(doc.id)
                 } ?: emptyList()
                 recipesLiveData.postValue(recipes)
             }
@@ -105,7 +110,7 @@ object FirestoreRepository {
                     return@addSnapshotListener
                 }
                 val persons = snapshot?.documents?.mapNotNull { doc ->
-                    doc.toObject(Person::class.java)?.apply { id = doc.id }
+                    doc.toObject(PersonDTO::class.java)?.toParcelable(doc.id)
                 } ?: emptyList()
                 personsLiveData.postValue(persons)
             }
@@ -116,7 +121,7 @@ object FirestoreRepository {
                     return@addSnapshotListener
                 }
                 val movements = snapshot?.documents?.mapNotNull { doc ->
-                    doc.toObject(Movement::class.java)?.apply { id = doc.id }
+                    doc.toObject(MovementDTO::class.java)?.toParcelable(doc.id)
                 } ?: emptyList()
                 movementsLiveData.postValue(movements)
             }
@@ -126,7 +131,7 @@ object FirestoreRepository {
                 if (error != null) {
                     return@addSnapshotListener
                 }
-                val settings = snapshot?.toObject(ShipmentSettings::class.java)
+                val settings = snapshot?.toObject(ShipmentSettingsDTO::class.java)?.toParcelable()
                 shipmentSettingsLiveData.postValue(settings)
             }
 

@@ -317,33 +317,121 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    android:text="Información de Envío"
+                    android:text="Forma de entrega"
                     android:textColor="@color/text_primary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
-                <!-- Checkbox para envío -->
+                <!-- Selector de tipo de entrega -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:layout_marginBottom="16dp">
 
-                    <TextView
+                    <!-- Opción Entrega (Pickup) -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/pickupOptionCard"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="¿Tiene Envío?"
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
+                        android:layout_marginEnd="8dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?android:attr/selectableItemBackground"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="2dp"
+                        app:cardBackgroundColor="@color/white"
+                        app:strokeColor="@color/button_gradient_start"
+                        app:strokeWidth="2dp">
 
-                    <com.google.android.material.checkbox.MaterialCheckBox
-                        android:id="@+id/shippingCheckBox"
-                        android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="12dp"
+                            android:gravity="center">
+
+                            <ImageView
+                                android:id="@+id/pickupIcon"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_store"
+                                android:layout_marginBottom="8dp"
+                                android:tint="@color/text_secondary" />
+
+                            <TextView
+                                android:id="@+id/pickupTitleText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Entrega"
+                                android:textColor="@color/white"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/pickupSubtitleText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Retiro en local"
+                                android:textColor="@color/white"
+                                android:textSize="12sp" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Opción Envío (Shipment) -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/shipmentOptionCard"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:checked="false" />
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?android:attr/selectableItemBackground"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="2dp"
+                        app:cardBackgroundColor="@color/white"
+                        app:strokeColor="@color/button_gradient_start"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="12dp"
+                            android:gravity="center">
+
+                            <ImageView
+                                android:id="@+id/shipmentIcon"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:src="@drawable/ic_delivery_truck"
+                                android:layout_marginBottom="8dp"
+                                android:tint="@color/text_secondary" />
+
+                            <TextView
+                                android:id="@+id/shipmentTitleText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Envío"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/shipmentSubtitleText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Envío a domicilio"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="12sp" />
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
 
                 </LinearLayout>
 
@@ -376,8 +464,7 @@
                             android:focusable="false"
                             android:inputType="none"
                             android:lines="2"
-                            android:textSize="16sp"
-                            android:hint="Seleccionar dirección" />
+                            android:textSize="16sp" />
 
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -394,6 +481,7 @@
 
                     <!-- Fecha y Hora de Entrega -->
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/deliveryDateTimeLayout"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
@@ -420,6 +508,7 @@
 
                     <!-- Costo -->
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/shippingCostLayout"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"

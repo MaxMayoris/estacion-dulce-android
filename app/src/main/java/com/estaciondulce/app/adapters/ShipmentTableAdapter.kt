@@ -3,8 +3,8 @@ package com.estaciondulce.app.adapters
 import android.graphics.Color
 import android.view.View
 import com.estaciondulce.app.databinding.TableRowDynamicBinding
-import com.estaciondulce.app.models.EShipmentStatus
-import com.estaciondulce.app.models.Movement
+import com.estaciondulce.app.models.enums.EShipmentStatus
+import com.estaciondulce.app.models.parcelables.Movement
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -19,14 +19,14 @@ class ShipmentTableAdapter(
 ) : TableAdapter<Movement>(dataList, onRowClick, { /* No delete for shipments */ }) {
 
     override fun getCellValues(item: Movement, position: Int): List<Any> {
-        val shipment = item.shipment ?: return listOf("", "", "")
+        val delivery = item.delivery ?: return listOf("", "", "")
         val person = com.estaciondulce.app.repository.FirestoreRepository.personsLiveData.value?.find { it.id == item.personId }
         val personName = if (person != null) "${person.name} ${person.lastName}" else "Cliente no encontrado"
         
         return listOf(
-            formatDateToSpanish(shipment.date ?: Date()),
+            formatDateToSpanish(delivery.date),
             personName,
-            getStatusText(shipment.status)
+            getStatusText(delivery.status)
         )
     }
 
@@ -71,7 +71,7 @@ class ShipmentTableAdapter(
                 
                 // Apply color to status column (index 2)
                 if (index == 2) {
-                    val status = item.shipment?.status
+                    val status = item.delivery?.status
                     setTextColor(getStatusColor(status))
                     setTypeface(null, android.graphics.Typeface.BOLD)
                 }
@@ -80,23 +80,25 @@ class ShipmentTableAdapter(
         }
     }
 
-    private fun getStatusText(status: EShipmentStatus?): String {
+    private fun getStatusText(status: String?): String {
         return when (status) {
-            EShipmentStatus.PENDING -> "Pendiente"
-            EShipmentStatus.IN_PROGRESS -> "En Progreso"
-            EShipmentStatus.DELIVERED -> "Entregado"
-            EShipmentStatus.CANCELED -> "Cancelado"
+            "PENDING" -> "Pendiente"
+            "IN_PROGRESS" -> "En Progreso"
+            "DELIVERED" -> "Entregado"
+            "CANCELED" -> "Cancelado"
             null -> "Pendiente"
+            else -> "Pendiente"
         }
     }
 
-    private fun getStatusColor(status: EShipmentStatus?): Int {
+    private fun getStatusColor(status: String?): Int {
         return when (status) {
-            EShipmentStatus.PENDING -> Color.GRAY
-            EShipmentStatus.IN_PROGRESS -> Color.BLUE
-            EShipmentStatus.DELIVERED -> Color.GREEN
-            EShipmentStatus.CANCELED -> Color.RED
+            "PENDING" -> Color.GRAY
+            "IN_PROGRESS" -> Color.BLUE
+            "DELIVERED" -> Color.GREEN
+            "CANCELED" -> Color.RED
             null -> Color.GRAY
+            else -> Color.GRAY
         }
     }
 

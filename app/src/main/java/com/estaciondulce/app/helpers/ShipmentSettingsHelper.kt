@@ -2,7 +2,7 @@ package com.estaciondulce.app.helpers
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import com.estaciondulce.app.models.ShipmentSettings
+import com.estaciondulce.app.models.parcelables.ShipmentSettings
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 

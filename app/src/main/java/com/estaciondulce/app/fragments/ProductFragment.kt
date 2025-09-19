@@ -10,9 +10,11 @@ import com.estaciondulce.app.activities.ProductEditActivity
 import com.estaciondulce.app.adapters.ProductAdapter
 import com.estaciondulce.app.databinding.FragmentProductBinding
 import com.estaciondulce.app.helpers.ProductsHelper
-import com.estaciondulce.app.models.Product
+import com.estaciondulce.app.models.parcelables.Product
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.DeleteConfirmationDialog
+import com.estaciondulce.app.utils.CustomToast
+import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.models.toColumnConfigs
 import com.google.android.material.snackbar.Snackbar
 
@@ -82,7 +84,6 @@ class ProductFragment : Fragment() {
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // Global LiveData updates automatically.
         }
     }
 
@@ -132,7 +133,7 @@ class ProductFragment : Fragment() {
     }
 
     /**
-     * Deletes a product using ProductsHelper.
+     * Deletes a product using ProductsHelper with validation.
      */
     private fun deleteProduct(product: Product) {
         DeleteConfirmationDialog.show(
@@ -140,21 +141,32 @@ class ProductFragment : Fragment() {
             itemName = product.name,
             itemType = "producto",
             onConfirm = {
+                val recipes = repository.recipesLiveData.value ?: emptyList()
+                val isProductInRecipes = recipes.any { recipe ->
+                    recipe.sections.any { section ->
+                        section.products.any { recipeProduct ->
+                            recipeProduct.productId == product.id
+                        }
+                    }
+                }
+                
+                if (isProductInRecipes) {
+                    CustomToast.showError(requireContext(), "No se puede eliminar el producto '${product.name}' porque está siendo usado en una o más recetas.")
+                    return@show
+                }
+                
+                val loader = CustomLoader(requireContext())
+                loader.show()
+                
                 ProductsHelper().deleteProduct(
                     productId = product.id,
                     onSuccess = {
-                        Snackbar.make(
-                            binding.root,
-                            "Producto eliminado correctamente.",
-                            Snackbar.LENGTH_LONG
-                        ).show()
+                        loader.hide()
+                        CustomToast.showSuccess(requireContext(), "Producto '${product.name}' eliminado correctamente.")
                     },
-                    onError = {
-                        Snackbar.make(
-                            binding.root,
-                            "Error al eliminar el producto.",
-                            Snackbar.LENGTH_LONG
-                        ).show()
+                    onError = { exception ->
+                        loader.hide()
+                        CustomToast.showError(requireContext(), "Error al eliminar el producto: ${exception.message}")
                     }
                 )
             }

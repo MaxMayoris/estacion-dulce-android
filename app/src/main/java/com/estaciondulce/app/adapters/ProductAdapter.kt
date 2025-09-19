@@ -1,7 +1,7 @@
 package com.estaciondulce.app.adapters
 
 import com.estaciondulce.app.databinding.TableRowDynamicBinding
-import com.estaciondulce.app.models.Product
+import com.estaciondulce.app.models.parcelables.Product
 
 class ProductAdapter(
     productList: List<Product>,

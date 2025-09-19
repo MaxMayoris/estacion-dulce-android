@@ -1,7 +1,7 @@
 package com.estaciondulce.app.adapters
 
 import com.estaciondulce.app.databinding.TableRowDynamicBinding
-import com.estaciondulce.app.models.Recipe
+import com.estaciondulce.app.models.parcelables.Recipe
 
 class RecipeAdapter(
     recipeList: List<Recipe>,

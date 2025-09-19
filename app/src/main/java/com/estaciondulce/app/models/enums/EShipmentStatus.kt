@@ -1,4 +1,4 @@
-package com.estaciondulce.app.models
+package com.estaciondulce.app.models.enums
 
 /**
  * Enum representing the possible statuses of a shipment.

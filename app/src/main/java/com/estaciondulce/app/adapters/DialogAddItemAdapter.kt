@@ -6,8 +6,8 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.ItemDialogAddItemBinding
-import com.estaciondulce.app.models.ItemSearchResult
-import com.estaciondulce.app.models.ItemType
+import com.estaciondulce.app.models.parcelables.ItemSearchResult
+import com.estaciondulce.app.models.enums.EItemType
 
 class DialogAddItemAdapter(
     private var items: List<ItemSearchResult>,
@@ -36,13 +36,13 @@ class DialogAddItemAdapter(
                 holder.binding.itemType.visibility = View.GONE
                 holder.binding.itemCost.visibility = View.GONE
             }
-            item.type == ItemType.PRODUCT -> {
+            item.type == EItemType.PRODUCT -> {
                 holder.binding.itemIcon.setImageResource(R.drawable.ic_product)
                 holder.binding.itemType.visibility = View.GONE
                 holder.binding.itemCost.visibility = View.VISIBLE
                 holder.binding.itemCost.text = "$${String.format("%.2f", item.price)}"
             }
-            item.type == ItemType.RECIPE -> {
+            item.type == EItemType.RECIPE -> {
                 holder.binding.itemIcon.setImageResource(R.drawable.ic_recipe)
                 holder.binding.itemType.visibility = View.GONE
                 holder.binding.itemCost.visibility = View.VISIBLE

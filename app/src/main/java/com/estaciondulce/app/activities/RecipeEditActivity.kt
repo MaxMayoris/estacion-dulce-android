@@ -1,6 +1,6 @@
 package com.estaciondulce.app.activities
 
-import RecipeSection
+import com.estaciondulce.app.models.parcelables.RecipeSection
 import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.content.Intent
@@ -23,9 +23,10 @@ import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.ActivityRecipeEditBinding
 import com.estaciondulce.app.helpers.RecipesHelper
 import com.estaciondulce.app.helpers.StorageHelper
-import com.estaciondulce.app.models.Recipe
-import com.estaciondulce.app.models.RecipeNested
-import com.estaciondulce.app.models.RecipeProduct
+import com.estaciondulce.app.models.parcelables.Recipe
+import com.estaciondulce.app.models.parcelables.RecipeNested
+import com.estaciondulce.app.models.parcelables.RecipeProduct
+import com.estaciondulce.app.models.parcelables.Product
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.utils.CustomToast
@@ -466,7 +467,7 @@ class RecipeEditActivity : AppCompatActivity() {
         productsRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
         
         val productObjects = products.map { entry ->
-            com.estaciondulce.app.models.Product(
+            com.estaciondulce.app.models.parcelables.Product(
                 id = entry.key,
                 name = entry.value.first,
                 cost = entry.value.second
@@ -511,7 +512,7 @@ class RecipeEditActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun showQuantitySelectionDialog(product: com.estaciondulce.app.models.Product, section: RecipeSection) {
+    private fun showQuantitySelectionDialog(product: Product, section: RecipeSection) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_quantity_selection, null)
         val dialog = AlertDialog.Builder(this)
             .setView(dialogView)
@@ -790,7 +791,7 @@ class RecipeEditActivity : AppCompatActivity() {
         val salePrice = binding.recipeSalePriceInput.text.toString().toDoubleOrNull() ?: 0.0
         
         val profitPercentage = if (cost > 0) {
-            ((salePrice - cost) / cost) * 100
+            String.format("%.2f", ((salePrice - cost) / cost) * 100).toDouble()
         } else {
             0.0
         }
@@ -965,7 +966,7 @@ class RecipeEditActivity : AppCompatActivity() {
                 val cost = binding.recipeCostInput.text.toString().toDoubleOrNull() ?: 0.0
                 val salePrice = binding.recipeSalePriceInput.text.toString().toDoubleOrNull() ?: 0.0
                 val profitPercentage = if (cost > 0) {
-                    ((salePrice - cost) / cost) * 100
+                    String.format("%.2f", ((salePrice - cost) / cost) * 100).toDouble()
                 } else {
                     0.0
                 }

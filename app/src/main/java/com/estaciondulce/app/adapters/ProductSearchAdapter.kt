@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.ItemProductSearchBinding
-import com.estaciondulce.app.models.Product
+import com.estaciondulce.app.models.parcelables.Product
 
 class ProductSearchAdapter(
     private var products: List<Product>,
@@ -42,6 +42,11 @@ class ProductSearchAdapter(
         notifyDataSetChanged()
     }
 }
+
+
+
+
+
 
 
 

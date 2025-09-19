@@ -1,17 +1,25 @@
 package com.estaciondulce.app.activities
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.view.MenuItem
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import com.estaciondulce.app.databinding.ActivityProductEditBinding
 import com.estaciondulce.app.helpers.ProductsHelper
-import com.estaciondulce.app.models.Product
+import com.estaciondulce.app.models.parcelables.Product
+import com.estaciondulce.app.models.parcelables.Recipe
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.utils.CustomToast
+import com.estaciondulce.app.adapters.TableAdapter
+import com.estaciondulce.app.adapters.RecipeTableAdapter
+import com.estaciondulce.app.models.TableColumnConfig
+import com.estaciondulce.app.models.toColumnConfigs
+import com.estaciondulce.app.databinding.TableRowDynamicBinding
 
 /**
  * Activity to add or update a product.
@@ -23,6 +31,7 @@ class ProductEditActivity : AppCompatActivity() {
     private val repository = FirestoreRepository
     private var currentProduct: Product? = null
     private lateinit var customLoader: CustomLoader
+    private var selectedTab = "info"
 
     /**
      * Initializes the activity, sets up LiveData observers, and pre-populates fields if editing.
@@ -44,6 +53,12 @@ class ProductEditActivity : AppCompatActivity() {
             setupMeasureSpinner(measures)
         }
 
+        repository.recipesLiveData.observe(this) { recipes ->
+            if (selectedTab == "recipes") {
+                setupRecipesTable(recipes)
+            }
+        }
+
         currentProduct?.let { product ->
             binding.productNameInput.setText(product.name)
             binding.productStockInput.setText(product.quantity.toString())
@@ -52,8 +67,21 @@ class ProductEditActivity : AppCompatActivity() {
             binding.productMinimumQuantityInput.setText(product.minimumQuantity.toString())
         }
 
-
+        setupTabs()
         binding.saveProductButton.setOnClickListener { saveProduct() }
+    }
+
+    /**
+     * Launcher for RecipeEditActivity.
+     */
+    private val recipeEditActivityLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            repository.recipesLiveData.value?.let { recipes ->
+                setupRecipesTable(recipes)
+            }
+        }
     }
 
     /**
@@ -67,6 +95,137 @@ class ProductEditActivity : AppCompatActivity() {
 
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    /**
+     * Sets up tab functionality and click listeners.
+     */
+    private fun setupTabs() {
+        if (currentProduct == null) {
+            binding.tabsContainer.visibility = android.view.View.GONE
+            binding.infoTabContent.visibility = android.view.View.VISIBLE
+            binding.recipesTabContent.visibility = android.view.View.GONE
+            return
+        }
+        
+        binding.infoTab.setOnClickListener {
+            selectTab("info")
+        }
+        
+        binding.recipesTab.setOnClickListener {
+            selectTab("recipes")
+        }
+        
+        selectTab("info")
+    }
+
+    /**
+     * Handles tab selection and updates UI accordingly.
+     */
+    private fun selectTab(tabType: String) {
+        selectedTab = tabType
+        
+        when (tabType) {
+            "info" -> {
+                binding.infoTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_selected_background)
+                binding.infoTab.setTextColor(resources.getColor(com.estaciondulce.app.R.color.white, null))
+                binding.recipesTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_unselected_background)
+                binding.recipesTab.setTextColor(resources.getColor(com.estaciondulce.app.R.color.text_secondary, null))
+                
+                binding.infoTabContent.visibility = android.view.View.VISIBLE
+                binding.recipesTabContent.visibility = android.view.View.GONE
+            }
+            "recipes" -> {
+                binding.recipesTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_selected_background)
+                binding.recipesTab.setTextColor(resources.getColor(com.estaciondulce.app.R.color.white, null))
+                binding.infoTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_unselected_background)
+                binding.infoTab.setTextColor(resources.getColor(com.estaciondulce.app.R.color.text_secondary, null))
+                
+                binding.recipesTabContent.visibility = android.view.View.VISIBLE
+                binding.infoTabContent.visibility = android.view.View.GONE
+                
+                repository.recipesLiveData.value?.let { recipes ->
+                    setupRecipesTable(recipes)
+                }
+            }
+        }
+    }
+
+    /**
+     * Sets up the recipes table with recipes that use the current product.
+     */
+    private fun setupRecipesTable(recipes: List<Recipe>) {
+        val currentProductId = currentProduct?.id
+        if (currentProductId.isNullOrEmpty()) {
+            showEmptyRecipesMessage("Sin recetas")
+            return
+        }
+
+        val filteredRecipes = recipes.filter { recipe ->
+            recipe.sections.any { section ->
+                section.products.any { recipeProduct ->
+                    recipeProduct.productId == currentProductId
+                }
+            }
+        }
+
+        if (filteredRecipes.isEmpty()) {
+            showEmptyRecipesMessage("Este producto no se usa en ninguna receta")
+            return
+        }
+
+        val sortedList = filteredRecipes.sortedBy { it.name }
+        val columnConfigs = listOf("Nombre").toColumnConfigs()
+        
+        binding.recipesTable.setupTableWithConfigs(
+            columnConfigs = columnConfigs,
+            data = sortedList,
+            adapter = RecipeTableAdapter(
+                recipeList = sortedList,
+                onRowClick = { recipe ->
+                    openRecipeEditActivity(recipe)
+                },
+                onViewClick = { recipe ->
+                    openRecipeEditActivity(recipe)
+                }
+            ),
+            pageSize = 10,
+            columnValueGetter = { item, columnIndex ->
+                val recipe = item as Recipe
+                when (columnIndex) {
+                    0 -> recipe.name
+                    else -> null
+                }
+            }
+        )
+    }
+
+    /**
+     * Shows an empty state message in the recipes table.
+     */
+    private fun showEmptyRecipesMessage(message: String) {
+        binding.recipesTable.setupTableWithConfigs(
+            columnConfigs = listOf("Nombre").toColumnConfigs(),
+            data = listOf(EmptyRecipeItem(message)),
+            adapter = EmptyRecipeAdapter(
+                recipeList = listOf(EmptyRecipeItem(message)),
+                onRowClick = { },
+                onViewClick = { }
+            ),
+            pageSize = 10,
+            columnValueGetter = { item, _ ->
+                (item as EmptyRecipeItem).message
+            }
+        )
+    }
+
+    /**
+     * Opens RecipeEditActivity with the selected recipe.
+     */
+    private fun openRecipeEditActivity(recipe: Recipe) {
+        val intent = Intent(this, RecipeEditActivity::class.java)
+        intent.putExtra("recipe", recipe)
+        recipeEditActivityLauncher.launch(intent)
     }
 
     /**
@@ -212,5 +371,37 @@ class ProductEditActivity : AppCompatActivity() {
                 }
             )
         }
+    }
+}
+
+/**
+ * Data class to represent an empty state message in the recipes table.
+ */
+data class EmptyRecipeItem(val message: String)
+
+/**
+ * Adapter for showing empty state messages in the recipes table.
+ */
+class EmptyRecipeAdapter(
+    recipeList: List<EmptyRecipeItem>,
+    onRowClick: (EmptyRecipeItem) -> Unit,
+    onViewClick: (EmptyRecipeItem) -> Unit
+) : TableAdapter<EmptyRecipeItem>(recipeList, onRowClick, { }) {
+
+    private val onViewClickCallback = onViewClick
+
+    override fun getCellValues(item: EmptyRecipeItem, position: Int): List<Any> {
+        return listOf(item.message)
+    }
+
+    override fun bindRow(binding: TableRowDynamicBinding, item: EmptyRecipeItem, position: Int) {
+        bindRowContent(binding, getCellValues(item, position))
+        
+        binding.viewIcon.visibility = android.view.View.GONE
+        binding.deleteIcon.visibility = android.view.View.GONE
+        binding.actionIcon.visibility = android.view.View.GONE
+        binding.mapsIcon.visibility = android.view.View.GONE
+        
+        configureIconSpacing(binding)
     }
 }

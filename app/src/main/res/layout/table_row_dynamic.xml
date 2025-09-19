@@ -60,5 +60,15 @@
             android:scaleType="fitCenter"
             android:adjustViewBounds="false"
             android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/viewIcon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_view"
+            android:contentDescription="Ver"
+            android:scaleType="fitCenter"
+            android:adjustViewBounds="false"
+            android:visibility="gone" />
     </LinearLayout>
 </LinearLayout>

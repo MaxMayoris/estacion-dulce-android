@@ -16,9 +16,9 @@ When the user says "haz el release" or similar, follow these steps:
 ### 3. Code Cleanup
 - Remove unnecessary comments (keep only function comments)
 - Remove unused imports and variables
-- Clean up any leftover `//` comments in modified files
 
 ### 4. Check Debug Settings
+- Clean up any leftover `//` comments in files that are not added to git
 - Verify `private val skipLoginForDebug = false` in `LoginActivity.kt`
 - If it's `true`, change it to `false` (prevents accidental debug mode in release)
 - Search all `Log.d` and delete them

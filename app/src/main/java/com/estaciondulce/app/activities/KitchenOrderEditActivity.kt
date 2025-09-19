@@ -11,9 +11,10 @@ import androidx.appcompat.app.AppCompatActivity
 import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.ActivityKitchenOrderEditBinding
 import com.estaciondulce.app.helpers.KitchenOrdersHelper
-import com.estaciondulce.app.models.EKitchenOrderStatus
-import com.estaciondulce.app.models.KitchenOrder
-import com.estaciondulce.app.models.Movement
+import com.estaciondulce.app.models.enums.EDeliveryType
+import com.estaciondulce.app.models.enums.EKitchenOrderStatus
+import com.estaciondulce.app.models.parcelables.KitchenOrder
+import com.estaciondulce.app.models.parcelables.Movement
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.CustomLoader
@@ -56,7 +57,6 @@ class KitchenOrderEditActivity : AppCompatActivity() {
             return
         }
 
-        // Find the movement from the repository
         val movements = FirestoreRepository.movementsLiveData.value ?: emptyList()
         movement = movements.find { it.id == movementId }
 
@@ -76,7 +76,15 @@ class KitchenOrderEditActivity : AppCompatActivity() {
         val person = FirestoreRepository.personsLiveData.value?.find { it.id == movement.personId }
         binding.clientNameValue.text = if (person != null) "${person.name} ${person.lastName}" else "Cliente no encontrado"
 
-        binding.dateValue.text = formatDateToSpanish(movement.movementDate)
+        binding.dateValue.text = formatDateToSpanish(movement.delivery?.date ?: movement.movementDate)
+        
+        val deliveryTypeText = if (movement.delivery?.type == EDeliveryType.SHIPMENT.name) {
+            "Envío"
+        } else {
+            "Retira en local"
+        }
+        binding.deliveryTypeValue.text = deliveryTypeText
+        
         binding.totalValue.text = "$${String.format("%.2f", movement.totalAmount)}"
         
         if (movement.detail.isNotEmpty()) {
@@ -126,7 +134,7 @@ class KitchenOrderEditActivity : AppCompatActivity() {
     private fun checkAndShowMarkAsDeliveredButton() {
         val movement = this.movement ?: return
         
-        val hasNoShipment = movement.shipment == null
+        val hasNoShipment = movement.delivery?.type != EDeliveryType.SHIPMENT.name
         val allItemsReady = kitchenOrders.isNotEmpty() && kitchenOrders.all { it.status == EKitchenOrderStatus.READY }
         val notAlreadyDone = movement.kitchenOrderStatus != EKitchenOrderStatus.DONE
         
@@ -210,7 +218,6 @@ class KitchenOrderEditActivity : AppCompatActivity() {
         itemStatus.text = statusTextValue
         itemStatus.setTextColor(statusColor)
         
-        // Hide button if status is READY (no next step available)
         if (kitchenOrder.status == EKitchenOrderStatus.READY) {
             statusActionButton.visibility = View.GONE
         } else {

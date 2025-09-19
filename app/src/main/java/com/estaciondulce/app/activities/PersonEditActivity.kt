@@ -12,11 +12,12 @@ import androidx.appcompat.app.AppCompatActivity
 import com.estaciondulce.app.databinding.ActivityPersonEditBinding
 import com.estaciondulce.app.helpers.PersonsHelper
 import com.estaciondulce.app.helpers.AddressesHelper
-import com.estaciondulce.app.models.Person
-import com.estaciondulce.app.models.Phone
-import com.estaciondulce.app.models.Movement
-import com.estaciondulce.app.models.Address
-import com.estaciondulce.app.models.EPersonType
+import com.estaciondulce.app.models.parcelables.Person
+import com.estaciondulce.app.models.parcelables.Phone
+import com.estaciondulce.app.models.parcelables.Movement
+import com.estaciondulce.app.models.parcelables.Address
+import com.estaciondulce.app.models.enums.EPersonType
+import com.estaciondulce.app.models.enums.EMovementType
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.CustomLoader
@@ -302,7 +303,7 @@ class PersonEditActivity : AppCompatActivity() {
      * Deletes a movement.
      */
     private fun deleteMovement(movement: Movement) {
-        val movementType = if (movement.type == com.estaciondulce.app.models.EMovementType.PURCHASE) "Compra" else "Venta"
+        val movementType = if (movement.type == com.estaciondulce.app.models.enums.EMovementType.PURCHASE) "Compra" else "Venta"
         val person = repository.personsLiveData.value?.find { it.id == movement.personId }
         val personName = person?.let { "${it.name} ${it.lastName}" } ?: "Persona desconocida"
         val formattedAmount = String.format("%.2f", movement.totalAmount)

@@ -19,15 +19,20 @@ import com.estaciondulce.app.helpers.AddressesHelper
 import com.estaciondulce.app.helpers.MovementsHelper
 import com.estaciondulce.app.helpers.ShipmentSettingsHelper
 import com.estaciondulce.app.helpers.DistanceMatrixHelper
-import com.estaciondulce.app.models.Address
-import com.estaciondulce.app.models.EMovementType
-import com.estaciondulce.app.models.EPersonType
-import com.estaciondulce.app.models.EShipmentStatus
-import com.estaciondulce.app.models.Movement
-import com.estaciondulce.app.models.MovementItem
-import com.estaciondulce.app.models.Person
-import com.estaciondulce.app.models.Shipment
-import com.estaciondulce.app.models.ShipmentSettings
+import com.estaciondulce.app.models.parcelables.Address
+import com.estaciondulce.app.models.enums.EMovementType
+import com.estaciondulce.app.models.enums.EPersonType
+import com.estaciondulce.app.models.enums.EDeliveryType
+import com.estaciondulce.app.models.parcelables.Movement
+import com.estaciondulce.app.models.parcelables.MovementItem
+import com.estaciondulce.app.models.parcelables.Person
+import com.estaciondulce.app.models.parcelables.Delivery
+import com.estaciondulce.app.models.parcelables.ShipmentDetails
+import com.estaciondulce.app.models.parcelables.ShipmentSettings
+import com.estaciondulce.app.models.parcelables.Product
+import com.estaciondulce.app.models.parcelables.Recipe
+import com.estaciondulce.app.models.parcelables.ItemSearchResult
+import com.estaciondulce.app.models.enums.EItemType
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.CustomLoader
@@ -63,6 +68,7 @@ class MovementEditActivity : AppCompatActivity() {
     private val shipmentSettingsHelper = ShipmentSettingsHelper()
     private val distanceMatrixHelper = DistanceMatrixHelper()
     private var calculatedShippingCost: Double = 0.0
+    private var selectedDeliveryType: String = EDeliveryType.PICKUP.name // Track selected delivery type
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -190,7 +196,7 @@ class MovementEditActivity : AppCompatActivity() {
                     binding.discountCard.visibility = View.GONE
                     binding.detailCard.visibility = View.GONE
                     binding.shippingAddressInput.setText("")
-                    binding.shippingCheckBox.isChecked = false
+                    selectDeliveryType("pickup")
                     recalcTotalAmount()
                 }
             }
@@ -219,54 +225,51 @@ class MovementEditActivity : AppCompatActivity() {
                 binding.discountCard.visibility = View.VISIBLE
                 binding.detailCard.visibility = View.VISIBLE
                 
-                val hasShipment = movement.shipment != null
-                binding.shippingCheckBox.isChecked = hasShipment
-                
-                if (hasShipment) {
-                    val shippingCost = movement.shipment?.cost ?: 0.0
-                    val calculatedCost = movement.shipment?.calculatedCost ?: 0.0
+                movement.delivery?.let { delivery ->
+                    val isShipment = delivery.type == EDeliveryType.SHIPMENT.name
+                    selectDeliveryType(if (isShipment) EDeliveryType.SHIPMENT.name else EDeliveryType.PICKUP.name)
                     
-                    // Load shipping cost into the input
-                    binding.finalShippingCostInput.setText(String.format("%.2f", shippingCost))
-                    calculatedShippingCost = calculatedCost
+                    selectedDeliveryDate = delivery.date
+                    binding.deliveryDateTimeInput.setText(formatDateTime(delivery.date))
                     
-                    binding.shippingAddressContainer.visibility = View.VISIBLE
-                    binding.shippingDetailsContainer.visibility = View.VISIBLE
-                    
-                    movement.shipment?.date?.let { shipmentDate ->
-                        selectedDeliveryDate = shipmentDate
-                        binding.deliveryDateTimeInput.setText(formatDateTime(shipmentDate))
-                    }
-                    
-                    if (movement.shipment?.addressId?.isNotEmpty() == true) {
-                        // Load address from person's addresses
-                        val movementPersonId = movement.personId
-                        addressesHelper.getAddressesForPerson(
-                            personId = movementPersonId,
-                            onSuccess = { addresses ->
-                                val shipment = movement.shipment
-                                val address = addresses.find { it.id == shipment.addressId }
-                                if (address != null) {
-                                    selectedAddress = address
-                                    binding.shippingAddressInput.setText("${address.label}: ${address.formattedAddress}")
-                                } else {
-                                    // Fallback to formatted address from shipment
-                                    val fallbackText = shipment.formattedAddress
+                    if (isShipment) {
+                        val shippingCost = delivery.shipment?.cost ?: 0.0
+                        val calculatedCost = delivery.shipment?.calculatedCost ?: 0.0
+                        
+                        binding.finalShippingCostInput.setText(String.format("%.2f", shippingCost))
+                        calculatedShippingCost = calculatedCost
+                        
+                        binding.shippingAddressContainer.visibility = View.VISIBLE
+                        binding.shippingDetailsContainer.visibility = View.VISIBLE
+                        
+                        if (delivery.shipment?.addressId?.isNotEmpty() == true) {
+                            val movementPersonId = movement.personId
+                            addressesHelper.getAddressesForPerson(
+                                personId = movementPersonId,
+                                onSuccess = { addresses ->
+                                    val address = addresses.find { it.id == delivery.shipment.addressId }
+                                    if (address != null) {
+                                        selectedAddress = address
+                                        binding.shippingAddressInput.setText("${address.label}: ${address.formattedAddress}")
+                                    } else {
+                                        val fallbackText = delivery.shipment.formattedAddress
+                                        binding.shippingAddressInput.setText(fallbackText)
+                                        CustomToast.showWarning(this@MovementEditActivity, "Dirección original no encontrada en la lista actual")
+                                    }
+                                },
+                                onError = { _ ->
+                                    val fallbackText = delivery.shipment.formattedAddress
                                     binding.shippingAddressInput.setText(fallbackText)
-                                    CustomToast.showWarning(this@MovementEditActivity, "Dirección original no encontrada en la lista actual")
+                                    CustomToast.showError(this@MovementEditActivity, "Error al cargar direcciones guardadas")
                                 }
-                            },
-                            onError = { _ ->
-                                // Fallback to formatted address from shipment
-                                val shipment = movement.shipment
-                                val fallbackText = shipment.formattedAddress
-                                binding.shippingAddressInput.setText(fallbackText)
-                                CustomToast.showError(this@MovementEditActivity, "Error al cargar direcciones guardadas")
-                            }
-                        )
+                            )
+                        }
+                    } else {
+                        binding.shippingAddressContainer.visibility = View.VISIBLE
+                        binding.shippingDetailsContainer.visibility = View.VISIBLE
                     }
-                } else {
-                    clearShipmentData()
+                } ?: run {
+                    clearDeliveryData()
                 }
                 
                 val discountItem = movement.items.find { it.collection == "custom" && it.collectionId == "discount" }
@@ -278,7 +281,6 @@ class MovementEditActivity : AppCompatActivity() {
                     discountAmount = 0.0
                 }
                 
-                // Load detail if exists
                 binding.detailInput.setText(movement.detail)
             } else {
                 binding.shippingRow.visibility = View.GONE
@@ -297,22 +299,9 @@ class MovementEditActivity : AppCompatActivity() {
         } ?: run {
             binding.dateInput.setText(formatDateTime(selectedDate))
         }
-        binding.shippingCheckBox.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                binding.shippingAddressContainer.visibility = View.VISIBLE
-                binding.shippingDetailsContainer.visibility = View.VISIBLE
-            } else {
-                if (hasExistingShipmentData()) {
-                    showShipmentRemovalConfirmation()
-                } else {
-                    clearShipmentData()
-                }
-            }
-        }
+        setupDeliveryTypeSelector()
         
-        // Configure shipping cost calculation
         
-        // Initialize shipment settings
         shipmentSettingsHelper.startListening()
         shipmentSettingsHelper.shipmentSettings.observe(this) { _ ->
         }
@@ -336,13 +325,11 @@ class MovementEditActivity : AppCompatActivity() {
         val address = data?.getParcelableExtra<Address>("result_address")
             
             if (address != null) {
-                // Get the selected person to save the address
                 val selectedPersonName = binding.personSpinner.text.toString()
                 val selectedPerson = personsList.find { "${it.name} ${it.lastName}" == selectedPersonName }
                 
                 if (selectedPerson != null) {
                     
-                    // Save the address to Firestore
                     addressesHelper.addAddressToPerson(
                         personId = selectedPerson.id,
                         address = address,
@@ -387,7 +374,6 @@ class MovementEditActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Clean up listeners
         shipmentSettingsHelper.stopListening()
     }
 
@@ -491,7 +477,6 @@ class MovementEditActivity : AppCompatActivity() {
 
         addressesRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
 
-        // Load addresses for the selected person
         addressesHelper.getAddressesForPerson(
             personId = selectedPerson.id,
             onSuccess = { addresses ->
@@ -505,7 +490,6 @@ class MovementEditActivity : AppCompatActivity() {
                     val displayText = "${selectedAddress.label}: ${selectedAddress.formattedAddress}"
                     binding.shippingAddressInput.setText(displayText)
                     
-                    // Calculate shipping cost automatically when address is selected
                     calculateShippingCostForAddress(selectedAddress)
                     
                     dialog.dismiss()
@@ -521,7 +505,6 @@ class MovementEditActivity : AppCompatActivity() {
                     emptyState.visibility = View.GONE
                 }
 
-                // Search functionality
                 searchEditText.addTextChangedListener(object : android.text.TextWatcher {
                     override fun afterTextChanged(s: android.text.Editable?) {}
                     override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -702,6 +685,82 @@ class MovementEditActivity : AppCompatActivity() {
         return sdf.format(date)
     }
 
+    /**
+     * Sets up the delivery type selector with visual feedback.
+     */
+    private fun setupDeliveryTypeSelector() {
+        selectDeliveryType(EDeliveryType.PICKUP.name)
+        
+        binding.pickupOptionCard.setOnClickListener {
+            selectDeliveryType(EDeliveryType.PICKUP.name)
+        }
+        
+        binding.shipmentOptionCard.setOnClickListener {
+            selectDeliveryType(EDeliveryType.SHIPMENT.name)
+        }
+    }
+    
+    /**
+     * Updates the visual state of delivery type selector and shows/hides appropriate fields.
+     */
+    private fun selectDeliveryType(type: String) {
+        selectedDeliveryType = type
+        
+        if (type == EDeliveryType.PICKUP.name) {
+            binding.pickupOptionCard.setCardBackgroundColor(resources.getColor(com.estaciondulce.app.R.color.button_gradient_start, null))
+            binding.pickupOptionCard.setStrokeColor(resources.getColor(com.estaciondulce.app.R.color.button_gradient_start, null))
+            binding.pickupOptionCard.setStrokeWidth(2)
+            binding.pickupTitleText.setTextColor(resources.getColor(com.estaciondulce.app.R.color.white, null))
+            binding.pickupSubtitleText.setTextColor(resources.getColor(com.estaciondulce.app.R.color.white, null))
+            binding.pickupIcon.setColorFilter(resources.getColor(com.estaciondulce.app.R.color.white, null))
+            
+            binding.shipmentOptionCard.setCardBackgroundColor(resources.getColor(com.estaciondulce.app.R.color.white, null))
+            binding.shipmentOptionCard.setStrokeColor(resources.getColor(com.estaciondulce.app.R.color.button_gradient_start, null))
+            binding.shipmentOptionCard.setStrokeWidth(1)
+            binding.shipmentTitleText.setTextColor(resources.getColor(com.estaciondulce.app.R.color.text_secondary, null))
+            binding.shipmentSubtitleText.setTextColor(resources.getColor(com.estaciondulce.app.R.color.text_secondary, null))
+            binding.shipmentIcon.setColorFilter(resources.getColor(com.estaciondulce.app.R.color.text_secondary, null))
+            
+            binding.shippingAddressContainer.visibility = View.GONE
+            binding.shippingDetailsContainer.visibility = View.VISIBLE
+            binding.shippingCostLayout.visibility = View.GONE
+            binding.deliveryDateTimeLayout.hint = "Fecha y hora de entrega"
+            
+            selectedAddress = null
+            calculatedShippingCost = 0.0
+            binding.shippingAddressInput.setText("")
+            binding.finalShippingCostInput.setText("0.00")
+            recalcTotalAmount()
+            
+        } else {
+            binding.shipmentOptionCard.setCardBackgroundColor(resources.getColor(com.estaciondulce.app.R.color.button_gradient_start, null))
+            binding.shipmentOptionCard.setStrokeColor(resources.getColor(com.estaciondulce.app.R.color.button_gradient_start, null))
+            binding.shipmentOptionCard.setStrokeWidth(2)
+            binding.shipmentTitleText.setTextColor(resources.getColor(com.estaciondulce.app.R.color.white, null))
+            binding.shipmentSubtitleText.setTextColor(resources.getColor(com.estaciondulce.app.R.color.white, null))
+            binding.shipmentIcon.setColorFilter(resources.getColor(com.estaciondulce.app.R.color.white, null))
+            
+            binding.pickupOptionCard.setCardBackgroundColor(resources.getColor(com.estaciondulce.app.R.color.white, null))
+            binding.pickupOptionCard.setStrokeColor(resources.getColor(com.estaciondulce.app.R.color.button_gradient_start, null))
+            binding.pickupOptionCard.setStrokeWidth(1)
+            binding.pickupTitleText.setTextColor(resources.getColor(com.estaciondulce.app.R.color.text_primary, null))
+            binding.pickupSubtitleText.setTextColor(resources.getColor(com.estaciondulce.app.R.color.text_secondary, null))
+            binding.pickupIcon.setColorFilter(resources.getColor(com.estaciondulce.app.R.color.text_secondary, null))
+            
+            binding.shippingAddressContainer.visibility = View.VISIBLE
+            binding.shippingDetailsContainer.visibility = View.VISIBLE
+            binding.shippingCostLayout.visibility = View.VISIBLE
+            binding.deliveryDateTimeLayout.hint = "Fecha y hora de envío"
+        }
+    }
+    
+    /**
+     * Gets the currently selected delivery type.
+     */
+    private fun getSelectedDeliveryType(): String {
+        return selectedDeliveryType
+    }
+
     private fun formatDateTime(date: Date): String {
         val sdf = SimpleDateFormat("dd MMM HH:mm", Locale("es"))
         val formatted = sdf.format(date)
@@ -709,9 +768,9 @@ class MovementEditActivity : AppCompatActivity() {
     }
 
     /**
-     * Checks if there is existing shipment data that would require confirmation to remove.
+     * Checks if there is existing delivery data that would require confirmation to remove.
      */
-    private fun hasExistingShipmentData(): Boolean {
+    private fun hasExistingDeliveryData(): Boolean {
         val cost = binding.finalShippingCostInput.text.toString().toDoubleOrNull() ?: 0.0
         val address = binding.shippingAddressInput.text.toString().trim()
         val hasDate = selectedDeliveryDate != null
@@ -735,10 +794,10 @@ class MovementEditActivity : AppCompatActivity() {
             itemName = "el envío a '$personName'",
             itemType = "envío",
             onConfirm = {
-                clearShipmentData()
+                clearDeliveryData()
             },
             onCancel = {
-                binding.shippingCheckBox.isChecked = true
+                selectDeliveryType("shipment")
             }
         )
     }
@@ -776,16 +835,13 @@ class MovementEditActivity : AppCompatActivity() {
                     return@runOnUiThread
                 }
                 
-                // Calculate shipping cost using new formula
                 calculatedShippingCost = distanceMatrixHelper.calculateShippingCost(
                     distance, settings.fuelPrice, settings.litersPerKm
                 )
                 
-                // Update UI with 2 decimal places
                 val formattedCost = String.format("%.2f", calculatedShippingCost)
                 binding.finalShippingCostInput.setText(formattedCost)
                 
-                // Show toast with distance and cost
                 val formattedDistance = String.format("%.2f", distance)
                 CustomToast.showSuccess(this, "Distancia: ${formattedDistance} km - Costo: $${formattedCost}")
                 recalcTotalAmount()
@@ -794,12 +850,13 @@ class MovementEditActivity : AppCompatActivity() {
     }
 
     /**
-     * Clears all shipment data and hides related UI elements.
+     * Clears all delivery data and resets UI elements.
      */
-    private fun clearShipmentData() {
-        binding.shippingAddressContainer.visibility = View.GONE
-        binding.shippingDetailsContainer.visibility = View.GONE
+    private fun clearDeliveryData() {
+        binding.shippingAddressContainer.visibility = View.VISIBLE
+        binding.shippingDetailsContainer.visibility = View.VISIBLE
         binding.deliveryDateTimeInput.setText("")
+        binding.deliveryDateTimeLayout.hint = "Fecha y hora de entrega"
         binding.shippingAddressInput.setText("")
         binding.shippingAddressInput.hint = "Seleccionar dirección"
         binding.finalShippingCostInput.setText("0.00")
@@ -819,7 +876,7 @@ class MovementEditActivity : AppCompatActivity() {
         binding.subtotalSection.visibility = if (movementItems.isNotEmpty()) View.VISIBLE else View.GONE
         
         val shippingCost =
-            if (binding.shippingRow.visibility == View.VISIBLE && binding.shippingCheckBox.isChecked) {
+            if (binding.shippingRow.visibility == View.VISIBLE && getSelectedDeliveryType() == EDeliveryType.SHIPMENT.name) {
                 binding.finalShippingCostInput.text.toString().toDoubleOrNull() ?: 0.0
             } else 0.0
         
@@ -877,7 +934,7 @@ class MovementEditActivity : AppCompatActivity() {
                     CustomToast.showError(this, "Este ítem ya fue agregado al movimiento.")
                 } else {
                     val costValue = when (selectedItem.type) {
-                        com.estaciondulce.app.models.ItemType.PRODUCT -> {
+                        EItemType.PRODUCT -> {
                             if (isPurchase) {
                                 val cost = repository.productsLiveData.value?.find { it.id == selectedItem.id }?.cost ?: 0.0
                                 if (cost <= 0.0) 1.0 else cost
@@ -885,7 +942,7 @@ class MovementEditActivity : AppCompatActivity() {
                                 selectedItem.price
                             }
                         }
-                        com.estaciondulce.app.models.ItemType.RECIPE -> {
+                        EItemType.RECIPE -> {
                             val recipe = repository.recipesLiveData.value?.find { it.id == selectedItem.id }
                             val cost = if (isPurchase) recipe?.cost ?: 0.0 else recipe?.salePrice ?: 0.0
                             if (cost <= 0.0) 1.0 else cost
@@ -993,7 +1050,6 @@ class MovementEditActivity : AppCompatActivity() {
                 return false
             }
             
-            // Validate detail field
             val detail = binding.detailInput.text.toString().trim()
             if (detail.length > 128) {
                 CustomToast.showError(this, "El detalle no puede superar los 128 caracteres.")
@@ -1001,19 +1057,17 @@ class MovementEditActivity : AppCompatActivity() {
             }
         }
         
-        if (movementTypeText == "Venta" && binding.shippingCheckBox.isChecked) {
+        if (movementTypeText == "Venta" && getSelectedDeliveryType() == EDeliveryType.SHIPMENT.name) {
             if (selectedAddress == null) {
                 CustomToast.showError(this, "Debe seleccionar una dirección de envío.")
                 return false
             }
             
-            // Validate that shipping cost has been calculated
             if (calculatedShippingCost <= 0) {
                 CustomToast.showError(this, "Debe calcular el costo de envío antes de guardar.")
                 return false
             }
             
-            // Validate that final shipping cost is set
             val finalCostStr = binding.finalShippingCostInput.text.toString().trim()
             if (finalCostStr.isEmpty()) {
                 CustomToast.showError(this, "El costo final de envío es obligatorio.")
@@ -1030,6 +1084,12 @@ class MovementEditActivity : AppCompatActivity() {
                 return false
             }
         }
+        
+        if (movementTypeText == "Venta" && selectedDeliveryDate == null) {
+            CustomToast.showError(this, "La fecha de entrega es obligatoria.")
+            return false
+        }
+        
         return true
     }
 
@@ -1044,24 +1104,34 @@ class MovementEditActivity : AppCompatActivity() {
         val movementType = if (movementTypeText == "Venta") EMovementType.SALE else EMovementType.PURCHASE
         val totalAmount = binding.totalAmountInput.text.toString().trim().toDoubleOrNull() ?: 0.0
         
-        val shipment = if (movementType == EMovementType.SALE) {
-            if (binding.shippingCheckBox.isChecked && selectedAddress != null) {
+        val delivery = if (movementType == EMovementType.SALE) {
+            val deliveryType = getSelectedDeliveryType()
+            
+            val deliveryData = if (deliveryType == EDeliveryType.SHIPMENT.name && selectedAddress != null) {
                 val finalShippingCost =
                     binding.finalShippingCostInput.text.toString().trim().toDoubleOrNull() ?: 0.0
-                val shipmentData = Shipment(
+                val shipmentDetails = ShipmentDetails(
                     addressId = selectedAddress!!.id,
                     formattedAddress = selectedAddress!!.formattedAddress,
                     lat = selectedAddress!!.latitude ?: 0.0,
                     lng = selectedAddress!!.longitude ?: 0.0,
-                    calculatedCost = calculatedShippingCost,
-                    cost = finalShippingCost,
-                    date = selectedDeliveryDate,
-                    status = if (currentMovement == null) EShipmentStatus.PENDING else (currentMovement!!.shipment?.status ?: EShipmentStatus.PENDING)
+                    cost = String.format("%.2f", finalShippingCost).toDouble(),
+                    calculatedCost = String.format("%.2f", calculatedShippingCost).toDouble()
                 )
-                shipmentData
+                Delivery(
+                    type = deliveryType,
+                    date = selectedDeliveryDate ?: Date(),
+                    status = if (currentMovement == null) "PENDING" else (currentMovement!!.delivery?.status ?: "PENDING"),
+                    shipment = shipmentDetails
+                )
             } else {
-                null // Save as null when checkbox is unchecked
+                Delivery(
+                    type = deliveryType,
+                    date = selectedDeliveryDate ?: Date(),
+                    status = if (currentMovement == null) "PENDING" else (currentMovement!!.delivery?.status ?: "PENDING")
+                )
             }
+            deliveryData
         } else null
         
         val itemsToSave = movementItems.toMutableList()
@@ -1086,7 +1156,7 @@ class MovementEditActivity : AppCompatActivity() {
             movementDate = selectedDate,
             totalAmount = totalAmount,
             items = itemsToSave,
-            shipment = shipment,
+            delivery = delivery,
             detail = detail
         )
     }
@@ -1152,29 +1222,26 @@ class MovementEditActivity : AppCompatActivity() {
     /**
      * Builds search results based on movement type and filters products with valid salePrice.
      */
-    private fun buildSearchResults(products: List<com.estaciondulce.app.models.Product>, recipes: List<com.estaciondulce.app.models.Recipe>, isPurchase: Boolean): List<com.estaciondulce.app.models.ItemSearchResult> {
-        val results = mutableListOf<com.estaciondulce.app.models.ItemSearchResult>()
+    private fun buildSearchResults(products: List<Product>, recipes: List<Recipe>, isPurchase: Boolean): List<ItemSearchResult> {
+        val results = mutableListOf<ItemSearchResult>()
         
         if (isPurchase) {
-            // For purchases: show ALL products (no salePrice filter needed)
             val sortedProducts = products.sortedBy { it.name }
             for (product in sortedProducts) {
-                results.add(com.estaciondulce.app.models.ItemSearchResult(
+                results.add(ItemSearchResult(
                     id = product.id,
                     name = product.name,
-                    type = com.estaciondulce.app.models.ItemType.PRODUCT,
+                    type = EItemType.PRODUCT,
                     price = product.cost,
                     collection = "products",
                     collectionId = product.id
                 ))
             }
         } else {
-            // For sales: show recipes + products with salePrice > 0
-            // Add custom item option for sales
-            results.add(com.estaciondulce.app.models.ItemSearchResult(
+            results.add(ItemSearchResult(
                 id = "custom",
                 name = "Personalizar item",
-                type = com.estaciondulce.app.models.ItemType.PRODUCT, // Use PRODUCT type for custom items
+                type = EItemType.PRODUCT, // Use PRODUCT type for custom items
                 price = 0.0,
                 collection = "custom",
                 collectionId = ""
@@ -1182,26 +1249,25 @@ class MovementEditActivity : AppCompatActivity() {
             
             val sortedRecipes = recipes.sortedBy { it.name }
             for (recipe in sortedRecipes) {
-                results.add(com.estaciondulce.app.models.ItemSearchResult(
+                results.add(ItemSearchResult(
                     id = recipe.id,
                     name = recipe.name,
-                    type = com.estaciondulce.app.models.ItemType.RECIPE,
+                    type = EItemType.RECIPE,
                     price = recipe.salePrice,
                     collection = "recipes",
                     collectionId = recipe.id
                 ))
             }
             
-            // Add products with salePrice > 0
             val productsWithSalePrice = products.filter { product ->
                 product.salePrice > 0
             }.sortedBy { it.name }
             
             for (product in productsWithSalePrice) {
-                results.add(com.estaciondulce.app.models.ItemSearchResult(
+                results.add(ItemSearchResult(
                     id = product.id,
                     name = product.name,
-                    type = com.estaciondulce.app.models.ItemType.PRODUCT,
+                    type = EItemType.PRODUCT,
                     price = product.salePrice,
                     collection = "products",
                     collectionId = product.id

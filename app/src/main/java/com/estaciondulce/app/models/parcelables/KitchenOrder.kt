@@ -1,4 +1,4 @@
-package com.estaciondulce.app.models
+package com.estaciondulce.app.models.parcelables
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
@@ -13,7 +13,7 @@ data class KitchenOrder(
     val productId: String = "",
     val name: String = "",
     val quantity: Double = 0.0,
-    val status: EKitchenOrderStatus = EKitchenOrderStatus.PENDING,
+    val status: com.estaciondulce.app.models.enums.EKitchenOrderStatus = com.estaciondulce.app.models.enums.EKitchenOrderStatus.PENDING,
     val createdAt: Date = Date(),
     val updatedAt: Date = Date()
-) : Parcelable, Identifiable
+) : Parcelable, com.estaciondulce.app.models.Identifiable

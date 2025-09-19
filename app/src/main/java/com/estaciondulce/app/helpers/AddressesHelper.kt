@@ -1,6 +1,6 @@
 package com.estaciondulce.app.helpers
 
-import com.estaciondulce.app.models.Address
+import com.estaciondulce.app.models.parcelables.Address
 import com.google.firebase.firestore.FirebaseFirestore
 
 class AddressesHelper(private val genericHelper: GenericHelper = GenericHelper()) {

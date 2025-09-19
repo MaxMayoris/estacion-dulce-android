@@ -1,7 +1,7 @@
 package com.estaciondulce.app.helpers
 
-import com.estaciondulce.app.models.KitchenOrder
-import com.estaciondulce.app.models.EKitchenOrderStatus
+import com.estaciondulce.app.models.parcelables.KitchenOrder
+import com.estaciondulce.app.models.enums.EKitchenOrderStatus
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import java.util.*

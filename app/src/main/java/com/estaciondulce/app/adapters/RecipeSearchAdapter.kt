@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.ItemRecipeSearchBinding
-import com.estaciondulce.app.models.Recipe
+import com.estaciondulce.app.models.parcelables.Recipe
 
 class RecipeSearchAdapter(
     private var recipes: List<Recipe>,
@@ -42,6 +42,11 @@ class RecipeSearchAdapter(
         notifyDataSetChanged()
     }
 }
+
+
+
+
+
 
 
 

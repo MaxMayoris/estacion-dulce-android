@@ -3,13 +3,12 @@ package com.estaciondulce.app.utils
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import com.estaciondulce.app.R
 
 /**
- * Custom Toast component with styled layout and icons for different message types.
+ * Custom Toast component with styled layout and colors for different message types.
  * Provides a consistent visual experience across the app.
  */
 class CustomToast private constructor(
@@ -106,32 +105,23 @@ class CustomToast private constructor(
         val inflater = LayoutInflater.from(context)
         val view = inflater.inflate(R.layout.custom_toast, null)
 
-        val iconView = view.findViewById<ImageView>(R.id.toastIcon)
         val messageView = view.findViewById<TextView>(R.id.toastMessage)
 
         // Set message
         messageView.text = message
 
-        // Set icon and colors based on type
+        // Set colors based on type
         when (type) {
             ToastType.SUCCESS -> {
-                iconView.setImageResource(R.drawable.ic_check_circle)
-                iconView.setColorFilter(context.getColor(R.color.success_green))
                 view.setBackgroundResource(R.drawable.toast_success_background)
             }
             ToastType.ERROR -> {
-                iconView.setImageResource(R.drawable.ic_error)
-                iconView.setColorFilter(context.getColor(R.color.error_red))
                 view.setBackgroundResource(R.drawable.toast_error_background)
             }
             ToastType.INFO -> {
-                iconView.setImageResource(R.drawable.ic_info)
-                iconView.setColorFilter(context.getColor(R.color.info_blue))
                 view.setBackgroundResource(R.drawable.toast_info_background)
             }
             ToastType.WARNING -> {
-                iconView.setImageResource(R.drawable.ic_warning)
-                iconView.setColorFilter(context.getColor(R.color.warning_orange))
                 view.setBackgroundResource(R.drawable.toast_warning_background)
             }
         }

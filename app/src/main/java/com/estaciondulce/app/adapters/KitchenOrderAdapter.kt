@@ -9,8 +9,8 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.TableRowDynamicBinding
-import com.estaciondulce.app.models.EKitchenOrderStatus
-import com.estaciondulce.app.models.Movement
+import com.estaciondulce.app.models.enums.EKitchenOrderStatus
+import com.estaciondulce.app.models.parcelables.Movement
 import com.estaciondulce.app.models.TableColumnConfig
 
 class KitchenOrderAdapter(

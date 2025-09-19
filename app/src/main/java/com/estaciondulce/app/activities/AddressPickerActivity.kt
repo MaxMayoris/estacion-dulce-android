@@ -12,7 +12,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.estaciondulce.app.BuildConfig
 import com.estaciondulce.app.R
-import com.estaciondulce.app.models.Address
+import com.estaciondulce.app.models.parcelables.Address
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.CustomLoader
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -320,14 +320,9 @@ class AddressPickerActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap
             if (isEditMode && addressToEdit != null) {
                 loadExistingAddress()
             } else {
-                // Check location permission and get current location
-                if (checkLocationPermission()) {
-                    getCurrentLocation()
-                } else {
-                    // Default to San Juan Capital, Argentina if no permission
-                    val defaultLocation = LatLng(-31.5375, -68.5364) // San Juan Capital coordinates
-                    map.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 13f))
-                }
+                // For new addresses, always show San Juan, Argentina by default
+                val defaultLocation = LatLng(-31.5375, -68.5364) // San Juan Capital coordinates
+                map.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 13f))
             }
         } catch (e: Exception) {
             android.util.Log.e("AddressPicker", "Error in onMapReady: ${e.message}", e)
@@ -658,7 +653,10 @@ class AddressPickerActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 getCurrentLocation()
             } else {
-                CustomToast.showError(this, "Permiso de ubicación denegado")
+                // Show default location if permission denied
+                val defaultLocation = LatLng(-31.5375, -68.5364) // San Juan Capital coordinates
+                map.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 13f))
+                CustomToast.showError(this, "Permiso de ubicación denegado. Mostrando ubicación por defecto.")
             }
         }
     }

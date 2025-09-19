@@ -6,7 +6,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.estaciondulce.app.databinding.ItemMovementBinding
-import com.estaciondulce.app.models.MovementItem
+import com.estaciondulce.app.models.parcelables.MovementItem
 
 class MovementItemsAdapter(
     private var items: MutableList<MovementItem>,

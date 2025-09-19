@@ -1,7 +1,7 @@
 package com.estaciondulce.app.adapters
 
 import com.estaciondulce.app.databinding.TableRowDynamicBinding
-import com.estaciondulce.app.models.Person
+import com.estaciondulce.app.models.parcelables.Person
 
 class PersonAdapter(
     personList: List<Person>,

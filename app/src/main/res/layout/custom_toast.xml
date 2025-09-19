@@ -4,33 +4,25 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:gravity="center_vertical"
+    android:gravity="center"
     android:padding="16dp"
     android:layout_margin="16dp"
     android:minWidth="200dp"
     android:maxWidth="300dp">
 
-    <!-- Toast Icon -->
-    <ImageView
-        android:id="@+id/toastIcon"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:layout_marginEnd="12dp"
-        android:contentDescription="Toast Icon" />
-
     <!-- Toast Message -->
     <TextView
         android:id="@+id/toastMessage"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
         android:text="Mensaje del toast"
         android:textSize="14sp"
         android:textColor="@color/white"
         android:textStyle="normal"
         android:fontFamily="sans-serif"
         android:maxLines="3"
-        android:ellipsize="end" />
+        android:ellipsize="end"
+        android:gravity="center" />
 
 </LinearLayout>
 

@@ -11,8 +11,8 @@ import com.estaciondulce.app.activities.PersonEditActivity
 import com.estaciondulce.app.adapters.PersonAdapter
 import com.estaciondulce.app.databinding.FragmentPersonBinding
 import com.estaciondulce.app.helpers.PersonsHelper
-import com.estaciondulce.app.models.Person
-import com.estaciondulce.app.models.EPersonType
+import com.estaciondulce.app.models.parcelables.Person
+import com.estaciondulce.app.models.enums.EPersonType
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.DeleteConfirmationDialog
 import com.estaciondulce.app.utils.CustomToast

@@ -1,7 +1,8 @@
-package com.estaciondulce.app.models
+package com.estaciondulce.app.models.parcelables
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
+import com.estaciondulce.app.models.enums.EItemType
 
 /**
  * Unified model for search results that can represent either products or recipes.
@@ -10,13 +11,8 @@ import kotlinx.parcelize.Parcelize
 data class ItemSearchResult(
     val id: String = "",
     val name: String = "",
-    val type: ItemType = ItemType.PRODUCT,
+    val type: EItemType = EItemType.PRODUCT,
     val price: Double = 0.0,
     val collection: String = "",
     val collectionId: String = ""
 ) : Parcelable
-
-enum class ItemType {
-    PRODUCT,
-    RECIPE
-}
