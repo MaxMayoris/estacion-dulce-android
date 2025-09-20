@@ -22,3 +22,6 @@ app/src/prod/google-services.json
 
 # Gradle properties with sensitive data
 gradle.properties
+
+# Release rules (internal use only)
+release-rules.mdc

@@ -1,0 +1,48 @@
+---
+description: Development rules for EstacionDulceApp
+globs:
+alwaysApply: true
+---
+
+## Development Rules
+
+### Code Comments
+- **NO add single-line comments** (`//`) during development - they create visual noise
+- **Add function descriptions in English** using block comments (`/* */`) for important functions
+- **Use descriptive variable/function names** instead of explanatory comments
+
+### Function Documentation
+- **Important functions must have English descriptions** using block comments:
+```kotlin
+/**
+ * Cleans WhatsApp phone numbers by removing spaces, country codes, and mobile prefixes
+ * @param phoneText Raw phone number text from clipboard
+ * @return Cleaned phone number with only digits
+ */
+private fun cleanWhatsAppPhoneNumber(phoneText: String): String
+```
+
+### Compilation Verification
+- **ALWAYS run compilation check** after completing instructions that modify code
+- **Use command**: `.\gradlew compileDevDebugKotlin`
+- **DO NOT finish until ALL compilation errors are resolved**
+- **Fix ALL warnings and errors** before considering task complete
+
+### Development Workflow
+1. Make code changes
+2. Run `.\gradlew compileDevDebugKotlin`
+3. Fix any compilation errors/warnings
+4. Repeat until compilation is clean
+5. Only then consider the task complete
+
+### Debug Logging
+- **When adding debug logs** to troubleshoot functionality issues, **ALWAYS provide the filter command** for the user to see the logs
+- **Use format**: `adb logcat | grep "TAG_NAME"` or `adb logcat | findstr "TAG_NAME"`
+- **Example**:
+```kotlin
+// Add debug log
+Log.d("PhoneCleaner", "Input: $phoneText, Output: $cleaned")
+
+// Tell user the filter command:
+// "Use this filter to see debug logs: adb logcat | findstr PhoneCleaner"
+```

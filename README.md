@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v4.4** - Enhanced WhatsApp phone number cleaning with automatic province detection, fixed double title in edit phone dialog, updated phone delete dialog to follow app standards, and improved address parsing with better city extraction
 - **v4.3** - Refactor model classes, implemented shipment to delivery system migration, added product-recipe relationship tabs in ProductEditActivity, enhanced CustomToast with centered text and removed icons, implemented deletion validations for products and recipes with dependency checks
 - **v4.1** - Added customizable recipes feature with optional product/cost validation bypass, improved address management with draft mode for person creation, enhanced Google Maps integration with dropdown address suggestions, updated movement item pricing to use 1.0 as default instead of 0.01, and implemented consistent modal styling across status change dialogs
 - **v4.0** - Added product sales with salePrice field, implemented unified product/recipe search in sales, created shipment management system with status tracking, enhanced ProductEditActivity with improved UI layout, and implemented comprehensive kitchen orders system with automatic order creation, status tracking, and delivery integration

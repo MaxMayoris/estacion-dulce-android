@@ -47,7 +47,6 @@ class PersonEditActivity : AppCompatActivity() {
     private var tabsVisible = false
     private var emptyMessageView: android.widget.TextView? = null
     
-    // Draft system for addresses - changes are kept in memory until save
     private val originalAddresses = mutableListOf<Address>()
     private val newAddresses = mutableListOf<Address>()
     private val editedAddresses = mutableListOf<Address>()
@@ -69,12 +68,10 @@ class PersonEditActivity : AppCompatActivity() {
         val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, personTypes)
         binding.personTypeSpinner.setAdapter(spinnerAdapter)
 
-        // Initialize phones
         currentPerson?.let { person ->
             binding.personNameInput.setText(person.name)
             binding.personLastNameInput.setText(person.lastName)
             
-            // Load existing phones
             person.phones.forEach { phone ->
                 addPhoneDisplayItem(phone.phoneNumberPrefix, phone.phoneNumberSuffix)
             }
@@ -87,17 +84,13 @@ class PersonEditActivity : AppCompatActivity() {
         binding.addPhoneButton.setOnClickListener { showAddPhoneDialog() }
         binding.addAddressButton.setOnClickListener { showAddAddressDialog() }
         
-        // Set up tabs
         binding.informationTab.setOnClickListener { selectTab("information") }
         binding.movementsTab.setOnClickListener { selectTab("movements") }
         
-        // Set up movements functionality
         binding.addMovementButton.setOnClickListener { addMovement() }
         
-        // Initialize tab visibility based on person state
         initializeTabVisibility()
         
-        // Load movements and addresses if editing existing person
         currentPerson?.let { person ->
             if (person.id.isNotEmpty()) {
                 loadMovements(person.id)
@@ -113,14 +106,12 @@ class PersonEditActivity : AppCompatActivity() {
         val isNewPerson = currentPerson == null || currentPerson?.id?.isEmpty() == true
         
         if (isNewPerson) {
-            // Hide tabs for new persons
             tabsVisible = false
             binding.informationTab.visibility = View.GONE
             binding.movementsTab.visibility = View.GONE
             binding.informationTabContent.visibility = View.VISIBLE
             binding.movementsTabContent.visibility = View.GONE
         } else {
-            // Show tabs for existing persons
             tabsVisible = true
             binding.informationTab.visibility = View.VISIBLE
             binding.movementsTab.visibility = View.VISIBLE
@@ -136,28 +127,23 @@ class PersonEditActivity : AppCompatActivity() {
         
         when (tab) {
             "information" -> {
-                // Update tab appearance
                 binding.informationTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_selected_background)
                 binding.informationTab.setTextColor(getColor(com.estaciondulce.app.R.color.white))
                 binding.movementsTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_unselected_background)
                 binding.movementsTab.setTextColor(getColor(com.estaciondulce.app.R.color.text_secondary))
                 
-                // Show/hide content
                 binding.informationTabContent.visibility = View.VISIBLE
                 binding.movementsTabContent.visibility = View.GONE
             }
             "movements" -> {
-                // Update tab appearance
                 binding.movementsTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_selected_background)
                 binding.movementsTab.setTextColor(getColor(com.estaciondulce.app.R.color.white))
                 binding.informationTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_unselected_background)
                 binding.informationTab.setTextColor(getColor(com.estaciondulce.app.R.color.text_secondary))
                 
-                // Show/hide content
                 binding.informationTabContent.visibility = View.GONE
                 binding.movementsTabContent.visibility = View.VISIBLE
                 
-                // Load movements if not already loaded
                 currentPerson?.let { person ->
                     if (person.id.isNotEmpty()) {
                         loadMovements(person.id)
@@ -182,11 +168,9 @@ class PersonEditActivity : AppCompatActivity() {
         val sortedMovements = movements.sortedByDescending { it.movementDate }
         
         if (sortedMovements.isEmpty()) {
-            // Show empty state message
             binding.movementsTable.visibility = View.GONE
             showEmptyMovementsMessage()
         } else {
-            // Hide empty message and show table
             hideEmptyMovementsMessage()
             binding.movementsTable.visibility = View.VISIBLE
             
@@ -319,7 +303,6 @@ class PersonEditActivity : AppCompatActivity() {
                     onSuccess = {
                         customLoader.hide()
                         CustomToast.showSuccess(this, "$movementType a $personName eliminada correctamente.")
-                        // Reload movements
                         currentPerson?.let { person ->
                             if (person.id.isNotEmpty()) {
                                 loadMovements(person.id)
@@ -337,7 +320,6 @@ class PersonEditActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Reload movements and addresses when returning from other activities
         currentPerson?.let { person ->
             if (person.id.isNotEmpty()) {
                 loadMovements(person.id)
@@ -349,6 +331,102 @@ class PersonEditActivity : AppCompatActivity() {
     /**
      * Shows the add phone dialog.
      */
+    /**
+     * Sets up WhatsApp phone number cleaning functionality for a phone input field
+     */
+    private fun setupWhatsAppPhoneCleaning(
+        phoneNumberInput: com.google.android.material.textfield.TextInputEditText,
+        provinceSpinner: android.widget.AutoCompleteTextView,
+        phonePrefixOptions: List<String>
+    ) {
+        phoneNumberInput.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                checkClipboardForWhatsAppNumber(phoneNumberInput, provinceSpinner, phonePrefixOptions)
+            }
+        }
+
+    }
+
+    private fun cleanWhatsAppPhoneNumber(phoneText: String, selectedAreaCode: String = ""): CleanedPhoneResult {
+        var cleaned = phoneText.replace(Regex("[\\s+\\-]"), "")
+        
+        if (cleaned.startsWith("54") && cleaned.length > 2) {
+            cleaned = cleaned.substring(2)
+        }
+        
+        if (cleaned.startsWith("9") && cleaned.length > 1) {
+            cleaned = cleaned.substring(1)
+        }
+        
+        var foundAreaCode = ""
+        
+        if (selectedAreaCode.isNotEmpty() && cleaned.startsWith(selectedAreaCode) && cleaned.length > selectedAreaCode.length) {
+            cleaned = cleaned.substring(selectedAreaCode.length)
+            foundAreaCode = selectedAreaCode
+        } else {
+            for (i in 3..4) { // Area codes are 3-4 digits
+                if (cleaned.length > i) {
+                    val potentialAreaCode = cleaned.substring(0, i)
+                    if (potentialAreaCode.matches(Regex("\\d{3,4}"))) {
+                        foundAreaCode = potentialAreaCode
+                        cleaned = cleaned.substring(i)
+                        break
+                    }
+                }
+            }
+        }
+        
+        cleaned = cleaned.filter { it.isDigit() }
+        
+        return CleanedPhoneResult(cleaned, foundAreaCode)
+    }
+    
+    data class CleanedPhoneResult(
+        val phoneNumber: String,
+        val areaCode: String
+    )
+
+    private fun checkClipboardForWhatsAppNumber(
+        phoneNumberInput: com.google.android.material.textfield.TextInputEditText,
+        provinceSpinner: android.widget.AutoCompleteTextView,
+        phonePrefixOptions: List<String>
+    ) {
+        val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipData = clipboardManager.primaryClip
+        if (clipData != null && clipData.itemCount > 0) {
+            val clipboardText = clipData.getItemAt(0).text?.toString()
+            if (!clipboardText.isNullOrEmpty()) {
+                val selectedAreaCode = provinceSpinner.text.toString().substringAfter("(").substringBefore(")")
+                val cleanedResult = cleanWhatsAppPhoneNumber(clipboardText, selectedAreaCode)
+                
+                if (cleanedResult.phoneNumber.isNotEmpty() && cleanedResult.phoneNumber.length >= 7) {
+                    phoneNumberInput.setText(cleanedResult.phoneNumber)
+                    phoneNumberInput.setSelection(cleanedResult.phoneNumber.length.coerceAtMost(phoneNumberInput.text?.length ?: 0))
+                    
+                    if (cleanedResult.areaCode.isNotEmpty()) {
+                        val foundProvince = phonePrefixOptions.find { it.contains("(${cleanedResult.areaCode})") }
+                        if (foundProvince != null) {
+                            provinceSpinner.setText(foundProvince, false)
+                            CustomToast.showSuccess(this@PersonEditActivity, "Número de WhatsApp detectado y limpiado. Provincia: ${foundProvince.substringBefore(" (")}")
+                        } else {
+                            val sanJuanPrefix = phonePrefixOptions.find { it.contains("San Juan") }
+                            if (sanJuanPrefix != null) {
+                                provinceSpinner.setText(sanJuanPrefix, false)
+                            }
+                            CustomToast.showSuccess(this@PersonEditActivity, "Número de WhatsApp detectado y limpiado")
+                        }
+                    } else {
+                        val sanJuanPrefix = phonePrefixOptions.find { it.contains("San Juan") }
+                        if (sanJuanPrefix != null) {
+                            provinceSpinner.setText(sanJuanPrefix, false)
+                        }
+                        CustomToast.showSuccess(this@PersonEditActivity, "Número de WhatsApp detectado y limpiado")
+                    }
+                }
+            }
+        }
+    }
+
     private fun showAddPhoneDialog() {
         val dialogView = layoutInflater.inflate(com.estaciondulce.app.R.layout.dialog_add_phone, null)
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
@@ -362,7 +440,6 @@ class PersonEditActivity : AppCompatActivity() {
         val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.cancelButton)
         val closeButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.closeButton)
 
-        // Set up province spinner
         val phonePrefixOptions = listOf(
             "Córdoba (351)",
             "Santa Fe (341)",
@@ -393,7 +470,8 @@ class PersonEditActivity : AppCompatActivity() {
             provinceSpinner.setText(defaultPrefix, false)
         }
 
-        // Set up buttons
+        setupWhatsAppPhoneCleaning(phoneNumberInput, provinceSpinner, phonePrefixOptions)
+
         addPhoneButton.setOnClickListener {
             val selectedProvince = provinceSpinner.text.toString()
             val phoneNumber = phoneNumberInput.text.toString().trim()
@@ -429,25 +507,20 @@ class PersonEditActivity : AppCompatActivity() {
         val copyButton = phoneDisplayView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.copyPhoneButton)
         val deleteButton = phoneDisplayView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.deletePhoneButton)
         
-        // Set phone number text (prefix is the area code, add space before suffix)
         phoneNumberText.text = "${prefix} ${suffix}"
         
-        // Set up copy button
         copyButton.setOnClickListener {
             copyPhoneNumber(prefix, suffix)
         }
         
-        // Set up phone number click for editing
         phoneNumberText.setOnClickListener {
             showEditPhoneDialog(phoneDisplayView, prefix, suffix)
         }
         
-        // Set up delete button
         deleteButton.setOnClickListener {
             showDeletePhoneConfirmation(phoneDisplayView)
         }
         
-        // Add to container and track it
         binding.phonesContainer.addView(phoneDisplayView)
         phoneItems.add(phoneDisplayView)
     }
@@ -481,10 +554,7 @@ class PersonEditActivity : AppCompatActivity() {
         val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.cancelButton)
         val closeButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.closeButton)
 
-        // Change dialog title and button text for edit mode
-        dialog.setTitle("Editar Teléfono")
 
-        // Set up province spinner
         val phonePrefixOptions = listOf(
             "Córdoba (351)",
             "Santa Fe (341)",
@@ -510,7 +580,6 @@ class PersonEditActivity : AppCompatActivity() {
         val phonePrefixAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, phonePrefixOptions)
         provinceSpinner.setAdapter(phonePrefixAdapter)
 
-        // Pre-fill current values
         val currentProvince = phonePrefixOptions.find { it.contains("($currentPrefix)") }
         if (currentProvince != null) {
             provinceSpinner.setText(currentProvince, false)
@@ -518,7 +587,8 @@ class PersonEditActivity : AppCompatActivity() {
         phoneNumberInput.setText(currentSuffix)
         addPhoneButton.text = "Actualizar"
 
-        // Set up buttons
+        setupWhatsAppPhoneCleaning(phoneNumberInput, provinceSpinner, phonePrefixOptions)
+
         addPhoneButton.setOnClickListener {
             val selectedProvince = provinceSpinner.text.toString()
             val phoneNumber = phoneNumberInput.text.toString().trim()
@@ -535,7 +605,6 @@ class PersonEditActivity : AppCompatActivity() {
 
             val phonePrefix = selectedProvince.substringAfter("(").substringBefore(")")
             
-            // Update the existing phone display
             updatePhoneDisplayItem(phoneDisplayView, phonePrefix, phoneNumber)
             
             dialog.dismiss()
@@ -554,13 +623,11 @@ class PersonEditActivity : AppCompatActivity() {
         val phoneNumberText = phoneDisplayView.findViewById<android.widget.TextView>(com.estaciondulce.app.R.id.phoneNumberText)
         phoneNumberText.text = "${prefix} ${suffix}"
         
-        // Update the copy button to use new values
         val copyButton = phoneDisplayView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.copyPhoneButton)
         copyButton.setOnClickListener {
             copyPhoneNumber(prefix, suffix)
         }
         
-        // Update the edit click to use new values
         phoneNumberText.setOnClickListener {
             showEditPhoneDialog(phoneDisplayView, prefix, suffix)
         }
@@ -572,22 +639,20 @@ class PersonEditActivity : AppCompatActivity() {
      * Shows confirmation dialog before deleting a phone.
      */
     private fun showDeletePhoneConfirmation(phoneDisplayView: android.view.View) {
-        // Don't allow removing if it's the only phone
         if (phoneItems.size <= 1) {
             CustomToast.showError(this, "Debe tener al menos un teléfono.")
             return
         }
 
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Eliminar Teléfono")
-            .setMessage("¿Está seguro que desea eliminar este teléfono?")
-            .setPositiveButton("Eliminar") { _, _ ->
+        DeleteConfirmationDialog.show(
+            this,
+            itemName = "teléfono",
+            onConfirm = {
                 binding.phonesContainer.removeView(phoneDisplayView)
                 phoneItems.remove(phoneDisplayView)
                 CustomToast.showSuccess(this, "Teléfono eliminado correctamente.")
             }
-            .setNegativeButton("Cancelar", null)
-            .show()
+        )
     }
 
     /**
@@ -597,7 +662,6 @@ class PersonEditActivity : AppCompatActivity() {
         addressesHelper.getAddressesForPerson(
             personId = personId,
             onSuccess = { addresses ->
-                // Store original addresses for draft system
                 originalAddresses.clear()
                 originalAddresses.addAll(addresses)
                 setupAddressesList(getCurrentAddresses())
@@ -614,21 +678,17 @@ class PersonEditActivity : AppCompatActivity() {
     private fun getCurrentAddresses(): List<Address> {
         val currentAddresses = mutableListOf<Address>()
         
-        // Add original addresses that haven't been deleted or edited
         originalAddresses.forEach { original ->
             if (!deletedAddressIds.contains(original.id)) {
-                // Check if this address was edited
                 val editedVersion = editedAddresses.find { it.id == original.id }
                 if (editedVersion != null) {
                     currentAddresses.add(editedVersion)
                 } else {
-                    // Use original address (AddressPickerActivity now returns properly formatted addresses)
                     currentAddresses.add(original)
                 }
             }
         }
         
-        // Add new addresses (already formatted correctly)
         currentAddresses.addAll(newAddresses)
         
         return currentAddresses.sortedBy { it.id }
@@ -639,11 +699,9 @@ class PersonEditActivity : AppCompatActivity() {
      * Sets up the addresses list display.
      */
     private fun setupAddressesList(addresses: List<Address>) {
-        // Clear existing address items
         addressItems.clear()
         binding.addressesContainer.removeAllViews()
 
-        // Sort addresses by creation order (oldest first) and add each address as a display item
         addresses.sortedBy { it.id }.forEach { address ->
             addAddressDisplayItem(address)
         }
@@ -653,12 +711,9 @@ class PersonEditActivity : AppCompatActivity() {
      * Shows the add address dialog.
      */
     private fun showAddAddressDialog() {
-        // Check if person is saved or if we're in draft mode
         if (currentPerson?.id?.isNotEmpty() == true) {
-            // Person is saved, use normal flow
             openAddressPicker("Dirección")
         } else {
-            // Person not saved yet, use draft mode
             openAddressPickerDraft("Dirección")
         }
     }
@@ -702,7 +757,6 @@ class PersonEditActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         
         if (requestCode == 1001 && resultCode == RESULT_OK) {
-            // Adding new address
             @Suppress("DEPRECATION")
             val address = data?.getParcelableExtra(AddressPickerActivity.RESULT_ADDRESS) as? Address
             address?.let {
@@ -712,7 +766,6 @@ class PersonEditActivity : AppCompatActivity() {
                 CustomToast.showError(this, "Error al obtener la nueva dirección.")
             }
         } else if (requestCode == 1002 && resultCode == RESULT_OK) {
-            // Editing existing address
             @Suppress("DEPRECATION")
             val address = data?.getParcelableExtra(AddressPickerActivity.RESULT_ADDRESS) as? Address
             address?.let {
@@ -722,7 +775,6 @@ class PersonEditActivity : AppCompatActivity() {
                 CustomToast.showError(this, "Error al obtener la dirección editada.")
             }
         } else if (requestCode == 1003 && resultCode == RESULT_OK) {
-            // Adding new address in draft mode
             @Suppress("DEPRECATION")
             val address = data?.getParcelableExtra(AddressPickerActivity.RESULT_ADDRESS) as? Address
             address?.let {
@@ -731,7 +783,6 @@ class PersonEditActivity : AppCompatActivity() {
                 CustomToast.showError(this, "Error al obtener la nueva dirección.")
             }
         } else if (requestCode == 1001 || requestCode == 1002 || requestCode == 1003) {
-            // AddressPicker was canceled
             customLoader.hide()
             CustomToast.showWarning(this, "Operación cancelada.")
         }
@@ -743,10 +794,8 @@ class PersonEditActivity : AppCompatActivity() {
     private fun saveAddress(address: Address) {
         customLoader.hide()
         
-        // Add to new addresses list
         newAddresses.add(address)
         
-        // Refresh the display
         setupAddressesList(getCurrentAddresses())
         
         CustomToast.showSuccess(this, "Dirección agregada (se guardará al confirmar).")
@@ -756,10 +805,8 @@ class PersonEditActivity : AppCompatActivity() {
      * Adds a new address to the draft list for new persons (not saved to database yet).
      */
     private fun addDraftAddress(address: Address) {
-        // Add to new addresses list
         newAddresses.add(address)
         
-        // Refresh the display
         setupAddressesList(getCurrentAddresses())
         
         CustomToast.showSuccess(this, "Dirección agregada (se guardará al confirmar).")
@@ -778,11 +825,9 @@ class PersonEditActivity : AppCompatActivity() {
         val editButton = addressDisplayView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.editAddressButton)
         val deleteButton = addressDisplayView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.deleteAddressButton)
         
-        // Set address data
         addressLabelText.text = address.label
         addressText.text = address.formattedAddress
         
-        // Set address detail
         if (address.detail.isNotEmpty()) {
             addressDetailText.text = address.detail
             addressDetailText.visibility = View.VISIBLE
@@ -790,22 +835,18 @@ class PersonEditActivity : AppCompatActivity() {
             addressDetailText.visibility = View.GONE
         }
         
-        // Set up edit label button
         editLabelButton.setOnClickListener {
             editAddressLabel(address)
         }
         
-        // Set up edit button (now opens map picker)
         editButton.setOnClickListener {
             editAddressLocation(address)
         }
         
-        // Set up delete button
         deleteButton.setOnClickListener {
             deleteAddress(address)
         }
         
-        // Add to container at the end and track it
         binding.addressesContainer.addView(addressDisplayView)
         addressItems.add(addressDisplayView)
     }
@@ -825,12 +866,10 @@ class PersonEditActivity : AppCompatActivity() {
         val confirmButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.confirmButton)
         val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.cancelButton)
 
-        // Pre-fill current values
         addressLabelInput.setText(address.label)
         addressDetailInput.setText(address.detail)
         dialog.setTitle("Editar Dirección")
 
-        // Set up buttons
         confirmButton.setOnClickListener {
             val newLabel = addressLabelInput.text.toString().trim()
             val newDetail = addressDetailInput.text.toString().trim()
@@ -877,17 +916,14 @@ class PersonEditActivity : AppCompatActivity() {
     private fun updateAddress(address: Address) {
         customLoader.hide()
         
-        // Check if this is a new address or an existing one
         val isNewAddress = newAddresses.any { it.id == address.id }
         
         if (isNewAddress) {
-            // Update in new addresses list
             val index = newAddresses.indexOfFirst { it.id == address.id }
             if (index != -1) {
                 newAddresses[index] = address
             }
         } else {
-            // Update in edited addresses list
             val existingEditedIndex = editedAddresses.indexOfFirst { it.id == address.id }
             if (existingEditedIndex != -1) {
                 editedAddresses[existingEditedIndex] = address
@@ -896,7 +932,6 @@ class PersonEditActivity : AppCompatActivity() {
             }
         }
         
-        // Refresh the display
         setupAddressesList(getCurrentAddresses())
         
         CustomToast.showSuccess(this, "Dirección actualizada (se guardará al confirmar).")
@@ -911,20 +946,15 @@ class PersonEditActivity : AppCompatActivity() {
             itemName = "${address.label}: ${address.formattedAddress}",
             itemType = "dirección",
             onConfirm = {
-                // Check if this is a new address (not yet saved)
                 val isNewAddress = newAddresses.any { it.id == address.id }
                 
                 if (isNewAddress) {
-                    // Remove from new addresses list
                     newAddresses.removeAll { it.id == address.id }
                 } else {
-                    // Mark as deleted
                     deletedAddressIds.add(address.id)
-                    // Remove from edited addresses if it was there
                     editedAddresses.removeAll { it.id == address.id }
                 }
                 
-                // Refresh the display
                 setupAddressesList(getCurrentAddresses())
                 
                 CustomToast.showSuccess(this, "Dirección eliminada (se confirmará al guardar).")
@@ -958,7 +988,6 @@ class PersonEditActivity : AppCompatActivity() {
             return false
         }
 
-        // Validate phones
         if (phoneItems.isEmpty()) {
             CustomToast.showError(this, "Debe agregar al menos un teléfono.")
             return false
@@ -992,14 +1021,12 @@ class PersonEditActivity : AppCompatActivity() {
         val typeText = binding.personTypeSpinner.text.toString()
         val type = EPersonType.getDbValue(typeText)
 
-        // Collect all phones from display items
         val phones = mutableListOf<Phone>()
         for (i in 0 until binding.phonesContainer.childCount) {
             val phoneView = binding.phonesContainer.getChildAt(i)
             val phoneNumberText = phoneView.findViewById<android.widget.TextView>(com.estaciondulce.app.R.id.phoneNumberText)
             val phoneText = phoneNumberText.text.toString()
             
-            // Parse phone text "351 1234567" -> prefix="351", suffix="1234567"
             val parts = phoneText.split(" ", limit = 2)
             if (parts.size == 2) {
                 phones.add(Phone(
@@ -1035,15 +1062,12 @@ class PersonEditActivity : AppCompatActivity() {
             personsHelper.addPerson(
                 person = personToSave,
                 onSuccess = { savedPerson ->
-                    // Update currentPerson with the saved person data (including the new ID)
                     currentPerson = savedPerson
                     
-                    // Save all addresses after person is created
                     saveAllAddresses {
                         customLoader.hide()
                         CustomToast.showSuccess(this, "Persona y direcciones guardadas correctamente.")
                         
-                        // Show tabs now that person has an ID
                         initializeTabVisibility()
                         
                         setResult(Activity.RESULT_OK)
@@ -1060,7 +1084,6 @@ class PersonEditActivity : AppCompatActivity() {
                 personId = currentPerson!!.id,
                 person = personToSave,
                 onSuccess = {
-                    // Save all addresses after person is updated
                     saveAllAddresses {
                         customLoader.hide()
                         CustomToast.showSuccess(this, "Persona y direcciones actualizadas correctamente.")
@@ -1097,7 +1120,6 @@ class PersonEditActivity : AppCompatActivity() {
             }
         }
         
-        // Save new addresses
         newAddresses.forEach { address ->
             addressesHelper.addAddressToPerson(
                 personId = personId,
@@ -1110,7 +1132,6 @@ class PersonEditActivity : AppCompatActivity() {
             )
         }
         
-        // Update edited addresses
         editedAddresses.forEach { address ->
             addressesHelper.updateAddressInPerson(
                 personId = personId,
@@ -1123,7 +1144,6 @@ class PersonEditActivity : AppCompatActivity() {
             )
         }
         
-        // Delete marked addresses
         deletedAddressIds.forEach { addressId ->
             addressesHelper.deleteAddressFromPerson(
                 personId = personId,
