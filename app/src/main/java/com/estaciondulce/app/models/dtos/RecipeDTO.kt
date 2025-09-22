@@ -15,6 +15,7 @@ data class RecipeDTO(
     val unit: Int = 1,
     val images: List<String> = listOf(),
     val description: String = "",
+    val detail: String = "",
     val categories: List<String> = listOf(),
     val sections: List<RecipeSectionDTO> = listOf(),
     val recipes: List<RecipeNestedDTO> = listOf()

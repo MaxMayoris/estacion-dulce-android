@@ -28,15 +28,36 @@ class StorageHelper {
             return null
         }
         
-        // Remove leading/trailing slashes and normalize
         val sanitizedPath = path.trim().removePrefix("/").removeSuffix("/")
         
-        // Check for invalid characters
         if (sanitizedPath.contains("..") || sanitizedPath.contains("//")) {
             return null
         }
         
         return sanitizedPath
+    }
+
+    /**
+     * Validates and sanitizes a filename to prevent issues.
+     * @param filename The filename to validate
+     * @return The sanitized filename or null if invalid
+     */
+    private fun validateAndSanitizeFilename(filename: String): String? {
+        if (filename.isEmpty()) {
+            return null
+        }
+        
+        val sanitizedFilename = filename.trim()
+        
+        if (sanitizedFilename.contains("/") || sanitizedFilename.contains("\\")) {
+            return null
+        }
+        
+        if (sanitizedFilename.contains("..") || sanitizedFilename.contains("//")) {
+            return null
+        }
+        
+        return sanitizedFilename
     }
     
     /**
@@ -57,13 +78,11 @@ class StorageHelper {
         onProgress: (Int) -> Unit = {}
     ) {
         try {
-            // Validate input
             if (imageUri == Uri.EMPTY) {
                 onError(Exception("Invalid image URI"))
                 return
             }
             
-            // Validate and sanitize folder path
             val sanitizedFolder = validateAndSanitizePath(folder)
             if (sanitizedFolder == null) {
                 onError(Exception("Invalid folder path: $folder"))
@@ -82,7 +101,6 @@ class StorageHelper {
             }
             
             uploadTask.addOnSuccessListener { taskSnapshot ->
-                // Use the taskSnapshot's storage reference to get download URL
                 taskSnapshot.storage.downloadUrl.addOnSuccessListener { downloadUri ->
                     onSuccess(downloadUri.toString())
                 }.addOnFailureListener { exception ->
@@ -164,7 +182,6 @@ class StorageHelper {
         onProgress: (Int) -> Unit = {}
     ) {
         try {
-            // Validate input
             if (imageUri == Uri.EMPTY) {
                 onError(Exception("Invalid image URI"))
                 return
@@ -175,14 +192,12 @@ class StorageHelper {
                 return
             }
             
-            // Validate and sanitize recipe ID
             val sanitizedRecipeId = validateAndSanitizePath(recipeId)
             if (sanitizedRecipeId == null) {
                 onError(Exception("Invalid recipe ID: $recipeId"))
                 return
             }
             
-            // Use the new organized structure: recipes/{recipeId}/image.jpg
             val imagePath = "recipes/$sanitizedRecipeId/image.jpg"
             
             val imageRef = storageRef.child(imagePath)
@@ -194,7 +209,6 @@ class StorageHelper {
             }
             
             uploadTask.addOnSuccessListener { taskSnapshot ->
-                // Use the taskSnapshot's storage reference to get download URL
                 taskSnapshot.storage.downloadUrl.addOnSuccessListener { downloadUri ->
                     onSuccess(downloadUri.toString())
                 }.addOnFailureListener { exception ->
@@ -230,30 +244,23 @@ class StorageHelper {
                 return
             }
             
-            // Validate and sanitize recipe ID
             val sanitizedRecipeId = validateAndSanitizePath(newRecipeId)
             if (sanitizedRecipeId == null) {
                 onError(Exception("Invalid recipe ID for migration: $newRecipeId"))
                 return
             }
             
-            // Get reference to temp image
             val tempImageRef = storage.getReferenceFromUrl(tempImageUrl)
             
-            // Create new reference for final location
             val finalPath = "recipes/$sanitizedRecipeId/image.jpg"
             val finalImageRef = storageRef.child(finalPath)
             
-            // Copy the image to the final location
             tempImageRef.getBytes(Long.MAX_VALUE).addOnSuccessListener { bytes ->
                 finalImageRef.putBytes(bytes).addOnSuccessListener { taskSnapshot ->
-                    // Get the new download URL
                     taskSnapshot.storage.downloadUrl.addOnSuccessListener { newUrl ->
-                        // Delete the temp image
                         tempImageRef.delete().addOnSuccessListener {
                             onSuccess(newUrl.toString())
                         }.addOnFailureListener { _ ->
-                            // Migration succeeded even if cleanup failed
                             onSuccess(newUrl.toString())
                         }
                     }.addOnFailureListener { urlError ->
@@ -287,7 +294,6 @@ class StorageHelper {
         onError: (Exception) -> Unit
     ) {
         try {
-            // Validate input
             if (imageUri == Uri.EMPTY) {
                 onError(Exception("Invalid image URI"))
                 return
@@ -303,29 +309,24 @@ class StorageHelper {
                 return
             }
             
-            // Validate and sanitize recipe ID
             val sanitizedRecipeId = validateAndSanitizePath(recipeId)
             if (sanitizedRecipeId == null) {
                 onError(Exception("Invalid recipe ID: $recipeId"))
                 return
             }
             
-            // Validate and sanitize filename
-            val sanitizedFileName = validateAndSanitizePath(fileName)
+            val sanitizedFileName = validateAndSanitizeFilename(fileName)
             if (sanitizedFileName == null) {
                 onError(Exception("Invalid filename: $fileName"))
                 return
             }
             
-            // Create organized storage path
             val storagePath = "recipes/$sanitizedRecipeId/$sanitizedFileName"
             val imageRef = storage.reference.child(storagePath)
             
-            // Upload the image
             val uploadTask = imageRef.putFile(imageUri)
             
             uploadTask.addOnSuccessListener { taskSnapshot ->
-                // Get the download URL
                 taskSnapshot.storage.downloadUrl.addOnSuccessListener { downloadUrl ->
                     onSuccess(downloadUrl.toString())
                 }.addOnFailureListener { urlError ->
@@ -356,7 +357,6 @@ class StorageHelper {
         onError: (Exception) -> Unit
     ) {
         try {
-            // Validate input
             if (imageUri == Uri.EMPTY) {
                 onError(Exception("Invalid image URI"))
                 return
@@ -372,24 +372,20 @@ class StorageHelper {
                 return
             }
             
-            // Validate and sanitize uid and filename
             val sanitizedUid = validateAndSanitizePath(uid)
-            val sanitizedFileName = validateAndSanitizePath(fileName)
+            val sanitizedFileName = validateAndSanitizeFilename(fileName)
             
             if (sanitizedUid == null || sanitizedFileName == null) {
                 onError(Exception("Invalid uid or filename"))
                 return
             }
             
-            // Create temp storage path
             val storagePath = "temp/$sanitizedUid/$sanitizedFileName"
             val imageRef = storage.reference.child(storagePath)
             
-            // Upload the image
             val uploadTask = imageRef.putFile(imageUri)
             
             uploadTask.addOnSuccessListener { taskSnapshot ->
-                // Get the download URL
                 taskSnapshot.storage.downloadUrl.addOnSuccessListener { downloadUrl ->
                     onSuccess(downloadUrl.toString())
                 }.addOnFailureListener { urlError ->
@@ -470,6 +466,127 @@ class StorageHelper {
             null
         }
     }
+
+
+    /**
+     * Uploads an image for a specific movement using a custom filename.
+     * @param imageUri The URI of the image to upload
+     * @param movementId ID of the movement
+     * @param fileName Custom filename for the image
+     * @param onSuccess Callback with the download URL
+     * @param onError Callback with error information
+     */
+    fun uploadMovementImageWithName(
+        imageUri: Uri,
+        movementId: String,
+        fileName: String,
+        onSuccess: (String) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        try {
+            if (imageUri == Uri.EMPTY) {
+                onError(Exception("Invalid image URI"))
+                return
+            }
+            
+            if (movementId.isEmpty()) {
+                onError(Exception("Movement ID cannot be empty"))
+                return
+            }
+            
+            val sanitizedMovementId = validateAndSanitizePath(movementId)
+            if (sanitizedMovementId == null) {
+                onError(Exception("Invalid movement ID: $movementId"))
+                return
+            }
+            
+            val imagePath = "movements/$sanitizedMovementId/$fileName"
+            
+            val imageRef = storageRef.child(imagePath)
+            val uploadTask = imageRef.putFile(imageUri)
+            
+            uploadTask.addOnSuccessListener { taskSnapshot ->
+                taskSnapshot.storage.downloadUrl.addOnSuccessListener { downloadUri ->
+                    onSuccess(downloadUri.toString())
+                }.addOnFailureListener { exception ->
+                    onError(exception)
+                }
+            }
+            
+            uploadTask.addOnFailureListener { exception ->
+                onError(exception)
+            }
+            
+        } catch (e: Exception) {
+            onError(e)
+        }
+    }
+
+    /**
+     * Copies an existing image from one location to another in Firebase Storage.
+     * @param sourceImageUrl The URL of the source image to copy
+     * @param newMovementId The new movement ID for the destination
+     * @param fileName The filename to use for the copied image
+     * @param onSuccess Callback with the new download URL
+     * @param onError Callback with error information
+     */
+    fun copyMovementImage(
+        sourceImageUrl: String,
+        newMovementId: String,
+        fileName: String,
+        onSuccess: (String) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        try {
+            if (sourceImageUrl.isEmpty()) {
+                onError(Exception("Source image URL cannot be empty"))
+                return
+            }
+            
+            if (newMovementId.isEmpty()) {
+                onError(Exception("New movement ID cannot be empty"))
+                return
+            }
+            
+            if (fileName.isEmpty()) {
+                onError(Exception("Filename cannot be empty"))
+                return
+            }
+            
+            val sanitizedMovementId = validateAndSanitizePath(newMovementId)
+            val sanitizedFileName = validateAndSanitizeFilename(fileName)
+            
+            if (sanitizedMovementId == null || sanitizedFileName == null) {
+                onError(Exception("Invalid movement ID or filename"))
+                return
+            }
+            
+            val sourceImageRef = storage.getReferenceFromUrl(sourceImageUrl)
+            
+            val destinationPath = "movements/$sanitizedMovementId/$sanitizedFileName"
+            val destinationRef = storageRef.child(destinationPath)
+            
+            sourceImageRef.getBytes(Long.MAX_VALUE).addOnSuccessListener { bytes ->
+                destinationRef.putBytes(bytes).addOnSuccessListener { taskSnapshot ->
+                    taskSnapshot.storage.downloadUrl.addOnSuccessListener { newUrl ->
+                        onSuccess(newUrl.toString())
+                    }.addOnFailureListener { urlError ->
+                        onError(urlError)
+                    }
+                }.addOnFailureListener { copyError ->
+                    onError(copyError)
+                }
+            }.addOnFailureListener { readError ->
+                onError(readError)
+            }
+            
+        } catch (e: Exception) {
+            onError(e)
+        }
+    }
+
+
+
 
     
 }

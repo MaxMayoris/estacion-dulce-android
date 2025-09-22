@@ -17,11 +17,13 @@ import com.estaciondulce.app.models.enums.EShipmentStatus
 import com.estaciondulce.app.models.parcelables.Movement
 import com.estaciondulce.app.models.parcelables.MovementItem
 import com.estaciondulce.app.models.enums.EKitchenOrderStatus
+import com.estaciondulce.app.models.enums.EKitchenOrderItemStatus
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.helpers.AddressesHelper
 import com.estaciondulce.app.helpers.MovementsHelper
+import com.estaciondulce.app.helpers.KitchenOrdersHelper
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -194,7 +196,6 @@ class ShipmentEditActivity : AppCompatActivity() {
                 }
             },
             onError = { exception ->
-                android.util.Log.e("ShipmentEditActivity", "Error loading address detail: ${exception.message}")
                 binding.addressDetailValue.visibility = android.view.View.GONE
             }
         )
@@ -371,31 +372,69 @@ class ShipmentEditActivity : AppCompatActivity() {
         )
         
         val movementsHelper = MovementsHelper()
+        val kitchenOrdersHelper = KitchenOrdersHelper()
         
         customLoader.show()
         
-        movementsHelper.updateMovement(
-            movementId = movement.id,
-            movement = updatedMovement,
-            updateKitchenOrders = false,
-            onSuccess = {
-                customLoader.hide()
-                val message = if (newStatus == EShipmentStatus.DELIVERED) {
-                    "Envío marcado como entregado y pedido completado"
-                } else {
-                    "Estado actualizado correctamente"
+        if (newStatus == EShipmentStatus.DELIVERED) {
+            kitchenOrdersHelper.getKitchenOrdersForMovement(
+                movementId = movement.id,
+                onSuccess = { kitchenOrders ->
+                    kitchenOrders.forEach { kitchenOrder ->
+                        kitchenOrdersHelper.updateKitchenOrderStatus(
+                            movementId = movement.id,
+                            kitchenOrderId = kitchenOrder.id,
+                            newStatus = EKitchenOrderItemStatus.DONE,
+                            onSuccess = { },
+                            onError = { exception ->
+                                customLoader.hide()
+                                CustomToast.showError(this, "Error al actualizar kitchen order: ${exception.message}")
+                            }
+                        )
+                    }
+                    
+                    movementsHelper.updateMovement(
+                        movementId = movement.id,
+                        movement = updatedMovement,
+                        updateKitchenOrders = false,
+                        onSuccess = {
+                            customLoader.hide()
+                            CustomToast.showSuccess(this, "Envío marcado como entregado y pedido completado")
+                            
+                            this.movement = updatedMovement
+                            displayShipmentData()
+                            setupStatusButton()
+                        },
+                        onError = { exception ->
+                            customLoader.hide()
+                            CustomToast.showError(this, "Error al actualizar movimiento: ${exception.message}")
+                        }
+                    )
+                },
+                onError = { exception ->
+                    customLoader.hide()
+                    CustomToast.showError(this, "Error al obtener kitchen orders: ${exception.message}")
                 }
-                CustomToast.showSuccess(this, message)
-                
-                this.movement = updatedMovement
-                loadMovementData()
-                setupStatusButton()
-            },
-            onError = { exception ->
-                customLoader.hide()
-                CustomToast.showError(this, "Error al actualizar estado: ${exception.message}")
-            }
-        )
+            )
+        } else {
+            movementsHelper.updateMovement(
+                movementId = movement.id,
+                movement = updatedMovement,
+                updateKitchenOrders = false,
+                onSuccess = {
+                    customLoader.hide()
+                    CustomToast.showSuccess(this, "Estado actualizado correctamente")
+                    
+                    this.movement = updatedMovement
+                    displayShipmentData()
+                    setupStatusButton()
+                },
+                onError = { exception ->
+                    customLoader.hide()
+                    CustomToast.showError(this, "Error al actualizar estado: ${exception.message}")
+                }
+            )
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

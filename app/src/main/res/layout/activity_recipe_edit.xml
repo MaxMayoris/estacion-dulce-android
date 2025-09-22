@@ -86,6 +86,19 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <!-- Detalle Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/detailButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="Detalle"
+                    android:textSize="16sp"
+                    app:cornerRadius="8dp"
+                    app:backgroundTint="@color/button_gradient_start"
+                    android:textColor="@color/white"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
                 <!-- Checkboxes Layout -->
                 <LinearLayout
                     android:layout_width="match_parent"

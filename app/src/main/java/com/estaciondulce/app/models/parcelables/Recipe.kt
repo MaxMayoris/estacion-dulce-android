@@ -49,6 +49,7 @@ data class Recipe(
     val unit: Int = 1,
     val images: List<String> = listOf(),
     val description: String = "",
+    val detail: String = "",
     val categories: List<String> = listOf(),
     val sections: @RawValue List<RecipeSection> = listOf(),
     val recipes: @RawValue List<RecipeNested> = listOf()

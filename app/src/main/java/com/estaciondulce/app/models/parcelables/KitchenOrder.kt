@@ -10,10 +10,12 @@ import java.util.*
 @Parcelize
 data class KitchenOrder(
     override var id: String = "",
-    val productId: String = "",
-    val name: String = "",
+    val collection: String = "", // "recipes", "products", "custom"
+    val collectionId: String = "", // ID of the recipe/product or empty for custom
+    val customName: String? = null, // Name for custom items
+    val name: String = "", // Display name
     val quantity: Double = 0.0,
-    val status: com.estaciondulce.app.models.enums.EKitchenOrderStatus = com.estaciondulce.app.models.enums.EKitchenOrderStatus.PENDING,
+    val status: com.estaciondulce.app.models.enums.EKitchenOrderItemStatus = com.estaciondulce.app.models.enums.EKitchenOrderItemStatus.PENDING,
     val createdAt: Date = Date(),
     val updatedAt: Date = Date()
 ) : Parcelable, com.estaciondulce.app.models.Identifiable

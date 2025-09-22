@@ -3,11 +3,22 @@ package com.estaciondulce.app.helpers
 import com.estaciondulce.app.models.parcelables.Movement
 import com.estaciondulce.app.models.parcelables.KitchenOrder
 import com.estaciondulce.app.models.enums.EKitchenOrderStatus
+import com.estaciondulce.app.models.enums.EKitchenOrderItemStatus
 import com.estaciondulce.app.models.enums.EMovementType
 import com.estaciondulce.app.models.dtos.MovementDTO
 import com.estaciondulce.app.models.mappers.*
 import com.estaciondulce.app.repository.FirestoreRepository
 import java.util.*
+
+/**
+ * Represents the comparison result between items in original and edited movements
+ */
+sealed class ItemComparison {
+    object SAME_QUANTITY : ItemComparison()
+    data class DIFFERENT_QUANTITY(val newQuantity: Double) : ItemComparison()
+    object REMOVED : ItemComparison()
+    object NEW : ItemComparison()
+}
 
 class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()) {
 
@@ -15,6 +26,10 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
     
 
     fun addMovement(movement: Movement, onSuccess: (Movement) -> Unit, onError: (Exception) -> Unit) {
+        addMovement(movement, createKitchenOrders = true, onSuccess, onError)
+    }
+
+    fun addMovement(movement: Movement, createKitchenOrders: Boolean, onSuccess: (Movement) -> Unit, onError: (Exception) -> Unit) {
         val movementDTO = movement.toDTO()
         val movementData = movementDTO.toMap()
         genericHelper.addDocument(
@@ -23,8 +38,7 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
             onSuccess = { documentId ->
                 val newMovement = movement.copy(id = documentId)
                 
-                // Create kitchen orders for sales
-                if (movement.type == EMovementType.SALE) {
+                if (movement.type == EMovementType.SALE && createKitchenOrders) {
                     val movementWithStatus = newMovement.copy(kitchenOrderStatus = EKitchenOrderStatus.PENDING)
                     createKitchenOrdersForMovement(movementWithStatus, onSuccess, onError)
                 } else {
@@ -47,7 +61,6 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
             documentId = movementId,
             data = movementData,
             onSuccess = {
-                // Update kitchen orders for sales only if requested and items changed
                 if (movement.type == EMovementType.SALE && updateKitchenOrders) {
                     updateKitchenOrdersForMovement(movementId, movement, onSuccess, onError)
                 } else {
@@ -77,15 +90,46 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
     }
 
     fun deleteMovement(movementId: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
-        // Delete kitchen orders first
+        genericHelper.getDocument(
+            collectionName = "movements",
+            documentId = movementId,
+            onSuccess = { document ->
+                val movementDTO = document.toObject(MovementDTO::class.java)
+                val movement = movementDTO?.toParcelable()
+                
         kitchenOrdersHelper.deleteKitchenOrdersForMovement(
             movementId = movementId,
             onSuccess = {
-                // Then delete the movement
+                        if (movement != null && movement.type == EMovementType.SALE && movement.referenceImages.isNotEmpty()) {
+                            val storageHelper = StorageHelper()
+                            storageHelper.deleteImagesFromStorage(
+                                imageUrls = movement.referenceImages,
+                                onSuccess = {
                 genericHelper.deleteDocument(
                     collectionName = "movements",
                     documentId = movementId,
                     onSuccess = onSuccess,
+                                        onError = onError
+                                    )
+                                },
+                                onError = { _ ->
+                                    genericHelper.deleteDocument(
+                                        collectionName = "movements",
+                                        documentId = movementId,
+                                        onSuccess = onSuccess,
+                                        onError = onError
+                                    )
+                                }
+                            )
+                        } else {
+                            genericHelper.deleteDocument(
+                                collectionName = "movements",
+                                documentId = movementId,
+                                onSuccess = onSuccess,
+                                onError = onError
+                            )
+                        }
+                    },
                     onError = onError
                 )
             },
@@ -107,10 +151,12 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
                     val recipe = FirestoreRepository.recipesLiveData.value?.find { it.id == item.collectionId }
                     recipe?.let {
                         KitchenOrder(
-                            productId = item.collectionId,
+                            collection = item.collection,
+                            collectionId = item.collectionId,
+                            customName = null,
                             name = it.name,
                             quantity = item.quantity,
-                            status = EKitchenOrderStatus.PENDING,
+                            status = EKitchenOrderItemStatus.PENDING,
                             createdAt = Date(),
                             updatedAt = Date()
                         )
@@ -120,14 +166,28 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
                     val product = FirestoreRepository.productsLiveData.value?.find { it.id == item.collectionId }
                     product?.let {
                         KitchenOrder(
-                            productId = item.collectionId,
+                            collection = item.collection,
+                            collectionId = item.collectionId,
+                            customName = null,
                             name = it.name,
                             quantity = item.quantity,
-                            status = EKitchenOrderStatus.PENDING,
+                            status = EKitchenOrderItemStatus.PENDING,
                             createdAt = Date(),
                             updatedAt = Date()
                         )
                     }
+                }
+                "custom" -> {
+                    KitchenOrder(
+                        collection = item.collection,
+                        collectionId = item.collectionId,
+                        customName = item.customName,
+                        name = item.customName ?: "Custom Item",
+                        quantity = item.quantity,
+                        status = EKitchenOrderItemStatus.PENDING,
+                        createdAt = Date(),
+                        updatedAt = Date()
+                    )
                 }
                 else -> null
             }
@@ -138,7 +198,6 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
                 movementId = movement.id,
                 kitchenOrders = kitchenOrders,
                 onSuccess = { 
-                    // Update movement with PENDING status after creating kitchen orders
                     val movementData = mapOf(
                         "kitchenOrderStatus" to EKitchenOrderStatus.PENDING.name
                     )
@@ -166,11 +225,9 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
         onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ) {
-        // Delete existing kitchen orders
         kitchenOrdersHelper.deleteKitchenOrdersForMovement(
             movementId = movementId,
             onSuccess = {
-                // Create new kitchen orders
                 createKitchenOrdersForMovement(
                     movement = movement,
                     onSuccess = { onSuccess() },
@@ -182,6 +239,246 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
     }
 
     /**
+     * Preserve and update kitchen orders when editing a movement
+     */
+    fun preserveKitchenOrdersForEditedMovement(
+        originalMovement: Movement,
+        newMovement: Movement,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        kitchenOrdersHelper.getKitchenOrdersForMovement(
+            movementId = originalMovement.id,
+            onSuccess = { originalKitchenOrders ->
+                val itemComparison = compareMovementItems(originalMovement.items, newMovement.items)
+                
+                
+                
+                val finalKitchenOrders = mutableListOf<KitchenOrder>()
+                
+                newMovement.items.forEach { newItem ->
+                    val itemKey = "${newItem.collection}_${newItem.collectionId}_${newItem.customName ?: ""}"
+                    val comparison = itemComparison[itemKey]
+                    
+                    when (comparison) {
+                        ItemComparison.SAME_QUANTITY -> {
+                            val originalKitchenOrder = originalKitchenOrders.find { original ->
+                                "${original.collection}_${original.collectionId}_${original.customName ?: ""}" == itemKey
+                            }
+                            originalKitchenOrder?.let { original ->
+                                val preservedKitchenOrder = KitchenOrder(
+                                    collection = newItem.collection,
+                                    collectionId = newItem.collectionId,
+                                    customName = newItem.customName,
+                                    name = getItemName(newItem),
+                                    quantity = newItem.quantity,
+                                    status = original.status, // Preserve original status
+                                    createdAt = original.createdAt, // Preserve original creation date
+                                    updatedAt = Date() // Update modification date
+                                )
+                                finalKitchenOrders.add(preservedKitchenOrder)
+                            }
+                        }
+                        is ItemComparison.DIFFERENT_QUANTITY -> {
+                            val newKitchenOrder = KitchenOrder(
+                                collection = newItem.collection,
+                                collectionId = newItem.collectionId,
+                                customName = newItem.customName,
+                                name = getItemName(newItem),
+                                quantity = comparison.newQuantity,
+                                status = EKitchenOrderItemStatus.PENDING, // Reset to PENDING due to quantity change
+                                createdAt = Date(), // New creation date for the modified item
+                                updatedAt = Date()
+                            )
+                            finalKitchenOrders.add(newKitchenOrder)
+                        }
+                        ItemComparison.NEW -> {
+                            val newKitchenOrder = KitchenOrder(
+                                collection = newItem.collection,
+                                collectionId = newItem.collectionId,
+                                customName = newItem.customName,
+                                name = getItemName(newItem),
+                                quantity = newItem.quantity,
+                                status = EKitchenOrderItemStatus.PENDING,
+                                createdAt = Date(),
+                                updatedAt = Date()
+                            )
+                            finalKitchenOrders.add(newKitchenOrder)
+                        }
+                        ItemComparison.REMOVED -> {
+                        }
+                        null -> {
+                        }
+                    }
+                }
+
+
+                if (finalKitchenOrders.isNotEmpty()) {
+                    kitchenOrdersHelper.addKitchenOrdersForMovement(
+                        movementId = newMovement.id,
+                        kitchenOrders = finalKitchenOrders,
+                        onSuccess = {
+                            val newStatus = calculateMovementKitchenOrderStatus(finalKitchenOrders)
+                            val movementData = mapOf(
+                                "kitchenOrderStatus" to newStatus?.name
+                            )
+                            genericHelper.updateDocument(
+                                collectionName = "movements",
+                                documentId = newMovement.id,
+                                data = movementData,
+                                onSuccess = onSuccess,
+                                onError = onError
+                            )
+                        },
+                        onError = onError
+                    )
+                } else {
+                    onSuccess()
+                }
+            },
+            onError = onError
+        )
+    }
+
+    /**
+     * Update the status of specific kitchen orders to preserve their original status
+     */
+    private fun updateKitchenOrderStatuses(
+        movementId: String,
+        statusUpdates: List<KitchenOrder>,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        kitchenOrdersHelper.getKitchenOrdersForMovement(
+            movementId = movementId,
+            onSuccess = { allKitchenOrders ->
+                val batch = com.google.firebase.firestore.FirebaseFirestore.getInstance().batch()
+                var updatesCount = 0
+                
+                statusUpdates.forEach { targetKitchenOrder ->
+                    val kitchenOrderToUpdate = allKitchenOrders.find { existing ->
+                        existing.collection == targetKitchenOrder.collection &&
+                        existing.collectionId == targetKitchenOrder.collectionId &&
+                        existing.customName == targetKitchenOrder.customName &&
+                        existing.quantity == targetKitchenOrder.quantity
+                    }
+                    
+                    if (kitchenOrderToUpdate != null) {
+                        val kitchenOrderRef = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                            .collection("movements")
+                            .document(movementId)
+                            .collection("kitchenOrders")
+                            .document(kitchenOrderToUpdate.id)
+                        
+                        val updateData = mapOf(
+                            "status" to targetKitchenOrder.status.name,
+                            "updatedAt" to Date()
+                        )
+                        
+                        batch.update(kitchenOrderRef, updateData)
+                        updatesCount++
+                    }
+                }
+                
+                if (updatesCount > 0) {
+                    batch.commit()
+                        .addOnSuccessListener {
+                            val newStatus = calculateMovementKitchenOrderStatus(allKitchenOrders.map { existing ->
+                                val targetUpdate = statusUpdates.find { target ->
+                                    existing.collection == target.collection &&
+                                    existing.collectionId == target.collectionId &&
+                                    existing.customName == target.customName &&
+                                    existing.quantity == target.quantity
+                                }
+                                if (targetUpdate != null) {
+                                    existing.copy(status = targetUpdate.status)
+                                } else {
+                                    existing
+                                }
+                            })
+                            val movementData = mapOf(
+                                "kitchenOrderStatus" to newStatus?.name
+                            )
+                            val genericHelper = com.estaciondulce.app.helpers.GenericHelper()
+                            genericHelper.updateDocument(
+                                collectionName = "movements",
+                                documentId = movementId,
+                                data = movementData,
+                                onSuccess = onSuccess,
+                                onError = onError
+                            )
+                        }
+                        .addOnFailureListener { onError(it) }
+                } else {
+                    onSuccess()
+                }
+            },
+            onError = onError
+        )
+    }
+
+    /**
+     * Compare items between original and edited movements
+     */
+    private fun compareMovementItems(
+        originalItems: List<com.estaciondulce.app.models.parcelables.MovementItem>,
+        newItems: List<com.estaciondulce.app.models.parcelables.MovementItem>
+    ): Map<String, ItemComparison> {
+        val comparison = mutableMapOf<String, ItemComparison>()
+        
+        val originalItemsMap = originalItems.associate { 
+            "${it.collection}_${it.collectionId}_${it.customName ?: ""}" to it 
+        }
+        val newItemsMap = newItems.associate { 
+            "${it.collection}_${it.collectionId}_${it.customName ?: ""}" to it 
+        }
+        
+        
+        originalItemsMap.forEach { (key, originalItem) ->
+            val newItem = newItemsMap[key]
+            when {
+                newItem == null -> {
+                    comparison[key] = ItemComparison.REMOVED
+                }
+                originalItem.quantity == newItem.quantity -> {
+                    comparison[key] = ItemComparison.SAME_QUANTITY
+                }
+                else -> {
+                    comparison[key] = ItemComparison.DIFFERENT_QUANTITY(newItem.quantity)
+                }
+            }
+        }
+        
+        newItemsMap.forEach { (key, _) ->
+            if (!originalItemsMap.containsKey(key)) {
+                comparison[key] = ItemComparison.NEW
+            }
+        }
+        
+        return comparison
+    }
+
+    /**
+     * Get item name for comparison
+     */
+    private fun getItemName(item: com.estaciondulce.app.models.parcelables.MovementItem): String {
+        return when (item.collection) {
+            "recipes" -> {
+                FirestoreRepository.recipesLiveData.value?.find { it.id == item.collectionId }?.name 
+                    ?: "Recipe ${item.collectionId}"
+            }
+            "products" -> {
+                FirestoreRepository.productsLiveData.value?.find { it.id == item.collectionId }?.name 
+                    ?: "Product ${item.collectionId}"
+            }
+            "custom" -> {
+                item.customName ?: "Custom Item"
+            }
+            else -> "Unknown Item"
+        }
+    }
+
+    /**
      * Update movement kitchen order status based on kitchen orders
      */
     fun updateMovementKitchenOrderStatus(
@@ -189,7 +486,6 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
         onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ) {
-        // Get current movement
         val movements = FirestoreRepository.movementsLiveData.value ?: emptyList()
         val movement = movements.find { it.id == movementId }
         
@@ -198,13 +494,11 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
             return
         }
 
-        // Get kitchen orders for this movement
         kitchenOrdersHelper.getKitchenOrdersForMovement(
             movementId = movementId,
             onSuccess = { kitchenOrders ->
                 val newStatus = calculateMovementKitchenOrderStatus(kitchenOrders)
                 
-                // Update movement with new status
                 val movementData = mapOf(
                     "kitchenOrderStatus" to newStatus?.name
                 )
@@ -227,17 +521,20 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
     private fun calculateMovementKitchenOrderStatus(kitchenOrders: List<KitchenOrder>): EKitchenOrderStatus? {
         if (kitchenOrders.isEmpty()) return null
 
-        val allDone = kitchenOrders.all { it.status == EKitchenOrderStatus.DONE }
-        val allReady = kitchenOrders.all { it.status == EKitchenOrderStatus.READY }
-        val allCanceled = kitchenOrders.all { it.status == EKitchenOrderStatus.CANCELED }
-        val hasReady = kitchenOrders.any { it.status == EKitchenOrderStatus.READY }
-        val hasPreparing = kitchenOrders.any { it.status == EKitchenOrderStatus.PREPARING }
+        val allPending = kitchenOrders.all { it.status == EKitchenOrderItemStatus.PENDING }
+        val allReady = kitchenOrders.all { it.status == EKitchenOrderItemStatus.READY }
+        val allDone = kitchenOrders.all { it.status == EKitchenOrderItemStatus.DONE }
+        val hasNonPending = kitchenOrders.any { it.status != EKitchenOrderItemStatus.PENDING }
 
         return when {
             allDone -> EKitchenOrderStatus.DONE
-            allCanceled -> EKitchenOrderStatus.CANCELED
+            
             allReady -> EKitchenOrderStatus.READY
-            hasReady || hasPreparing -> EKitchenOrderStatus.PREPARING
+            
+            allPending -> EKitchenOrderStatus.PENDING
+            
+            hasNonPending -> EKitchenOrderStatus.PREPARING
+            
             else -> EKitchenOrderStatus.PENDING
         }
     }

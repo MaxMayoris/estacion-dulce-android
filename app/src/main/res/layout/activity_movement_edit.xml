@@ -270,7 +270,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:visibility="gone"
-                    android:hint="Detalle (opcional, máximo 128 caracteres)"
+                    android:hint="Detalle (opcional)"
                     app:boxCornerRadiusTopStart="8dp"
                     app:boxCornerRadiusTopEnd="8dp"
                     app:boxCornerRadiusBottomStart="8dp"
@@ -278,7 +278,7 @@
                     app:boxStrokeColor="@color/button_gradient_start"
                     app:hintTextColor="@color/button_gradient_start"
                     app:counterEnabled="true"
-                    app:counterMaxLength="128"
+                    app:counterMaxLength="512"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                     <com.google.android.material.textfield.TextInputEditText
@@ -295,6 +295,56 @@
 
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Imágenes de Referencia Card (solo para ventas) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/referenceImagesCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/white">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="Imágenes de Referencia"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <!-- RecyclerView for reference images -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/referenceImagesRecyclerView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Botón agregar -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/addReferenceImageButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Agregar imagen"
+                    android:textSize="14sp"
+                    app:cornerRadius="8dp"
+                    app:backgroundTint="@color/button_gradient_start"
+                    android:textColor="@color/white"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- Información de Envío Card (solo para ventas) -->
         <com.google.android.material.card.MaterialCardView

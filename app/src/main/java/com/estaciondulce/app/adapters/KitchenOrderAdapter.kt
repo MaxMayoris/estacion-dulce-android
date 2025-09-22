@@ -55,12 +55,10 @@ class KitchenOrderAdapter(
             val cellValues = attributeGetter(movement)
             bindRowContent(cellValues)
             
-            // Hide all icons for kitchen orders - no actions needed
             binding.deleteIcon.visibility = android.view.View.GONE
             binding.actionIcon.visibility = android.view.View.GONE
             binding.mapsIcon.visibility = android.view.View.GONE
             
-            // Set click listener
             binding.root.setOnClickListener {
                 onRowClick(movement)
             }
@@ -89,7 +87,6 @@ class KitchenOrderAdapter(
                     textSize = 13f
                     setTypeface(null, android.graphics.Typeface.NORMAL)
                     
-                    // Apply color to status column (index 2)
                     if (index == 2) {
                         setTextColor(getStatusColor(value.toString()))
                     }
@@ -101,10 +98,10 @@ class KitchenOrderAdapter(
         private fun getStatusColor(statusText: String): Int {
             return when {
                 statusText.contains("Pendiente") -> Color.parseColor("#FF9800") // Orange
-                statusText.contains("preparación") -> Color.parseColor("#2196F3") // Blue
+                statusText.contains("Listo para decorar") -> Color.parseColor("#2196F3") // Blue
                 statusText.contains("Listo") -> Color.parseColor("#4CAF50") // Green
-                statusText.contains("Cancelado") -> Color.parseColor("#F44336") // Red
                 statusText.contains("Entregado") -> Color.parseColor("#9E9E9E") // Gray
+                statusText.contains("Cancelado") -> Color.parseColor("#F44336") // Red
                 else -> binding.root.context.getColor(R.color.table_cell_text)
             }
         }

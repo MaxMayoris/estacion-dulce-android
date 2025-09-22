@@ -2,23 +2,27 @@ package com.estaciondulce.app.activities
 
 import android.app.DatePickerDialog
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.estaciondulce.app.adapters.MovementItemsAdapter
 import com.estaciondulce.app.adapters.DialogAddItemAdapter
 import com.estaciondulce.app.adapters.PersonSearchAdapter
 import com.estaciondulce.app.adapters.AddressSelectionAdapter
+import com.estaciondulce.app.adapters.RecipeImageAdapter
 import com.estaciondulce.app.utils.DeleteConfirmationDialog
 import com.estaciondulce.app.databinding.ActivityMovementEditBinding
 import com.estaciondulce.app.helpers.AddressesHelper
 import com.estaciondulce.app.helpers.MovementsHelper
 import com.estaciondulce.app.helpers.ShipmentSettingsHelper
 import com.estaciondulce.app.helpers.DistanceMatrixHelper
+import com.estaciondulce.app.helpers.StorageHelper
 import com.estaciondulce.app.models.parcelables.Address
 import com.estaciondulce.app.models.enums.EMovementType
 import com.estaciondulce.app.models.enums.EPersonType
@@ -36,6 +40,7 @@ import com.estaciondulce.app.models.enums.EItemType
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.CustomLoader
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -51,9 +56,9 @@ data class ItemEntry(val name: String, val collection: String, val collectionId:
 class MovementEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMovementEditBinding
-    private val movementsHelper = MovementsHelper()
     private lateinit var customLoader: CustomLoader
     private var currentMovement: Movement? = null
+    private var originalMovement: Movement? = null // Copy of the original movement for kitchen order preservation
     private val repository = FirestoreRepository
     private var selectedDate: Date = Date()
     private var selectedDeliveryDate: Date? = null
@@ -69,6 +74,50 @@ class MovementEditActivity : AppCompatActivity() {
     private val distanceMatrixHelper = DistanceMatrixHelper()
     private var calculatedShippingCost: Double = 0.0
     private var selectedDeliveryType: String = EDeliveryType.PICKUP.name // Track selected delivery type
+    
+    companion object {
+        private const val MAX_MOVEMENT_IMAGES = 3
+    }
+    private val storageHelper = StorageHelper()
+    private var currentImageUris: List<Uri> = emptyList()
+    private var existingImageUrls: MutableList<String> = mutableListOf()
+    private var tempImageUrls: MutableList<String> = mutableListOf()
+    private var tempImageFiles: MutableList<File> = mutableListOf()
+    private val tempUrlToOriginalUriMap: MutableMap<String, Uri> = mutableMapOf()
+    private val imagesToDeleteFromStorage: MutableList<String> = mutableListOf()
+    private lateinit var referenceImageAdapter: RecipeImageAdapter
+    private val sessionTempId = "temp_${System.currentTimeMillis()}"
+    private val tempStorageUid: String
+        get() = if (currentMovement?.id?.isNotEmpty() == true) currentMovement!!.id else sessionTempId
+
+    private val galleryLauncher = registerForActivityResult(
+        ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            val totalCurrentImages = existingImageUrls.size + tempImageUrls.size
+            val availableSlots = MAX_MOVEMENT_IMAGES - totalCurrentImages
+            val urisToProcess = uris.take(availableSlots)
+            
+            if (uris.size > availableSlots) {
+                CustomToast.showInfo(this, "Solo puedes agregar $availableSlots imágenes más")
+            }
+            
+            if (urisToProcess.isNotEmpty()) {
+                currentImageUris = urisToProcess
+                uploadImagesToTempStorage(urisToProcess)
+            }
+        }
+    }
+
+    private val cameraLauncher = registerForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && tempImageFiles.isNotEmpty()) {
+            val tempFile = tempImageFiles.last()
+            val uri = Uri.fromFile(tempFile)
+            uploadImagesToTempStorage(listOf(uri))
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,6 +127,11 @@ class MovementEditActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         @Suppress("DEPRECATION")
         currentMovement = intent.getParcelableExtra<Movement>("MOVEMENT")
+        originalMovement = currentMovement?.let { movement ->
+            movement.copy(
+                items = movement.items.map { it.copy() }
+            )
+        }
         val personId = intent.getStringExtra("PERSON_ID")
         supportActionBar?.title =
             if (currentMovement != null) "Editar Movimiento" else "Agregar Movimiento"
@@ -131,6 +185,13 @@ class MovementEditActivity : AppCompatActivity() {
         )
         binding.itemsRecyclerView.adapter = itemsAdapter
         binding.addItemButton.setOnClickListener { showAddItemDialog() }
+        
+        referenceImageAdapter = RecipeImageAdapter { imageUrl ->
+            deleteReferenceImage(imageUrl)
+        }
+        binding.referenceImagesRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        binding.referenceImagesRecyclerView.adapter = referenceImageAdapter
+        binding.addReferenceImageButton.setOnClickListener { showReferenceImageSelectionDialog() }
         repository.personsLiveData.observe(this) { persons ->
             personsList = persons
             currentMovement?.let { movement ->
@@ -150,12 +211,14 @@ class MovementEditActivity : AppCompatActivity() {
                                 updatePersonSpinnerHint("Compra")
                                 binding.shippingRow.visibility = View.GONE
                                 binding.discountCard.visibility = View.GONE
+                                binding.referenceImagesCard.visibility = View.GONE
                             }
                             EPersonType.CLIENT.dbValue -> {
                                 binding.movementTypeSpinner.setText("Venta", false)
                                 updatePersonSpinnerHint("Venta")
                                 binding.shippingRow.visibility = View.VISIBLE
                                 binding.discountCard.visibility = View.VISIBLE
+                                binding.referenceImagesCard.visibility = View.VISIBLE
                             }
                         }
                         
@@ -188,6 +251,7 @@ class MovementEditActivity : AppCompatActivity() {
                     binding.shippingRow.visibility = View.VISIBLE
                     binding.discountCard.visibility = View.VISIBLE
                     binding.detailCard.visibility = View.VISIBLE
+                    binding.referenceImagesCard.visibility = View.VISIBLE
                     binding.discountInput.setText("0")
                     discountAmount = 0.0
                     recalcTotalAmount()
@@ -195,6 +259,7 @@ class MovementEditActivity : AppCompatActivity() {
                     binding.shippingRow.visibility = View.GONE
                     binding.discountCard.visibility = View.GONE
                     binding.detailCard.visibility = View.GONE
+                    binding.referenceImagesCard.visibility = View.GONE
                     binding.shippingAddressInput.setText("")
                     selectDeliveryType("pickup")
                     recalcTotalAmount()
@@ -224,6 +289,7 @@ class MovementEditActivity : AppCompatActivity() {
                 binding.shippingRow.visibility = View.VISIBLE
                 binding.discountCard.visibility = View.VISIBLE
                 binding.detailCard.visibility = View.VISIBLE
+                binding.referenceImagesCard.visibility = View.VISIBLE
                 
                 movement.delivery?.let { delivery ->
                     val isShipment = delivery.type == EDeliveryType.SHIPMENT.name
@@ -238,9 +304,6 @@ class MovementEditActivity : AppCompatActivity() {
                         
                         binding.finalShippingCostInput.setText(String.format("%.2f", shippingCost))
                         calculatedShippingCost = calculatedCost
-                        
-                        binding.shippingAddressContainer.visibility = View.VISIBLE
-                        binding.shippingDetailsContainer.visibility = View.VISIBLE
                         
                         if (delivery.shipment?.addressId?.isNotEmpty() == true) {
                             val movementPersonId = movement.personId
@@ -264,9 +327,6 @@ class MovementEditActivity : AppCompatActivity() {
                                 }
                             )
                         }
-                    } else {
-                        binding.shippingAddressContainer.visibility = View.VISIBLE
-                        binding.shippingDetailsContainer.visibility = View.VISIBLE
                     }
                 } ?: run {
                     clearDeliveryData()
@@ -286,6 +346,7 @@ class MovementEditActivity : AppCompatActivity() {
                 binding.shippingRow.visibility = View.GONE
                 binding.discountCard.visibility = View.GONE
                 binding.detailCard.visibility = View.GONE
+                binding.referenceImagesCard.visibility = View.GONE
             }
             movementItems.clear()
             val regularItems = movement.items.filter { it.collection != "custom" || it.collectionId != "discount" }
@@ -296,6 +357,12 @@ class MovementEditActivity : AppCompatActivity() {
             recalcTotalAmount()
             originalProductItems =
                 movement.items.filter { it.collection == "products" }.map { it.copy() }
+            
+            if (movement.type == EMovementType.SALE) {
+                existingImageUrls.clear()
+                existingImageUrls.addAll(movement.referenceImages)
+                updateReferenceImageGallery()
+            }
         } ?: run {
             binding.dateInput.setText(formatDateTime(selectedDate))
         }
@@ -341,18 +408,15 @@ class MovementEditActivity : AppCompatActivity() {
                             CustomToast.showSuccess(this, "Nueva dirección agregada y seleccionada: ${savedAddress.label}")
                         },
                         onError = { exception ->
-                            android.util.Log.e("MovementEdit", "Error saving address: ${exception.message}", exception)
                             customLoader.hide()
                             CustomToast.showError(this, "Error al guardar la dirección: ${exception.message}")
                         }
                     )
                 } else {
-                    android.util.Log.e("MovementEdit", "Selected person not found when trying to save address")
                     customLoader.hide()
                     CustomToast.showError(this, "Error: No se pudo encontrar la persona seleccionada.")
                 }
             } else {
-                android.util.Log.e("MovementEdit", "Address is null in onActivityResult")
                 customLoader.hide()
                 CustomToast.showError(this, "Error al obtener la nueva dirección.")
             }
@@ -450,7 +514,6 @@ class MovementEditActivity : AppCompatActivity() {
         val selectedPersonName = binding.personSpinner.text.toString()
         
         if (selectedPersonName.isEmpty()) {
-            android.util.Log.w("MovementEdit", "No person selected")
             CustomToast.showError(this, "Por favor, seleccione primero una persona.")
             return
         }
@@ -458,7 +521,6 @@ class MovementEditActivity : AppCompatActivity() {
         val selectedPerson = personsList.find { "${it.name} ${it.lastName}" == selectedPersonName }
         
         if (selectedPerson == null) {
-            android.util.Log.e("MovementEdit", "Person not found in personsList")
             CustomToast.showError(this, "No se pudo encontrar la persona seleccionada.")
             return
         }
@@ -524,7 +586,6 @@ class MovementEditActivity : AppCompatActivity() {
                 })
             },
             onError = { exception ->
-                android.util.Log.e("MovementEdit", "Error loading addresses: ${exception.message}", exception)
                 CustomToast.showError(this, "Error al cargar direcciones: ${exception.message}")
                 addressesRecyclerView.visibility = View.GONE
                 emptyState.visibility = View.VISIBLE
@@ -680,16 +741,14 @@ class MovementEditActivity : AppCompatActivity() {
         }, year, month, day).show()
     }
 
-    private fun formatDate(date: Date): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        return sdf.format(date)
-    }
 
     /**
      * Sets up the delivery type selector with visual feedback.
      */
     private fun setupDeliveryTypeSelector() {
-        selectDeliveryType(EDeliveryType.PICKUP.name)
+        if (currentMovement == null) {
+            selectDeliveryType(EDeliveryType.PICKUP.name)
+        }
         
         binding.pickupOptionCard.setOnClickListener {
             selectDeliveryType(EDeliveryType.PICKUP.name)
@@ -706,7 +765,7 @@ class MovementEditActivity : AppCompatActivity() {
     private fun selectDeliveryType(type: String) {
         selectedDeliveryType = type
         
-        if (type == EDeliveryType.PICKUP.name) {
+        if (type == "PICKUP") {
             binding.pickupOptionCard.setCardBackgroundColor(resources.getColor(com.estaciondulce.app.R.color.button_gradient_start, null))
             binding.pickupOptionCard.setStrokeColor(resources.getColor(com.estaciondulce.app.R.color.button_gradient_start, null))
             binding.pickupOptionCard.setStrokeWidth(2)
@@ -767,40 +826,6 @@ class MovementEditActivity : AppCompatActivity() {
         return formatted.replace("sept.", "sep")
     }
 
-    /**
-     * Checks if there is existing delivery data that would require confirmation to remove.
-     */
-    private fun hasExistingDeliveryData(): Boolean {
-        val cost = binding.finalShippingCostInput.text.toString().toDoubleOrNull() ?: 0.0
-        val address = binding.shippingAddressInput.text.toString().trim()
-        val hasDate = selectedDeliveryDate != null
-        
-        return cost > 0.0 || address.isNotEmpty() || hasDate
-    }
-
-    /**
-     * Shows confirmation dialog when removing shipment with existing data.
-     */
-    private fun showShipmentRemovalConfirmation() {
-        val selectedPersonName = binding.personSpinner.text.toString()
-        val personName = if (selectedPersonName.isNotEmpty()) {
-            selectedPersonName
-        } else {
-            "esta persona"
-        }
-        
-        DeleteConfirmationDialog.show(
-            context = this,
-            itemName = "el envío a '$personName'",
-            itemType = "envío",
-            onConfirm = {
-                clearDeliveryData()
-            },
-            onCancel = {
-                selectDeliveryType("shipment")
-            }
-        )
-    }
 
     /**
      * Recalculates shipping cost using Distance Matrix API.
@@ -1051,8 +1076,8 @@ class MovementEditActivity : AppCompatActivity() {
             }
             
             val detail = binding.detailInput.text.toString().trim()
-            if (detail.length > 128) {
-                CustomToast.showError(this, "El detalle no puede superar los 128 caracteres.")
+            if (detail.length > 512) {
+                CustomToast.showError(this, "El detalle no puede superar los 512 caracteres.")
                 return false
             }
         }
@@ -1157,7 +1182,9 @@ class MovementEditActivity : AppCompatActivity() {
             totalAmount = totalAmount,
             items = itemsToSave,
             delivery = delivery,
-            detail = detail
+            detail = detail,
+            appliedAt = currentMovement?.appliedAt, // Preserve original appliedAt
+            createdAt = currentMovement?.createdAt ?: Date() // Use original createdAt or current date for new movements
         )
     }
 
@@ -1165,58 +1192,253 @@ class MovementEditActivity : AppCompatActivity() {
      * Saves the movement (create or update) and cascades product updates to recipes.
      */
     private fun saveMovement() {
-        
         if (!validateInputs()) {
-            android.util.Log.w("MovementEdit", "Validation failed, not saving movement")
             return
         }
         
         customLoader.show()
-        
         val movementToSave = getMovementFromInputs()
-        saveMovementToFirestore(movementToSave)
+        
+        if (currentMovement == null) {
+            handleNewMovement(movementToSave)
+        } else {
+            handleMovementEdit(movementToSave)
+        }
     }
 
-    private fun saveMovementToFirestore(movement: Movement) {
-        if (currentMovement == null) {
-            MovementsHelper().addMovement(
-                movement = movement,
-                onSuccess = {
-                    customLoader.hide()
-                    CustomToast.showSuccess(this, "Movimiento agregado correctamente.")
-                    finish()
-                },
-                onError = { exception ->
-                    customLoader.hide()
-                    CustomToast.showError(this, "Error al agregar el movimiento: ${exception.message}")
-                }
-            )
-        } else {
-            val originalMovementId = currentMovement!!.id
-            
-            MovementsHelper().addMovement(
-                movement = movement,
-                onSuccess = {
-                    MovementsHelper().deleteMovement(
-                        movementId = originalMovementId,
-                        onSuccess = {
-                            customLoader.hide()
-                            CustomToast.showSuccess(this, "Movimiento actualizado correctamente.")
-                            finish()
+    
+    /**
+     * Handles creation of a new movement
+     */
+    private fun handleNewMovement(movement: Movement) {
+        MovementsHelper().addMovement(
+            movement = movement,
+            onSuccess = { newMovement ->
+                if (movement.type == EMovementType.SALE && tempImageUrls.isNotEmpty()) {
+                    uploadTempImagesToFinalLocation(
+                        tempImageUrls = tempImageUrls,
+                        movementId = newMovement.id,
+                        onSuccess = { finalImageUrls ->
+                            val finalMovement = newMovement.copy(referenceImages = finalImageUrls)
+                            updateMovementWithFinalImages(finalMovement)
                         },
-                        onError = { _ ->
-                            customLoader.hide()
-                            CustomToast.showError(this, "Movimiento actualizado, pero hubo un error al eliminar el original. Contacte soporte.")
-                            finish()
+                        onError = { error ->
+                            showErrorAndHideLoader("Error al subir imágenes: ${error.message}")
                         }
                     )
-                },
-                onError = { exception ->
-                    customLoader.hide()
-                    CustomToast.showError(this, "Error al crear el movimiento actualizado: ${exception.message}")
+                } else {
+                    showSuccessAndFinish("Movimiento agregado correctamente.")
                 }
-            )
+            },
+            onError = { exception ->
+                showErrorAndHideLoader("Error al agregar el movimiento: ${exception.message}")
+            }
+        )
+    }
+    
+    /**
+     * Updates movement with final image URLs
+     */
+    private fun updateMovementWithFinalImages(movement: Movement) {
+        MovementsHelper().updateMovement(
+            movementId = movement.id,
+            movement = movement,
+            updateKitchenOrders = false,
+            onSuccess = {
+                showSuccessAndFinish("Movimiento agregado correctamente.")
+            },
+            onError = { error ->
+                showErrorAndHideLoader("Error al actualizar imágenes: ${error.message}")
+            }
+        )
+    }
+    
+    
+    /**
+     * Handles editing of an existing movement
+     */
+    private fun handleMovementEdit(movement: Movement) {
+        val originalMovementId = currentMovement!!.id
+        
+        MovementsHelper().addMovement(
+            movement = movement,
+            createKitchenOrders = false, // Don't create kitchen orders here - they will be handled by preserveKitchenOrdersForEditedMovement
+            onSuccess = { newMovement ->
+                if (movement.type == EMovementType.SALE && hasImageChanges()) {
+                    handleImageOperationsForEdit(newMovement, originalMovementId)
+                } else {
+                    updateMovementAndCleanup(newMovement, originalMovementId)
+                }
+            },
+            onError = { exception ->
+                showErrorAndHideLoader("Error al crear el movimiento actualizado: ${exception.message}")
+            }
+        )
+    }
+    
+    /**
+     * Checks if there are any image changes in the movement
+     */
+    private fun hasImageChanges(): Boolean {
+        return tempImageUrls.isNotEmpty() || 
+               imagesToDeleteFromStorage.isNotEmpty() || 
+               existingImageUrls.isNotEmpty()
+    }
+    
+    
+    /**
+     * Handles all image operations for edited movements
+     */
+    private fun handleImageOperationsForEdit(newMovement: Movement, originalMovementId: String) {
+        if (existingImageUrls.isNotEmpty()) {
+            copyExistingImagesAndHandleNew(newMovement, originalMovementId)
+        } else {
+            handleNewImagesOnly(newMovement, originalMovementId)
         }
+    }
+    
+    /**
+     * Copies existing images and handles new ones
+     */
+    private fun copyExistingImagesAndHandleNew(newMovement: Movement, originalMovementId: String) {
+        copyExistingImagesToNewBucket(
+            existingImageUrls = existingImageUrls,
+            newMovementId = newMovement.id,
+            onSuccess = { copiedImageUrls ->
+                if (tempImageUrls.isNotEmpty()) {
+                    uploadNewImagesAndComplete(copiedImageUrls, newMovement, originalMovementId)
+                } else {
+                    completeMovementEdit(newMovement.copy(referenceImages = copiedImageUrls), originalMovementId)
+                }
+            },
+            onError = { error ->
+                showErrorAndHideLoader("Error al copiar imágenes existentes: ${error.message}")
+            }
+        )
+    }
+    
+    /**
+     * Handles only new images (no existing ones to copy)
+     */
+    private fun handleNewImagesOnly(newMovement: Movement, originalMovementId: String) {
+        if (tempImageUrls.isNotEmpty()) {
+            uploadNewImagesAndComplete(emptyList(), newMovement, originalMovementId)
+        } else {
+            completeMovementEdit(newMovement.copy(referenceImages = emptyList()), originalMovementId)
+        }
+    }
+    
+    /**
+     * Uploads new images and completes the movement edit
+     */
+    private fun uploadNewImagesAndComplete(existingImageUrls: List<String>, newMovement: Movement, originalMovementId: String) {
+        uploadTempImagesToFinalLocation(
+            tempImageUrls = tempImageUrls,
+            movementId = newMovement.id,
+            onSuccess = { newImageUrls ->
+                val finalMovement = newMovement.copy(referenceImages = existingImageUrls + newImageUrls)
+                completeMovementEdit(finalMovement, originalMovementId)
+            },
+            onError = { error ->
+                showErrorAndHideLoader("Error al subir nuevas imágenes: ${error.message}")
+            }
+        )
+    }
+    
+    
+    /**
+     * Completes the movement edit process
+     */
+    private fun completeMovementEdit(newMovement: Movement, originalMovementId: String) {
+        updateMovementAndCleanup(newMovement, originalMovementId)
+    }
+    
+    
+    /**
+     * Shows success message and finishes the activity
+     */
+    private fun showSuccessAndFinish(message: String) {
+        customLoader.hide()
+        CustomToast.showSuccess(this, message)
+        finish()
+    }
+    
+    /**
+     * Shows error message and hides loader
+     */
+    private fun showErrorAndHideLoader(message: String) {
+        customLoader.hide()
+        CustomToast.showError(this, message)
+    }
+
+    /**
+     * Updates the movement with final data and cleans up the original movement.
+     */
+    private fun updateMovementAndCleanup(newMovement: Movement, originalMovementId: String) {
+        
+        updateMovementAndCleanupInternal(newMovement, originalMovementId, shouldPreserveKitchenOrders = newMovement.type == EMovementType.SALE && originalMovement != null)
+    }
+
+    /**
+     * Internal method to update movement and cleanup original
+     */
+    private fun updateMovementAndCleanupInternal(newMovement: Movement, originalMovementId: String, shouldPreserveKitchenOrders: Boolean = false) {
+        MovementsHelper().updateMovement(
+            movementId = newMovement.id,
+            movement = newMovement,
+            updateKitchenOrders = false, // Don't update kitchen orders here - they are handled by preserveKitchenOrdersForEditedMovement
+            onSuccess = {
+                if (shouldPreserveKitchenOrders && originalMovement != null) {
+                    MovementsHelper().preserveKitchenOrdersForEditedMovement(
+                        originalMovement = originalMovement!!,
+                        newMovement = newMovement,
+                        onSuccess = {
+                            cleanupOriginalMovement(originalMovementId)
+                        },
+                        onError = { error ->
+                            customLoader.hide()
+                            CustomToast.showError(this, "Error al preservar órdenes de cocina: ${error.message}")
+                        }
+                    )
+                } else {
+                    cleanupOriginalMovement(originalMovementId)
+                }
+            },
+            onError = { error ->
+                customLoader.hide()
+                CustomToast.showError(this, "Error al actualizar el movimiento: ${error.message}")
+            }
+        )
+    }
+    
+    private fun cleanupOriginalMovement(originalMovementId: String) {
+        MovementsHelper().deleteMovement(
+            movementId = originalMovementId,
+            onSuccess = {
+                val allImagesToDelete = imagesToDeleteFromStorage.toMutableList()
+                
+                currentMovement?.referenceImages?.let { originalImages ->
+                    allImagesToDelete.addAll(originalImages)
+                }
+                
+                if (allImagesToDelete.isNotEmpty()) {
+                    storageHelper.deleteImagesFromStorage(
+                        imageUrls = allImagesToDelete,
+                        onSuccess = {
+                            showSuccessAndFinish("Movimiento actualizado correctamente.")
+                        },
+                        onError = { _ ->
+                            showSuccessAndFinish("Movimiento actualizado correctamente.")
+                        }
+                    )
+                } else {
+                    showSuccessAndFinish("Movimiento actualizado correctamente.")
+                }
+            },
+            onError = { _ ->
+                showErrorAndHideLoader("Movimiento actualizado, pero hubo un error al eliminar el original. Contacte soporte.")
+            }
+        )
     }
 
     /**
@@ -1276,6 +1498,291 @@ class MovementEditActivity : AppCompatActivity() {
         }
         
         return results
+    }
+
+    /**
+     * Shows the reference image selection dialog.
+     */
+    private fun showReferenceImageSelectionDialog() {
+        val totalCurrentImages = existingImageUrls.size + tempImageUrls.size
+        if (totalCurrentImages >= MAX_MOVEMENT_IMAGES) {
+            CustomToast.showInfo(this, "Máximo de $MAX_MOVEMENT_IMAGES imágenes alcanzado")
+            return
+        }
+
+        val options = mutableListOf<String>()
+        val actions = mutableListOf<() -> Unit>()
+        
+        options.add("Galería")
+        actions.add { selectImagesFromGallery() }
+        
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Seleccionar imagen")
+            .setItems(options.toTypedArray()) { _, which ->
+                actions[which]()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    /**
+     * Takes a picture using the camera.
+     */
+    private fun takePictureWithCamera() {
+        try {
+            val tempFile = File.createTempFile("movement_image_${System.currentTimeMillis()}", ".jpg", cacheDir)
+            tempImageFiles.add(tempFile)
+            val uri = Uri.fromFile(tempFile)
+            cameraLauncher.launch(uri)
+        } catch (e: Exception) {
+            CustomToast.showError(this, "Error al crear archivo temporal: ${e.message}")
+        }
+    }
+
+    /**
+     * Selects images from gallery.
+     */
+    private fun selectImagesFromGallery() {
+        val availableSlots = MAX_MOVEMENT_IMAGES - (existingImageUrls.size + tempImageUrls.size)
+        if (availableSlots <= 0) {
+            CustomToast.showInfo(this, "Máximo de $MAX_MOVEMENT_IMAGES imágenes alcanzado")
+            return
+        }
+        galleryLauncher.launch("image/*")
+    }
+
+    /**
+     * Updates the reference image gallery UI.
+     */
+    private fun updateReferenceImageGallery() {
+        val allImages = existingImageUrls + tempImageUrls
+        referenceImageAdapter.updateImages(allImages)
+        val totalImages = allImages.size
+        binding.addReferenceImageButton.isEnabled = totalImages < MAX_MOVEMENT_IMAGES
+        binding.addReferenceImageButton.text = if (totalImages < MAX_MOVEMENT_IMAGES) {
+            "Agregar imagen ($totalImages/$MAX_MOVEMENT_IMAGES)"
+        } else {
+            "Máximo alcanzado ($MAX_MOVEMENT_IMAGES/$MAX_MOVEMENT_IMAGES)"
+        }
+    }
+
+    /**
+     * Deletes a reference image.
+     */
+    private fun deleteReferenceImage(imageUrl: String) {
+        if (existingImageUrls.contains(imageUrl)) {
+            existingImageUrls.remove(imageUrl)
+            imagesToDeleteFromStorage.add(imageUrl)
+        } else if (tempImageUrls.contains(imageUrl)) {
+            tempImageUrls.remove(imageUrl)
+            tempUrlToOriginalUriMap.remove(imageUrl)
+        }
+        updateReferenceImageGallery()
+    }
+
+    /**
+     * Uploads images to temporary storage.
+     */
+    private fun uploadImagesToTempStorage(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        
+        customLoader.show()
+        
+        val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", java.util.Locale.getDefault())
+            .format(java.util.Date())
+        
+        var completedUploads = 0
+        val totalUploads = uris.size
+        
+        uris.forEachIndexed { index, uri ->
+            val fileName = if (uris.size > 1) {
+                "${timestamp}-${index + 1}.jpg"
+            } else {
+                "${timestamp}.jpg"
+            }
+            
+            storageHelper.uploadTempImage(
+                imageUri = uri,
+                uid = tempStorageUid,
+                fileName = fileName,
+                onSuccess = { downloadUrl ->
+                    tempImageUrls.add(downloadUrl)
+                    tempUrlToOriginalUriMap[downloadUrl] = uri
+                    completedUploads++
+                    
+                    if (completedUploads == totalUploads) {
+                        customLoader.hide()
+                        updateReferenceImageGallery()
+                        CustomToast.showSuccess(this, "Imágenes subidas exitosamente")
+                    }
+                },
+                onError = { error ->
+                    completedUploads++
+                    if (completedUploads == totalUploads) {
+                        customLoader.hide()
+                        updateReferenceImageGallery()
+                        CustomToast.showError(this, "Error al subir algunas imágenes: ${error.message}")
+                    }
+                }
+            )
+        }
+    }
+
+
+    /**
+     * Uploads temp images to final location for a movement.
+     */
+    private fun uploadTempImagesToFinalLocation(
+        tempImageUrls: List<String>,
+        movementId: String,
+        onSuccess: (List<String>) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        if (tempImageUrls.isEmpty()) {
+            onSuccess(emptyList())
+            return
+        }
+        
+        customLoader.show()
+        
+        val urisToUpload = mutableListOf<Uri>()
+        val fileNames = mutableListOf<String>()
+        
+        tempImageUrls.forEach { tempUrl ->
+            val originalUri = findOriginalUriForTempUrl(tempUrl)
+            if (originalUri != null) {
+                urisToUpload.add(originalUri)
+                val fileName = tempUrl.substringAfterLast("/").substringBefore("?")
+                    .replace("%2F", "/")
+                    .substringAfterLast("/")
+                fileNames.add(fileName)
+            }
+        }
+        
+        if (urisToUpload.isEmpty()) {
+            customLoader.hide()
+            onError(Exception("No se encontraron las URIs originales para las imágenes temp"))
+            return
+        }
+        
+        var completedUploads = 0
+        val totalUploads = urisToUpload.size
+        val finalImageUrls = mutableListOf<String>()
+        
+        urisToUpload.forEachIndexed { index, uri ->
+            val fileName = fileNames[index]
+            
+            storageHelper.uploadMovementImageWithName(
+                imageUri = uri,
+                movementId = movementId,
+                fileName = fileName,
+                onSuccess = { downloadUrl ->
+                    finalImageUrls.add(downloadUrl)
+                    completedUploads++
+                    
+                    if (completedUploads == totalUploads) {
+                        customLoader.hide()
+                        onSuccess(finalImageUrls)
+                    }
+                },
+                onError = { error ->
+                    customLoader.hide()
+                    onError(error)
+                }
+            )
+        }
+    }
+
+    /**
+     * Finds the original URI for a temporary URL.
+     */
+    private fun findOriginalUriForTempUrl(tempUrl: String): Uri? {
+        return tempUrlToOriginalUriMap[tempUrl]
+    }
+
+    /**
+     * Copies existing images to the new movement bucket.
+     */
+    private fun copyExistingImagesToNewBucket(
+        existingImageUrls: List<String>,
+        newMovementId: String,
+        onSuccess: (List<String>) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        if (existingImageUrls.isEmpty()) {
+            onSuccess(emptyList())
+            return
+        }
+        
+        customLoader.show()
+        
+        var completedCopies = 0
+        val totalCopies = existingImageUrls.size
+        val copiedImageUrls = mutableListOf<String>()
+        var hasError = false
+        
+        existingImageUrls.forEachIndexed { index, existingImageUrl ->
+            val fileName = extractFileNameFromUrl(existingImageUrl) ?: run {
+                val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", java.util.Locale.getDefault())
+                    .format(java.util.Date())
+                if (existingImageUrls.size > 1) {
+                    "${timestamp}-${index + 1}.jpg"
+                } else {
+                    "${timestamp}.jpg"
+                }
+            }
+            
+            storageHelper.copyMovementImage(
+                sourceImageUrl = existingImageUrl,
+                newMovementId = newMovementId,
+                fileName = fileName,
+                onSuccess = { newImageUrl ->
+                    copiedImageUrls.add(newImageUrl)
+                    completedCopies++
+                    
+                    if (completedCopies == totalCopies) {
+                        customLoader.hide()
+                        if (hasError) {
+                            onError(Exception("Some images could not be copied"))
+                        } else {
+                            onSuccess(copiedImageUrls)
+                        }
+                    }
+                },
+                onError = { error ->
+                    completedCopies++
+                    hasError = true
+                    if (completedCopies == totalCopies) {
+                        customLoader.hide()
+                        onError(Exception("Error copying images: ${error.message}"))
+                    }
+                }
+            )
+        }
+    }
+
+    /**
+     * Extracts filename from a Firebase Storage URL.
+     */
+    private fun extractFileNameFromUrl(url: String): String? {
+        return try {
+            val uri = Uri.parse(url)
+            val pathSegments = uri.pathSegments
+            if (pathSegments.isNotEmpty()) {
+                val fileName = pathSegments.last()
+                val cleanFileName = fileName.substringBefore("?")
+                
+                if (cleanFileName.contains("/")) {
+                    cleanFileName.substringAfterLast("/")
+                } else {
+                    cleanFileName
+                }
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
     }
 
 }

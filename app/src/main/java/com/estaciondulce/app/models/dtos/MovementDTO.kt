@@ -16,5 +16,6 @@ data class MovementDTO(
     val appliedAt: Date? = null,
     val createdAt: Date? = null,
     val detail: String = "",
-    val kitchenOrderStatus: String? = null // EKitchenOrderStatus.name
+    val kitchenOrderStatus: String? = null, // EKitchenOrderStatus.name
+    val referenceImages: List<String> = listOf()
 )

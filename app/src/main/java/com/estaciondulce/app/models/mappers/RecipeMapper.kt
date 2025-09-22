@@ -26,6 +26,7 @@ fun Recipe.toDTO(): RecipeDTO {
         unit = unit,
         images = images,
         description = description,
+        detail = detail,
         categories = categories,
         sections = sections.map { it.toDTO() },
         recipes = recipes.map { it.toDTO() }
@@ -46,6 +47,7 @@ fun RecipeDTO.toParcelable(id: String = ""): Recipe {
         unit = unit,
         images = images,
         description = description,
+        detail = detail,
         categories = categories,
         sections = sections.map { it.toParcelable() },
         recipes = recipes.map { it.toParcelable() }
@@ -124,6 +126,7 @@ fun RecipeDTO.toMap(): Map<String, Any?> {
         "unit" to unit,
         "images" to images,
         "description" to description,
+        "detail" to detail,
         "categories" to categories,
         "sections" to sections,
         "recipes" to recipes

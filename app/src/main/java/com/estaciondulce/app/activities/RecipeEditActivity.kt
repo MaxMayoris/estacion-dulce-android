@@ -47,9 +47,14 @@ val Int.dp: Int
 
 class RecipeEditActivity : AppCompatActivity() {
 
+    companion object {
+        private const val MAX_RECIPE_IMAGES = 10
+    }
+
     private lateinit var binding: ActivityRecipeEditBinding
     private lateinit var loader: CustomLoader
     private var recipe: Recipe? = null
+    private var recipeDetail: String = ""
     private val recipesHelper = RecipesHelper()
     private val storageHelper = StorageHelper()
     private val selectedSections = mutableListOf<RecipeSection>()
@@ -75,7 +80,7 @@ class RecipeEditActivity : AppCompatActivity() {
     ) { uris ->
         if (uris.isNotEmpty()) {
             val totalCurrentImages = existingImageUrls.size + tempImageUrls.size
-            val availableSlots = 5 - totalCurrentImages
+            val availableSlots = MAX_RECIPE_IMAGES - totalCurrentImages
             val urisToProcess = uris.take(availableSlots)
             
             if (uris.size > availableSlots) {
@@ -160,6 +165,7 @@ class RecipeEditActivity : AppCompatActivity() {
             binding.recipeCustomizableCheckbox.isChecked = r.customizable
             binding.recipeUnitInput.setText(r.unit.toString())
             binding.recipeDescriptionInput.setText(r.description)
+            recipeDetail = r.detail
             existingImageUrls.clear()
             existingImageUrls.addAll(r.images)
             tempImageUrls.clear()
@@ -206,7 +212,6 @@ class RecipeEditActivity : AppCompatActivity() {
         loader.show()
         binding.saveRecipeButton.setOnClickListener { saveRecipe() }
         
-        // Setup customizable checkbox listener
         binding.recipeCustomizableCheckbox.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 showCustomizableConfirmationDialog()
@@ -222,9 +227,38 @@ class RecipeEditActivity : AppCompatActivity() {
             }
         }
         
+        binding.detailButton.setOnClickListener {
+            showDetailDialog()
+        }
+        
         loader.hide()
     }
     
+    private fun showDetailDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_recipe_detail, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+        
+        val detailEditText = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.detailEditText)
+        val cancelButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.cancelButton)
+        val saveButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.saveButton)
+        
+        detailEditText.setText(recipeDetail)
+        
+        cancelButton.setOnClickListener {
+            dialog.dismiss()
+        }
+        
+        saveButton.setOnClickListener {
+            recipeDetail = detailEditText.text.toString().trimStart()
+            dialog.dismiss()
+        }
+        
+        dialog.show()
+    }
+
     private fun showCustomizableConfirmationDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_customizable_confirmation, null)
         val dialog = AlertDialog.Builder(this)
@@ -240,7 +274,6 @@ class RecipeEditActivity : AppCompatActivity() {
         }
         
         dialogView.findViewById<Button>(R.id.confirmButton).setOnClickListener {
-            // Activate other checkboxes automatically
             binding.recipeOnSaleCheckbox.isChecked = true
             binding.recipeOnSaleQueryCheckbox.isChecked = true
             dialog.dismiss()
@@ -776,6 +809,7 @@ class RecipeEditActivity : AppCompatActivity() {
             customizable = binding.recipeCustomizableCheckbox.isChecked,
             images = (existingImageUrls + tempImageUrls).toList(),
             description = binding.recipeDescriptionInput.text.toString(),
+            detail = recipeDetail,
             categories = selectedCategories.toList(),
             sections = selectedSections,
             recipes = selectedRecipes
@@ -984,6 +1018,7 @@ class RecipeEditActivity : AppCompatActivity() {
                     onSaleQuery = binding.recipeOnSaleQueryCheckbox.isChecked,
                     images = existingImageUrls.toList(),
                     description = binding.recipeDescriptionInput.text.toString(),
+                    detail = recipeDetail,
                     categories = selectedCategories.toList(),
                     sections = selectedSections,
                     recipes = selectedRecipes
@@ -1146,7 +1181,6 @@ class RecipeEditActivity : AppCompatActivity() {
             return
         }
         
-        // Skip cost and price validations for customizable recipes
         if (!isCustomizable) {
             if (cost.isEmpty()) {
                 Toast.makeText(this, "El costo es obligatorio.", Toast.LENGTH_SHORT).show()
@@ -1171,7 +1205,6 @@ class RecipeEditActivity : AppCompatActivity() {
             return
         }
         
-        // Skip product validations for customizable recipes
         if (!isCustomizable) {
             for (section in selectedSections) {
                 if (section.products.isEmpty()) {
@@ -1409,11 +1442,11 @@ class RecipeEditActivity : AppCompatActivity() {
         val allImages = existingImageUrls + tempImageUrls
         imageAdapter.updateImages(allImages)
         val totalImages = allImages.size
-        binding.addImageButton.isEnabled = totalImages < 5
-        binding.addImageButton.text = if (totalImages < 5) {
-            "Agregar imagen ($totalImages/5)"
+        binding.addImageButton.isEnabled = totalImages < MAX_RECIPE_IMAGES
+        binding.addImageButton.text = if (totalImages < MAX_RECIPE_IMAGES) {
+            "Agregar imagen ($totalImages/$MAX_RECIPE_IMAGES)"
         } else {
-            "Máximo alcanzado (5/5)"
+            "Máximo alcanzado ($MAX_RECIPE_IMAGES/$MAX_RECIPE_IMAGES)"
         }
     }
     
@@ -1563,6 +1596,6 @@ class RecipeEditActivity : AppCompatActivity() {
     private fun showImageUploadProgress(show: Boolean) {
         binding.imageUploadProgress.visibility = if (show) View.VISIBLE else View.GONE
         val totalImages = existingImageUrls.size + tempImageUrls.size
-        binding.addImageButton.isEnabled = !show && totalImages < 5
+        binding.addImageButton.isEnabled = !show && totalImages < MAX_RECIPE_IMAGES
     }
 }

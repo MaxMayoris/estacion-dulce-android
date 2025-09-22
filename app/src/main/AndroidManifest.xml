@@ -56,6 +56,9 @@
         <activity android:name=".activities.AddressPickerActivity" />
         <activity android:name=".activities.ShipmentEditActivity" />
         <activity android:name=".activities.KitchenOrderEditActivity" />
+        <activity 
+            android:name=".activities.FullScreenImageActivity"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
     </application>
 
 </manifest>

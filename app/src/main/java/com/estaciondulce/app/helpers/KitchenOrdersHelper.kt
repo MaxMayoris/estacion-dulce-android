@@ -2,6 +2,7 @@ package com.estaciondulce.app.helpers
 
 import com.estaciondulce.app.models.parcelables.KitchenOrder
 import com.estaciondulce.app.models.enums.EKitchenOrderStatus
+import com.estaciondulce.app.models.enums.EKitchenOrderItemStatus
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import java.util.*
@@ -26,13 +27,16 @@ class KitchenOrdersHelper {
             val batch = db.batch()
             
             kitchenOrders.forEach { kitchenOrder ->
+                
                 val kitchenOrderRef = db.collection("movements")
                     .document(movementId)
                     .collection("kitchenOrders")
                     .document()
                 
                 val kitchenOrderData = mapOf(
-                    "productId" to kitchenOrder.productId,
+                    "collection" to kitchenOrder.collection,
+                    "collectionId" to kitchenOrder.collectionId,
+                    "customName" to kitchenOrder.customName,
                     "name" to kitchenOrder.name,
                     "quantity" to kitchenOrder.quantity,
                     "status" to kitchenOrder.status.name,
@@ -69,10 +73,12 @@ class KitchenOrdersHelper {
                     try {
                         KitchenOrder(
                             id = document.id,
-                            productId = document.getString("productId") ?: "",
+                            collection = document.getString("collection") ?: "",
+                            collectionId = document.getString("collectionId") ?: "",
+                            customName = document.getString("customName"),
                             name = document.getString("name") ?: "",
                             quantity = document.getDouble("quantity") ?: 0.0,
-                            status = EKitchenOrderStatus.valueOf(document.getString("status") ?: "PENDING"),
+                            status = EKitchenOrderItemStatus.valueOf(document.getString("status") ?: "PENDING"),
                             createdAt = (document.getDate("createdAt") ?: Date()),
                             updatedAt = (document.getDate("updatedAt") ?: Date())
                         )
@@ -91,7 +97,7 @@ class KitchenOrdersHelper {
     fun updateKitchenOrderStatus(
         movementId: String,
         kitchenOrderId: String,
-        newStatus: EKitchenOrderStatus,
+        newStatus: EKitchenOrderItemStatus,
         onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ) {
@@ -156,10 +162,12 @@ class KitchenOrdersHelper {
                     try {
                         KitchenOrder(
                             id = document.id,
-                            productId = document.getString("productId") ?: "",
+                            collection = document.getString("collection") ?: "",
+                            collectionId = document.getString("collectionId") ?: "",
+                            customName = document.getString("customName"),
                             name = document.getString("name") ?: "",
                             quantity = document.getDouble("quantity") ?: 0.0,
-                            status = EKitchenOrderStatus.valueOf(document.getString("status") ?: "PENDING"),
+                            status = EKitchenOrderItemStatus.valueOf(document.getString("status") ?: "PENDING"),
                             createdAt = (document.getDate("createdAt") ?: Date()),
                             updatedAt = (document.getDate("updatedAt") ?: Date())
                         )

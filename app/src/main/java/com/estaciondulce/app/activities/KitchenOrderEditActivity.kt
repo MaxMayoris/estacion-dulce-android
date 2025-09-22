@@ -1,5 +1,6 @@
 package com.estaciondulce.app.activities
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.MenuItem
@@ -8,11 +9,18 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.viewpager2.widget.ViewPager2
+import com.bumptech.glide.Glide
 import com.estaciondulce.app.R
+import com.estaciondulce.app.adapters.ImageCarouselAdapter
+import com.estaciondulce.app.adapters.ImageViewOnlyAdapter
+import com.estaciondulce.app.databinding.DialogSingleImageBinding
 import com.estaciondulce.app.databinding.ActivityKitchenOrderEditBinding
 import com.estaciondulce.app.helpers.KitchenOrdersHelper
 import com.estaciondulce.app.models.enums.EDeliveryType
 import com.estaciondulce.app.models.enums.EKitchenOrderStatus
+import com.estaciondulce.app.models.enums.EKitchenOrderItemStatus
 import com.estaciondulce.app.models.parcelables.KitchenOrder
 import com.estaciondulce.app.models.parcelables.Movement
 import com.estaciondulce.app.repository.FirestoreRepository
@@ -33,6 +41,7 @@ class KitchenOrderEditActivity : AppCompatActivity() {
     private var kitchenOrders: List<KitchenOrder> = emptyList()
     private val kitchenOrdersHelper = KitchenOrdersHelper()
     private lateinit var customLoader: CustomLoader
+    private lateinit var referenceImageAdapter: ImageViewOnlyAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,12 +50,21 @@ class KitchenOrderEditActivity : AppCompatActivity() {
 
         customLoader = CustomLoader(this)
         setupToolbar()
+        setupReferenceImagesAdapter()
         loadMovementData()
     }
 
     private fun setupToolbar() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Detalles del Pedido"
+    }
+
+    private fun setupReferenceImagesAdapter() {
+        referenceImageAdapter = ImageViewOnlyAdapter { imageUrl ->
+            showImageFullScreen(imageUrl)
+        }
+        binding.referenceImagesRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        binding.referenceImagesRecyclerView.adapter = referenceImageAdapter
     }
 
     private fun loadMovementData() {
@@ -93,6 +111,13 @@ class KitchenOrderEditActivity : AppCompatActivity() {
         } else {
             binding.detailCard.visibility = View.GONE
         }
+
+        if (movement.referenceImages.isNotEmpty()) {
+            referenceImageAdapter.updateImages(movement.referenceImages)
+            binding.referenceImagesCard.visibility = View.VISIBLE
+        } else {
+            binding.referenceImagesCard.visibility = View.GONE
+        }
     }
 
     private fun loadKitchenOrders(movementId: String) {
@@ -135,7 +160,7 @@ class KitchenOrderEditActivity : AppCompatActivity() {
         val movement = this.movement ?: return
         
         val hasNoShipment = movement.delivery?.type != EDeliveryType.SHIPMENT.name
-        val allItemsReady = kitchenOrders.isNotEmpty() && kitchenOrders.all { it.status == EKitchenOrderStatus.READY }
+        val allItemsReady = kitchenOrders.isNotEmpty() && kitchenOrders.all { it.status == EKitchenOrderItemStatus.READY }
         val notAlreadyDone = movement.kitchenOrderStatus != EKitchenOrderStatus.DONE
         
         if (hasNoShipment && allItemsReady && notAlreadyDone) {
@@ -174,6 +199,19 @@ class KitchenOrderEditActivity : AppCompatActivity() {
     
     private fun executeMarkAsDelivered(movement: Movement) {
         customLoader.show()
+        
+        kitchenOrders.forEach { kitchenOrder ->
+            kitchenOrdersHelper.updateKitchenOrderStatus(
+                movementId = movement.id,
+                kitchenOrderId = kitchenOrder.id,
+                newStatus = EKitchenOrderItemStatus.DONE,
+                onSuccess = { },
+                onError = { exception ->
+                    customLoader.hide()
+                    CustomToast.showError(this, "Error al actualizar kitchen order: ${exception.message}")
+                }
+            )
+        }
         
         val movementData = mapOf(
             "kitchenOrderStatus" to EKitchenOrderStatus.DONE.name
@@ -218,7 +256,7 @@ class KitchenOrderEditActivity : AppCompatActivity() {
         itemStatus.text = statusTextValue
         itemStatus.setTextColor(statusColor)
         
-        if (kitchenOrder.status == EKitchenOrderStatus.READY) {
+        if (kitchenOrder.status == EKitchenOrderItemStatus.READY || kitchenOrder.status == EKitchenOrderItemStatus.DONE) {
             statusActionButton.visibility = View.GONE
         } else {
             statusActionButton.visibility = View.VISIBLE
@@ -253,7 +291,7 @@ class KitchenOrderEditActivity : AppCompatActivity() {
         dialogView: View,
         dialog: androidx.appcompat.app.AlertDialog,
         kitchenOrder: KitchenOrder,
-        nextStatuses: List<EKitchenOrderStatus>
+        nextStatuses: List<EKitchenOrderItemStatus>
     ) {
         val subtitleText = dialogView.findViewById<TextView>(R.id.subtitleText)
         val singleActionButton = dialogView.findViewById<MaterialButton>(R.id.singleActionButton)
@@ -278,14 +316,14 @@ class KitchenOrderEditActivity : AppCompatActivity() {
                 twoActionButtonsContainer.visibility = View.VISIBLE
                 
                 readyButton.setOnClickListener {
-                    updateKitchenOrderStatus(kitchenOrder, EKitchenOrderStatus.READY)
+                    updateKitchenOrderStatus(kitchenOrder, EKitchenOrderItemStatus.READY)
                     dialog.dismiss()
                 }
             }
         }
     }
 
-    private fun updateKitchenOrderStatus(kitchenOrder: KitchenOrder, newStatus: EKitchenOrderStatus) {
+    private fun updateKitchenOrderStatus(kitchenOrder: KitchenOrder, newStatus: EKitchenOrderItemStatus) {
         val movement = this.movement ?: return
 
         customLoader.show()
@@ -306,32 +344,30 @@ class KitchenOrderEditActivity : AppCompatActivity() {
         )
     }
 
-    private fun getNextPossibleStatuses(currentStatus: EKitchenOrderStatus): List<EKitchenOrderStatus> {
+    private fun getNextPossibleStatuses(currentStatus: EKitchenOrderItemStatus): List<EKitchenOrderItemStatus> {
         return when (currentStatus) {
-            EKitchenOrderStatus.PENDING -> listOf(EKitchenOrderStatus.PREPARING, EKitchenOrderStatus.CANCELED)
-            EKitchenOrderStatus.PREPARING -> listOf(EKitchenOrderStatus.READY, EKitchenOrderStatus.CANCELED)
-            EKitchenOrderStatus.READY -> listOf(EKitchenOrderStatus.DONE)
-            EKitchenOrderStatus.CANCELED, EKitchenOrderStatus.DONE -> emptyList()
+            EKitchenOrderItemStatus.PENDING -> listOf(EKitchenOrderItemStatus.READY_TO_DECORATE)
+            EKitchenOrderItemStatus.READY_TO_DECORATE -> listOf(EKitchenOrderItemStatus.READY)
+            EKitchenOrderItemStatus.READY -> emptyList()
+            EKitchenOrderItemStatus.DONE -> emptyList()
         }
     }
 
-    private fun getStatusText(status: EKitchenOrderStatus): String {
+    private fun getStatusText(status: EKitchenOrderItemStatus): String {
         return when (status) {
-            EKitchenOrderStatus.PENDING -> "Pendiente"
-            EKitchenOrderStatus.PREPARING -> "Preparando"
-            EKitchenOrderStatus.READY -> "Listo"
-            EKitchenOrderStatus.CANCELED -> "Cancelado"
-            EKitchenOrderStatus.DONE -> "Entregado"
+            EKitchenOrderItemStatus.PENDING -> "Pendiente"
+            EKitchenOrderItemStatus.READY_TO_DECORATE -> "Listo para decorar"
+            EKitchenOrderItemStatus.READY -> "Listo"
+            EKitchenOrderItemStatus.DONE -> "Entregado"
         }
     }
 
-    private fun getStatusColor(status: EKitchenOrderStatus): Int {
+    private fun getStatusColor(status: EKitchenOrderItemStatus): Int {
         return when (status) {
-            EKitchenOrderStatus.PENDING -> Color.GRAY
-            EKitchenOrderStatus.PREPARING -> Color.BLUE
-            EKitchenOrderStatus.READY -> Color.GREEN
-            EKitchenOrderStatus.CANCELED -> Color.RED
-            EKitchenOrderStatus.DONE -> Color.DKGRAY
+            EKitchenOrderItemStatus.PENDING -> Color.GRAY
+            EKitchenOrderItemStatus.READY_TO_DECORATE -> Color.BLUE
+            EKitchenOrderItemStatus.READY -> Color.GREEN
+            EKitchenOrderItemStatus.DONE -> Color.DKGRAY
         }
     }
 
@@ -350,6 +386,21 @@ class KitchenOrderEditActivity : AppCompatActivity() {
             .replace("octubre", "oct")
             .replace("noviembre", "nov")
             .replace("diciembre", "dic")
+    }
+
+    private fun showImageFullScreen(imageUrl: String) {
+        val movement = this.movement ?: return
+        val images = movement.referenceImages
+        
+        
+        val intent = Intent(this, FullScreenImageActivity::class.java)
+        intent.putExtra("imageUrl", imageUrl)
+        intent.putStringArrayListExtra("images", ArrayList(images))
+        startActivity(intent)
+    }
+    
+    private fun updateImageCounter(counterView: TextView, current: Int, total: Int) {
+        counterView.text = "$current / $total"
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
