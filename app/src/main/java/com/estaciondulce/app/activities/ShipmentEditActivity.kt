@@ -195,7 +195,7 @@ class ShipmentEditActivity : AppCompatActivity() {
                     binding.addressDetailValue.visibility = android.view.View.GONE
                 }
             },
-            onError = { exception ->
+            onError = { _ ->
                 binding.addressDetailValue.visibility = android.view.View.GONE
             }
         )

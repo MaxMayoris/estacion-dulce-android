@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v5.0** - Added comprehensive statistics dashboard with balance charts, monthly sales analysis, and recipe distribution charts using MPAndroidChart
 - **v4.5** - Refactored MovementEditActivity save flow for better code organization, fixed kitchen orders duplication when editing movements, corrected kitchen order status logic for quantity changes, and updated detail field character limit to 512
 - **v4.4** - Enhanced WhatsApp phone number cleaning with automatic province detection, fixed double title in edit phone dialog, updated phone delete dialog to follow app standards, and improved address parsing with better city extraction
 - **v4.3** - Refactor model classes, implemented shipment to delivery system migration, added product-recipe relationship tabs in ProductEditActivity, enhanced CustomToast with centered text and removed icons, implemented deletion validations for products and recipes with dependency checks

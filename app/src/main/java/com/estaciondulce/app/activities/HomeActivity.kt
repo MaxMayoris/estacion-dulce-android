@@ -13,6 +13,7 @@ import com.estaciondulce.app.fragments.ProductFragment
 import com.estaciondulce.app.fragments.RecipeFragment
 import com.estaciondulce.app.fragments.ShipmentFragment
 import com.estaciondulce.app.fragments.KitchenOrderFragment
+import com.estaciondulce.app.fragments.StatisticsFragment
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.utils.CustomToast
@@ -30,6 +31,7 @@ class HomeActivity : AppCompatActivity() {
     private val personFragment = PersonFragment()
     private val movementFragment = MovementFragment()
     private val shipmentFragment = ShipmentFragment()
+    private val statisticsFragment = StatisticsFragment()
 
     /**
      * Initializes the activity, sets up Firestore listeners,
@@ -93,6 +95,11 @@ class HomeActivity : AppCompatActivity() {
 
         findViewById<MaterialCardView>(R.id.shipmentsCard).setOnClickListener {
             loadFragment(shipmentFragment, "Envios")
+            showFragmentContainer()
+        }
+
+        findViewById<MaterialCardView>(R.id.statisticsCard).setOnClickListener {
+            loadFragment(statisticsFragment, "Estadísticas")
             showFragmentContainer()
         }
     }
