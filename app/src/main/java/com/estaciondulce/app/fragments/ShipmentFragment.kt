@@ -1,6 +1,8 @@
 package com.estaciondulce.app.fragments
 
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.Location
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -10,9 +12,15 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 import com.estaciondulce.app.R
 import com.estaciondulce.app.activities.ShipmentEditActivity
 import com.estaciondulce.app.adapters.ShipmentTableAdapter
@@ -42,9 +50,14 @@ class ShipmentFragment : Fragment() {
     private val repository = FirestoreRepository
     private lateinit var customLoader: CustomLoader
     private lateinit var googleRoutesHelper: GoogleRoutesHelper
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
     
     private var isSelectionMode = false
     private val selectedShipments = mutableSetOf<String>()
+    
+    companion object {
+        private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
+    }
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -60,14 +73,22 @@ class ShipmentFragment : Fragment() {
         
         customLoader = CustomLoader(requireContext())
         googleRoutesHelper = GoogleRoutesHelper(requireContext())
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
+        
+        if (!hasLocationPermission()) {
+            requestLocationPermission()
+        }
         
         repository.movementsLiveData.observe(viewLifecycleOwner) { movements ->
             val shipmentMovements = movements.filter { it.delivery?.type == EDeliveryType.SHIPMENT.name }
-            println("DEBUG: Total movements: ${movements.size}, Shipment movements: ${shipmentMovements.size}")
-            shipmentMovements.forEach { movement ->
-                println("DEBUG: Movement ${movement.id} - delivery type: ${movement.delivery?.type}")
+            shipmentMovements.forEach { _ ->
             }
             setupTableView(shipmentMovements)
+        }
+        
+        repository.shipmentSettingsLiveData.observe(viewLifecycleOwner) { settings ->
+            if (settings != null) {
+            }
         }
 
         binding.searchBar.addTextChangedListener(object : TextWatcher {
@@ -380,21 +401,34 @@ class ShipmentFragment : Fragment() {
             return
         }
         
-        val baseAddress = getBaseAddress()
-        if (baseAddress == null) {
-            customLoader.hide()
-            CustomToast.showError(requireContext(), "No se encontró la dirección base en configuración")
-            return
+        lifecycleScope.launch {
+            try {
+                val baseAddress = getCurrentLocationOrBaseAddress()
+                if (baseAddress == null) {
+                    customLoader.hide()
+                    CustomToast.showError(requireContext(), "No se pudo obtener la ubicación actual ni la dirección base")
+                    return@launch
+                }
+                
+                calculateOptimizedRoute(baseAddress, selectedMovements)
+            } catch (e: Exception) {
+                customLoader.hide()
+                CustomToast.showError(requireContext(), "Error al obtener la ubicación: ${e.message}")
+            }
         }
-        
-        calculateOptimizedRoute(baseAddress, selectedMovements)
     }
     
     /**
-     * Gets the base address from shipment settings.
+     * Gets the current location or falls back to shipment settings base address.
      */
-    private fun getBaseAddress(): Pair<Double, Double>? {
+    private suspend fun getCurrentLocationOrBaseAddress(): Pair<Double, Double>? {
+        val currentLocation = getCurrentLocation()
+        if (currentLocation != null) {
+            return currentLocation
+        }
+        
         val settings = repository.shipmentSettingsLiveData.value
+        
         if (settings?.baseAddress?.isNotEmpty() == true) {
             try {
                 val coordinates = settings.baseAddress.split(",")
@@ -413,6 +447,7 @@ class ShipmentFragment : Fragment() {
                 return Pair(defaultLat, defaultLng)
             }
         }
+        
         return null
     }
     
@@ -429,7 +464,9 @@ class ShipmentFragment : Fragment() {
                     movements = movements,
                     onSuccess = { result ->
                         customLoader.hide()
-                        handleRouteResult(result, movements)
+                        lifecycleScope.launch {
+                            handleRouteResult(result, movements)
+                        }
                     },
                     onError = { exception ->
                         customLoader.hide()
@@ -446,7 +483,7 @@ class ShipmentFragment : Fragment() {
     /**
      * Handles the successful route calculation result.
      */
-    private fun handleRouteResult(result: RoutesApiResponse, movements: List<Movement>) {
+    private suspend fun handleRouteResult(result: RoutesApiResponse, movements: List<Movement>) {
         val distanceKm = result.distanceMeters / 1000.0
         val durationMinutes = result.durationSeconds / 60.0
         
@@ -486,7 +523,7 @@ class ShipmentFragment : Fragment() {
     /**
      * Opens Google Maps with the optimized route (from base address to multiple destinations).
      */
-    private fun openGoogleMapsWithRoute(routeCoordinates: List<Pair<Double, Double>>, movements: List<Movement>, optimizedOrder: List<Int>) {
+    private suspend fun openGoogleMapsWithRoute(routeCoordinates: List<Pair<Double, Double>>, movements: List<Movement>, optimizedOrder: List<Int>) {
         try {
             if (routeCoordinates.isNotEmpty()) {
                 val allWaypoints = movements.mapNotNull { movement ->
@@ -506,12 +543,11 @@ class ShipmentFragment : Fragment() {
                     
                     
                     
-                    val currentLocation = getCurrentLocation()
-                    val baseAddress = getBaseAddress()
+                    val originLocation = getCurrentLocationOrBaseAddress()
                     
-                    if (currentLocation != null && baseAddress != null) {
-                        val origin = "${currentLocation.first},${currentLocation.second}"
-                        val destination = "${baseAddress.first},${baseAddress.second}"
+                    if (originLocation != null) {
+                        val origin = "${originLocation.first},${originLocation.second}"
+                        val destination = "${originLocation.first},${originLocation.second}"
                         val waypoints = orderedWaypoints.joinToString("|")
                         
                         
@@ -542,8 +578,57 @@ class ShipmentFragment : Fragment() {
         }
     }
 
-    private fun getCurrentLocation(): Pair<Double, Double>? {
-        return Pair(-34.6037, -58.3816) // Buenos Aires coordinates
+    /**
+     * Gets the current location using GPS.
+     */
+    private suspend fun getCurrentLocation(): Pair<Double, Double>? {
+        return suspendCancellableCoroutine { continuation ->
+            if (!hasLocationPermission()) {
+                continuation.resume(null)
+                return@suspendCancellableCoroutine
+            }
+            
+            try {
+                fusedLocationClient.lastLocation
+                    .addOnSuccessListener { location: Location? ->
+                        if (location != null) {
+                            val lat = location.latitude
+                            val lng = location.longitude
+                            continuation.resume(Pair(lat, lng))
+                        } else {
+                            continuation.resume(null)
+                        }
+                    }
+                    .addOnFailureListener { _ ->
+                        continuation.resume(null)
+                    }
+            } catch (e: Exception) {
+                continuation.resume(null)
+            }
+        }
+    }
+    
+    /**
+     * Checks if location permission is granted.
+     */
+    private fun hasLocationPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            requireContext(),
+            android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+    
+    /**
+     * Requests location permission if not granted.
+     */
+    private fun requestLocationPermission() {
+        if (!hasLocationPermission()) {
+            ActivityCompat.requestPermissions(
+                requireActivity(),
+                arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
+                LOCATION_PERMISSION_REQUEST_CODE
+            )
+        }
     }
 
     override fun onDestroyView() {

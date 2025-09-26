@@ -36,6 +36,7 @@ private fun cleanWhatsAppPhoneNumber(phoneText: String): String
 5. Only then consider the task complete
 
 ### Debug Logging
+- **ALWAYS use Log.d() instead of println()** for debug logging
 - **When adding debug logs** to troubleshoot functionality issues, **ALWAYS provide the filter command** for the user to see the logs
 - **Use format**: `adb logcat | grep "TAG_NAME"` or `adb logcat | findstr "TAG_NAME"`
 - **Example**:
