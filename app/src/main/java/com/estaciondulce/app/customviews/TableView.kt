@@ -32,6 +32,16 @@ class TableView<T> @JvmOverloads constructor(
     private var sortedColumnIndex = -1
     private var sortedColumnDirection = true
     private var columnValueGetter: ((T, Int) -> Comparable<*>?)? = null
+    
+    var selectionMode = false
+        set(value) {
+            field = value
+            if (!value) {
+                selectedItems.clear()
+            }
+            refreshTable()
+        }
+    val selectedItems = mutableSetOf<String>()
 
     init {
         orientation = VERTICAL
@@ -140,6 +150,13 @@ class TableView<T> @JvmOverloads constructor(
             recyclerView.requestLayout()
             recyclerView.invalidate()
         }
+    }
+    
+    /**
+     * Refreshes the table to update the display (useful for selection mode changes).
+     */
+    fun refreshTable() {
+        paginatedAdapter?.notifyDataSetChanged()
     }
 
     /**

@@ -17,9 +17,50 @@
         android:inputType="text"
         android:textSize="14sp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/selectDestinationsButton"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_margin="16dp" />
+
+    <!-- Select Destinations Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/selectDestinationsButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="Seleccionar destinos"
+        app:srcCompat="@drawable/ic_delivery_truck"
+        style="@style/CustomFloatingActionButtonStyle"
+        app:layout_constraintTop_toTopOf="@id/searchBar"
+        app:layout_constraintBottom_toBottomOf="@id/searchBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="8dp" />
+
+    <!-- Optimize Route Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/optimizeRouteButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="Optimizar ruta"
+        app:srcCompat="@drawable/ic_arrow_forward"
+        style="@style/CustomFloatingActionButtonStyle"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@id/searchBar"
+        app:layout_constraintBottom_toBottomOf="@id/searchBar"
+        app:layout_constraintEnd_toStartOf="@id/cancelSelectionButton"
+        android:layout_marginStart="8dp" />
+
+    <!-- Cancel Selection Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/cancelSelectionButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="Cancelar selección"
+        app:srcCompat="@drawable/ic_close"
+        style="@style/CustomFloatingActionButtonStyle"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@id/searchBar"
+        app:layout_constraintBottom_toBottomOf="@id/searchBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="8dp" />
 
     <!-- Custom TableView -->
     <com.estaciondulce.app.customviews.TableView

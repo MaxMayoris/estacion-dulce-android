@@ -22,6 +22,8 @@ import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.data.*
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.formatter.PercentFormatter
+import com.github.mikephil.charting.listener.OnChartValueSelectedListener
+import com.github.mikephil.charting.highlight.Highlight
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -291,7 +293,6 @@ class StatisticsFragment : Fragment() {
         val chartData = createMonthlySalesChartData(monthlySales, startOfMonth, _endOfMonth)
         setupMonthlySalesChart(binding.monthlySalesChart, chartData, monthlySales, startOfMonth, _endOfMonth)
         
-        // Calculate and update monthly balance
         updateMonthlyBalance(movements, startOfMonth, _endOfMonth)
         
         customLoader.hide()
@@ -596,7 +597,6 @@ class StatisticsFragment : Fragment() {
         if (sales.isEmpty()) {
             binding.recipeSalesChart.visibility = View.GONE
             binding.recipeSalesEmptyMessage.visibility = View.VISIBLE
-            // Update balance even when no sales data
             updateMonthlyBalance(movements, startOfMonth, _endOfMonth)
             customLoader.hide()
             return
@@ -608,7 +608,6 @@ class StatisticsFragment : Fragment() {
         val recipeData = createRecipeSalesChartData(sales)
         setupRecipeSalesChart(binding.recipeSalesChart, recipeData)
         
-        // Update balance after updating recipe chart
         updateMonthlyBalance(movements, startOfMonth, _endOfMonth)
         
         customLoader.hide()
@@ -616,18 +615,25 @@ class StatisticsFragment : Fragment() {
 
     /**
      * Creates pie chart data for recipe sales distribution.
+     * Counts recipe presence in movements (1 per movement, regardless of quantity).
      */
     private fun createRecipeSalesChartData(sales: List<Movement>): PieData {
         val recipeCounts = mutableMapOf<String, Int>()
         val recipes = repository.recipesLiveData.value ?: emptyList()
         
         sales.forEach { movement ->
+            val recipesInMovement = mutableSetOf<String>()
+            
             movement.items.forEach { item ->
                 if (item.collection == "recipes") {
                     val recipe = recipes.find { it.id == item.collectionId }
                     val recipeName = recipe?.name ?: "Receta desconocida"
-                    recipeCounts[recipeName] = (recipeCounts[recipeName] ?: 0) + item.quantity.toInt()
+                    recipesInMovement.add(recipeName)
                 }
+            }
+            
+            recipesInMovement.forEach { recipeName ->
+                recipeCounts[recipeName] = (recipeCounts[recipeName] ?: 0) + 1
             }
         }
         
@@ -688,10 +694,30 @@ class StatisticsFragment : Fragment() {
         legend.orientation = Legend.LegendOrientation.HORIZONTAL
         legend.setDrawInside(false)
         legend.xEntrySpace = 7f
-        legend.yEntrySpace = 0f
+        legend.yEntrySpace = 5f // Add vertical spacing between rows
         legend.yOffset = 0f
         legend.textSize = 12f
         legend.textColor = ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_primary)
+        
+        legend.setWordWrapEnabled(true)
+        legend.setMaxSizePercent(0.95f) // Use 95% of available width
+        
+        chart.setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
+            override fun onValueSelected(e: Entry?, h: Highlight?) {
+                if (e != null && h != null) {
+                    chart.setDrawEntryLabels(true)
+                    chart.setEntryLabelTextSize(14f)
+                    chart.setEntryLabelColor(Color.BLACK)
+                    chart.setEntryLabelTypeface(android.graphics.Typeface.DEFAULT_BOLD)
+                    chart.invalidate()
+                }
+            }
+            
+            override fun onNothingSelected() {
+                chart.setDrawEntryLabels(false)
+                chart.invalidate()
+            }
+        })
         
         chart.animateY(1400)
         chart.invalidate()
@@ -708,7 +734,6 @@ class StatisticsFragment : Fragment() {
         val formattedBalance = String.format("$%.2f", balance)
         binding.balanceTotalText.text = formattedBalance
         
-        // Change color based on positive/negative balance
         val color = if (balance >= 0) {
             ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_primary)
         } else {
@@ -801,10 +826,8 @@ class StatisticsFragment : Fragment() {
         val dailySales = groupSalesByDay(sales, startOfMonth, _endOfMonth)
         val labels = dailySales.map { it.first.toString() }
         
-        // Calculate total sales count for the month to set appropriate Y-axis range
         val totalSalesCount = sales.size
         val maxAxisValue = if (totalSalesCount > 0) {
-            // Add some padding (20%) and round up to next integer
             (totalSalesCount * 1.2).toInt() + 1
         } else {
             10 // Default maximum if no sales

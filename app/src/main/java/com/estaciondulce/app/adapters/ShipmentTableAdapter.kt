@@ -15,7 +15,10 @@ class ShipmentTableAdapter(
     dataList: List<Movement>,
     private val onRowClick: (Movement) -> Unit,
     private val onActionClick: (Movement) -> Unit,
-    private val onMapsClick: (Movement) -> Unit
+    private val onMapsClick: (Movement) -> Unit,
+    private val onSelectionChanged: (String, Boolean) -> Unit = { _, _ -> },
+    private val getSelectionMode: () -> Boolean = { false },
+    private val isItemSelected: (String) -> Boolean = { false }
 ) : TableAdapter<Movement>(dataList, onRowClick, { /* No delete for shipments */ }) {
 
     override fun getCellValues(item: Movement, position: Int): List<Any> {
@@ -34,16 +37,27 @@ class ShipmentTableAdapter(
         val cellValues = getCellValues(item, position)
         bindRowContentWithColors(binding, cellValues, item)
         
-        // Show only maps button, hide action and delete buttons
-        binding.deleteIcon.visibility = View.GONE
-        binding.actionIcon.visibility = View.GONE
-        binding.mapsIcon.visibility = View.VISIBLE
+        val isSelectionMode = getSelectionMode()
+        binding.selectionCheckbox.visibility = if (isSelectionMode) View.VISIBLE else View.GONE
         
-        // Set up maps icon
-        binding.mapsIcon.setImageResource(android.R.drawable.ic_menu_mylocation)
-        binding.mapsIcon.setOnClickListener { onMapsClick(item) }
+        if (isSelectionMode) {
+            binding.deleteIcon.visibility = View.GONE
+            binding.actionIcon.visibility = View.GONE
+            binding.mapsIcon.visibility = View.GONE
+            
+            binding.selectionCheckbox.isChecked = isItemSelected(item.id)
+            binding.selectionCheckbox.setOnCheckedChangeListener { _, isChecked ->
+                onSelectionChanged(item.id, isChecked)
+            }
+        } else {
+            binding.deleteIcon.visibility = View.GONE
+            binding.actionIcon.visibility = View.GONE
+            binding.mapsIcon.visibility = View.VISIBLE
+            
+            binding.mapsIcon.setImageResource(android.R.drawable.ic_menu_mylocation)
+            binding.mapsIcon.setOnClickListener { onMapsClick(item) }
+        }
         
-        // Configure dynamic icon spacing
         configureIconSpacing(binding)
     }
 
@@ -69,7 +83,6 @@ class ShipmentTableAdapter(
                 textSize = 13f
                 setTypeface(null, android.graphics.Typeface.NORMAL)
                 
-                // Apply color to status column (index 2)
                 if (index == 2) {
                     val status = item.delivery?.status
                     setTextColor(getStatusColor(status))
@@ -121,4 +134,5 @@ class ShipmentTableAdapter(
             .replace("noviembre", "nov")
             .replace("diciembre", "dic")
     }
+    
 }

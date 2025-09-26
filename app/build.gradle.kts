@@ -11,8 +11,8 @@ android {
         applicationId = "com.estaciondulce.app"
         minSdk = 30
         targetSdk = 35
-        versionCode = 18
-        versionName = "5.0"
+        versionCode = 19
+        versionName = "5.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -90,6 +90,7 @@ dependencies {
     implementation(libs.play.services.tasks)
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation("com.google.maps:google-maps-services:2.2.0")
     
     // New Places API (replaces legacy places library)
     implementation("com.google.android.libraries.places:places:3.3.0")

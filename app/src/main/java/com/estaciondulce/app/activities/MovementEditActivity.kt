@@ -20,7 +20,6 @@ import com.estaciondulce.app.utils.DeleteConfirmationDialog
 import com.estaciondulce.app.databinding.ActivityMovementEditBinding
 import com.estaciondulce.app.helpers.AddressesHelper
 import com.estaciondulce.app.helpers.MovementsHelper
-import com.estaciondulce.app.helpers.ShipmentSettingsHelper
 import com.estaciondulce.app.helpers.DistanceMatrixHelper
 import com.estaciondulce.app.helpers.StorageHelper
 import com.estaciondulce.app.models.parcelables.Address
@@ -70,7 +69,6 @@ class MovementEditActivity : AppCompatActivity() {
     private var itemsSubtotal: Double = 0.0 // Suma de todos los ítems (cantidad * precio)
     private var selectedAddress: Address? = null
     private val addressesHelper = AddressesHelper()
-    private val shipmentSettingsHelper = ShipmentSettingsHelper()
     private val distanceMatrixHelper = DistanceMatrixHelper()
     private var calculatedShippingCost: Double = 0.0
     private var selectedDeliveryType: String = EDeliveryType.PICKUP.name // Track selected delivery type
@@ -369,8 +367,7 @@ class MovementEditActivity : AppCompatActivity() {
         setupDeliveryTypeSelector()
         
         
-        shipmentSettingsHelper.startListening()
-        shipmentSettingsHelper.shipmentSettings.observe(this) { _ ->
+        FirestoreRepository.shipmentSettingsLiveData.observe(this) { _ ->
         }
         binding.finalShippingCostInput.addTextChangedListener(object : android.text.TextWatcher {
             override fun afterTextChanged(s: android.text.Editable?) {
@@ -438,7 +435,6 @@ class MovementEditActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        shipmentSettingsHelper.stopListening()
     }
 
     /**
@@ -836,8 +832,8 @@ class MovementEditActivity : AppCompatActivity() {
             return
         }
         
-        val settings = shipmentSettingsHelper.getCurrentSettings()
-        if (settings == null || !shipmentSettingsHelper.areSettingsValid()) {
+        val settings = FirestoreRepository.shipmentSettingsLiveData.value
+        if (settings == null || settings.baseAddress.isEmpty() || settings.fuelPrice <= 0 || settings.litersPerKm <= 0) {
             CustomToast.showError(this, "Configuración de envío no disponible. Contacte al administrador.")
             return
         }

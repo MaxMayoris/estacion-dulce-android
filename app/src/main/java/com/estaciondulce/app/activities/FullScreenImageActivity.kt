@@ -277,6 +277,7 @@ class FullScreenImageActivity : AppCompatActivity() {
         }
     }
     
+    @Suppress("DEPRECATION")
     override fun onBackPressed() {
         super.onBackPressed()
         finish()

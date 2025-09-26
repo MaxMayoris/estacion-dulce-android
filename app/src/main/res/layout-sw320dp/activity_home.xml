@@ -202,7 +202,7 @@
                     <ImageView
                         android:layout_width="48dp"
                         android:layout_height="48dp"
-                        android:src="@drawable/ic_client"
+                        android:src="@drawable/ic_person"
                         android:tint="@color/button_gradient_start"
                         android:contentDescription="Personas" />
 
@@ -249,7 +249,7 @@
                     <ImageView
                         android:layout_width="48dp"
                         android:layout_height="48dp"
-                        android:src="@drawable/ic_sale"
+                        android:src="@drawable/ic_movement"
                         android:tint="@color/button_gradient_start"
                         android:contentDescription="Movimientos" />
 

@@ -11,6 +11,8 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.estaciondulce.app.R
 import com.estaciondulce.app.activities.ShipmentEditActivity
 import com.estaciondulce.app.adapters.ShipmentTableAdapter
@@ -23,6 +25,10 @@ import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.models.toColumnConfigs
+import com.estaciondulce.app.helpers.GoogleRoutesHelper
+import com.estaciondulce.app.helpers.RoutesApiResponse
+import android.net.Uri
+import android.util.Log
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -35,6 +41,10 @@ class ShipmentFragment : Fragment() {
     private val binding get() = _binding!!
     private val repository = FirestoreRepository
     private lateinit var customLoader: CustomLoader
+    private lateinit var googleRoutesHelper: GoogleRoutesHelper
+    
+    private var isSelectionMode = false
+    private val selectedShipments = mutableSetOf<String>()
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -49,6 +59,7 @@ class ShipmentFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         
         customLoader = CustomLoader(requireContext())
+        googleRoutesHelper = GoogleRoutesHelper(requireContext())
         
         repository.movementsLiveData.observe(viewLifecycleOwner) { movements ->
             val shipmentMovements = movements.filter { it.delivery?.type == EDeliveryType.SHIPMENT.name }
@@ -67,6 +78,8 @@ class ShipmentFragment : Fragment() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
+        
+        setupSelectionModeControls()
     }
     
     private fun setupTableView(shipments: List<Movement>) {
@@ -79,14 +92,23 @@ class ShipmentFragment : Fragment() {
             adapter = ShipmentTableAdapter(
                 dataList = sortedList,
                 onRowClick = { movement ->
-                    val intent = Intent(requireContext(), ShipmentEditActivity::class.java)
-                    intent.putExtra("movementId", movement.id)
-                    startActivity(intent)
+                    if (!isSelectionMode) {
+                        val intent = Intent(requireContext(), ShipmentEditActivity::class.java)
+                        intent.putExtra("movementId", movement.id)
+                        startActivity(intent)
+                    }
                 },
                 onActionClick = { _ -> }, // No longer used
                 onMapsClick = { movement ->
-                    openGoogleMaps(movement)
-                }
+                    if (!isSelectionMode) {
+                        openGoogleMaps(movement)
+                    }
+                },
+                onSelectionChanged = { shipmentId, isSelected ->
+                    handleSelectionChange(shipmentId, isSelected)
+                },
+                getSelectionMode = { isSelectionMode },
+                isItemSelected = { shipmentId -> selectedShipments.contains(shipmentId) }
             ),
             pageSize = 10,
             columnValueGetter = { item, columnIndex ->
@@ -172,10 +194,8 @@ class ShipmentFragment : Fragment() {
             .setView(dialogView)
             .create()
         
-        // Configure dialog
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         
-        // Set button listeners
         dialogView.findViewById<Button>(R.id.positiveButton).setOnClickListener {
             updateShipmentStatus(movement, EShipmentStatus.DELIVERED)
             dialog.dismiss()
@@ -232,15 +252,13 @@ class ShipmentFragment : Fragment() {
     
     private fun openGoogleMaps(movement: Movement) {
         val delivery = movement.delivery ?: return
-        try {
-            val gmmIntentUri = android.net.Uri.parse("google.navigation:q=${delivery.shipment?.lat},${delivery.shipment?.lng}")
-            val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-            mapIntent.setPackage("com.google.android.apps.maps")
-            startActivity(mapIntent)
-        } catch (e: Exception) {
-            // Fallback to web version
-            val webIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.google.com/maps?q=${delivery.shipment?.lat},${delivery.shipment?.lng}"))
-            startActivity(webIntent)
+        val shipment = delivery.shipment
+        if (shipment?.lat != null) {
+            val person = repository.personsLiveData.value?.find { it.id == movement.personId }
+            val destinationName = if (person != null) "${person.name} ${person.lastName}" else "Destino"
+            openGoogleMapsSingleDestination(shipment.lat, shipment.lng, destinationName)
+        } else {
+            CustomToast.showWarning(requireContext(), "No se encontraron coordenadas para este envío")
         }
     }
     
@@ -273,6 +291,259 @@ class ShipmentFragment : Fragment() {
             .replace("octubre", "oct")
             .replace("noviembre", "nov")
             .replace("diciembre", "dic")
+    }
+
+    /**
+     * Sets up the selection mode controls and their click listeners.
+     */
+    private fun setupSelectionModeControls() {
+        binding.selectDestinationsButton.setOnClickListener {
+            enterSelectionMode()
+        }
+        
+        binding.optimizeRouteButton.setOnClickListener {
+            optimizeRoute()
+        }
+        
+        binding.cancelSelectionButton.setOnClickListener {
+            exitSelectionMode()
+        }
+    }
+    
+    /**
+     * Enters selection mode for multiple shipment selection.
+     */
+    private fun enterSelectionMode() {
+        isSelectionMode = true
+        binding.shipmentTable.selectionMode = true
+        binding.selectDestinationsButton.visibility = View.GONE
+        binding.optimizeRouteButton.visibility = View.VISIBLE
+        binding.cancelSelectionButton.visibility = View.VISIBLE
+        updateOptimizeButtonState()
+        binding.shipmentTable.refreshTable()
+    }
+    
+    /**
+     * Exits selection mode and clears all selections.
+     */
+    private fun exitSelectionMode() {
+        isSelectionMode = false
+        binding.shipmentTable.selectionMode = false
+        selectedShipments.clear()
+        binding.selectDestinationsButton.visibility = View.VISIBLE
+        binding.optimizeRouteButton.visibility = View.GONE
+        binding.cancelSelectionButton.visibility = View.GONE
+        binding.shipmentTable.refreshTable()
+    }
+    
+    /**
+     * Handles selection changes for individual shipments.
+     */
+    private fun handleSelectionChange(shipmentId: String, isSelected: Boolean) {
+        if (isSelected) {
+            selectedShipments.add(shipmentId)
+        } else {
+            selectedShipments.remove(shipmentId)
+        }
+        updateOptimizeButtonState()
+    }
+    
+    /**
+     * Updates the state of the optimize route button based on selection count.
+     */
+    private fun updateOptimizeButtonState() {
+        binding.optimizeRouteButton.isEnabled = selectedShipments.size >= 2
+        binding.optimizeRouteButton.contentDescription = if (selectedShipments.size >= 2) {
+            "Optimizar ruta (${selectedShipments.size} destinos)"
+        } else {
+            "Optimizar ruta (selecciona al menos 2 destinos)"
+        }
+    }
+    
+    /**
+     * Optimizes the route for selected shipments using Google Routes API.
+     */
+    private fun optimizeRoute() {
+        if (selectedShipments.size < 2) {
+            CustomToast.showError(requireContext(), "Selecciona al menos 2 destinos para optimizar la ruta")
+            return
+        }
+        
+        customLoader.show()
+        
+        val movements = repository.movementsLiveData.value ?: emptyList()
+        val selectedMovements = movements.filter { selectedShipments.contains(it.id) }
+        
+        if (selectedMovements.isEmpty()) {
+            customLoader.hide()
+            CustomToast.showError(requireContext(), "No se encontraron los envíos seleccionados")
+            return
+        }
+        
+        val baseAddress = getBaseAddress()
+        if (baseAddress == null) {
+            customLoader.hide()
+            CustomToast.showError(requireContext(), "No se encontró la dirección base en configuración")
+            return
+        }
+        
+        calculateOptimizedRoute(baseAddress, selectedMovements)
+    }
+    
+    /**
+     * Gets the base address from shipment settings.
+     */
+    private fun getBaseAddress(): Pair<Double, Double>? {
+        val settings = repository.shipmentSettingsLiveData.value
+        if (settings?.baseAddress?.isNotEmpty() == true) {
+            try {
+                val coordinates = settings.baseAddress.split(",")
+                if (coordinates.size == 2) {
+                    val lat = coordinates[0].trim().toDouble()
+                    val lng = coordinates[1].trim().toDouble()
+                    return Pair(lat, lng)
+                } else {
+                    val defaultLat = -34.6037
+                    val defaultLng = -58.3816
+                    return Pair(defaultLat, defaultLng)
+                }
+            } catch (e: Exception) {
+                val defaultLat = -34.6037
+                val defaultLng = -58.3816
+                return Pair(defaultLat, defaultLng)
+            }
+        }
+        return null
+    }
+    
+    /**
+     * Calculates the optimized route using Google Routes API.
+     */
+    private fun calculateOptimizedRoute(baseAddress: Pair<Double, Double>, movements: List<Movement>) {
+        customLoader.show()
+        
+        lifecycleScope.launch {
+            try {
+                googleRoutesHelper.calculateShipmentRoute(
+                    baseAddress = baseAddress,
+                    movements = movements,
+                    onSuccess = { result ->
+                        customLoader.hide()
+                        handleRouteResult(result, movements)
+                    },
+                    onError = { exception ->
+                        customLoader.hide()
+                        CustomToast.showError(requireContext(), "Error al calcular la ruta: ${exception.message}")
+                    }
+                )
+            } catch (e: Exception) {
+                customLoader.hide()
+                CustomToast.showError(requireContext(), "Error inesperado: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * Handles the successful route calculation result.
+     */
+    private fun handleRouteResult(result: RoutesApiResponse, movements: List<Movement>) {
+        val distanceKm = result.distanceMeters / 1000.0
+        val durationMinutes = result.durationSeconds / 60.0
+        
+        val message = "Ruta optimizada calculada:\n" +
+                "Distancia: ${String.format("%.1f", distanceKm)} km\n" +
+                "Tiempo estimado: ${String.format("%.0f", durationMinutes)} minutos\n" +
+                "Destinos: ${movements.size}"
+        
+        CustomToast.showSuccess(requireContext(), message)
+        
+        openGoogleMapsWithRoute(result.routeCoordinates, movements, result.optimizedWaypointOrder)
+    }
+    
+    /**
+     * Opens Google Maps with a single destination (from current location).
+     */
+    @Suppress("UNUSED_PARAMETER")
+    private fun openGoogleMapsSingleDestination(lat: Double, lng: Double, _destinationName: String) {
+        try {
+            val mapsUrl = "https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving"
+            
+            
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(mapsUrl))
+            intent.setPackage("com.google.android.apps.maps")
+            
+            if (intent.resolveActivity(requireContext().packageManager) != null) {
+                startActivity(intent)
+            } else {
+                val webIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(mapsUrl))
+                startActivity(webIntent)
+            }
+        } catch (e: Exception) {
+            CustomToast.showError(requireContext(), "Error al abrir Google Maps: ${e.message}")
+        }
+    }
+    
+    /**
+     * Opens Google Maps with the optimized route (from base address to multiple destinations).
+     */
+    private fun openGoogleMapsWithRoute(routeCoordinates: List<Pair<Double, Double>>, movements: List<Movement>, optimizedOrder: List<Int>) {
+        try {
+            if (routeCoordinates.isNotEmpty()) {
+                val allWaypoints = movements.mapNotNull { movement ->
+                    val delivery = movement.delivery
+                    val shipment = delivery?.shipment
+                    if (shipment?.lat != null) {
+                        "${shipment.lat},${shipment.lng}"
+                    } else null
+                }
+                
+                if (allWaypoints.isNotEmpty()) {
+                    val orderedWaypoints = if (optimizedOrder.isNotEmpty() && optimizedOrder.size == allWaypoints.size) {
+                        optimizedOrder.map { index -> allWaypoints[index] }
+                    } else {
+                        allWaypoints
+                    }
+                    
+                    
+                    
+                    val currentLocation = getCurrentLocation()
+                    val baseAddress = getBaseAddress()
+                    
+                    if (currentLocation != null && baseAddress != null) {
+                        val origin = "${currentLocation.first},${currentLocation.second}"
+                        val destination = "${baseAddress.first},${baseAddress.second}"
+                        val waypoints = orderedWaypoints.joinToString("|")
+                        
+                        
+                        val mapsUrl = "https://www.google.com/maps/dir/?api=1&origin=$origin&destination=$destination&waypoints=$waypoints&travelmode=driving&dir_action=navigate"
+                        
+                        
+                        val navigationIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(mapsUrl))
+                        navigationIntent.setPackage("com.google.android.apps.maps")
+                        navigationIntent.putExtra("navigate", true)
+                        
+                        if (navigationIntent.resolveActivity(requireContext().packageManager) != null) {
+                            startActivity(navigationIntent)
+                        } else {
+                            val webIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(mapsUrl))
+                            startActivity(webIntent)
+                        }
+                    } else {
+                        CustomToast.showError(requireContext(), "No se pudo obtener la dirección base para la ruta optimizada")
+                    }
+                } else {
+                    CustomToast.showWarning(requireContext(), "No se encontraron coordenadas válidas para abrir en Google Maps")
+                }
+            } else {
+                CustomToast.showWarning(requireContext(), "No se pudo obtener la ruta para abrir en Google Maps")
+            }
+        } catch (e: Exception) {
+            CustomToast.showError(requireContext(), "Error al abrir Google Maps: ${e.message}")
+        }
+    }
+
+    private fun getCurrentLocation(): Pair<Double, Double>? {
+        return Pair(-34.6037, -58.3816) // Buenos Aires coordinates
     }
 
     override fun onDestroyView() {
