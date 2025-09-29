@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v5.3** - Implemented real Google Distance Matrix API for accurate shipping cost calculations with round-trip distance calculation
 - **v5.2** - Implemented real GPS location detection for route optimization, enhanced multiple shipment selection with improved fallback logic, and updated debug logging to use Log.d instead of println
 - **v5.1** - Added multiple shipment selection mode with route optimization using Google Routes API, enhanced pie chart responsiveness with multi-row legend support, improved icon consistency with vector XML icons, and optimized dashboard card layouts
 - **v5.0** - Added comprehensive statistics dashboard with balance charts, monthly sales analysis, and recipe distribution charts using MPAndroidChart

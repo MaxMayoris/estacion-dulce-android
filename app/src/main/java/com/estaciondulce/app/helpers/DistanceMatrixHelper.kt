@@ -1,6 +1,7 @@
 package com.estaciondulce.app.helpers
 
 import android.util.Log
+import com.estaciondulce.app.BuildConfig
 import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,7 +16,6 @@ class DistanceMatrixHelper {
     
     companion object {
         private const val TAG = "DistanceMatrixHelper"
-        private const val API_KEY = "YOUR_GOOGLE_MAPS_API_KEY" // TODO: Replace with actual API key
         private const val BASE_URL = "https://maps.googleapis.com/maps/api/distancematrix/json"
     }
     
@@ -30,21 +30,92 @@ class DistanceMatrixHelper {
         destination: String,
         callback: (Double?, String?) -> Unit
     ) {
-        // For now, we'll use a mock calculation since we don't have the API key
-        // In a real implementation, you would make an HTTP request to Google Distance Matrix API
+        val apiKey = BuildConfig.GOOGLE_MAPS_API_KEY
         
+        if (apiKey.isNullOrEmpty()) {
+            val mockDistance = calculateMockDistance(origin, destination)
+            callback(mockDistance, null)
+            return
+        }
         
-        // Mock calculation - replace with actual API call
-        val mockDistance = calculateMockDistance(origin, destination)
-        callback(mockDistance, null)
+        makeDistanceMatrixRequest(origin, destination, apiKey, callback)
+    }
+    
+    /**
+     * Makes HTTP request to Google Distance Matrix API.
+     */
+    private fun makeDistanceMatrixRequest(
+        origin: String,
+        destination: String,
+        apiKey: String,
+        callback: (Double?, String?) -> Unit
+    ) {
+        Thread {
+            try {
+                val url = "$BASE_URL?origins=$origin&destinations=$destination&key=$apiKey&units=metric"
+                val connection = URL(url).openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+                
+                val responseCode = connection.responseCode
+                val response = if (responseCode == HttpURLConnection.HTTP_OK) {
+                    connection.inputStream.bufferedReader().use { it.readText() }
+                } else {
+                    connection.errorStream.bufferedReader().use { it.readText() }
+                }
+                
+                connection.disconnect()
+                
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    val distance = parseDistanceMatrixResponse(response)
+                    callback(distance, null)
+                } else {
+                    callback(null, "API Error: $responseCode")
+                }
+            } catch (e: Exception) {
+                callback(null, e.message)
+            }
+        }.start()
+    }
+    
+    /**
+     * Parses Google Distance Matrix API response to extract distance.
+     */
+    private fun parseDistanceMatrixResponse(response: String): Double? {
+        return try {
+            val jsonResponse = JSONObject(response)
+            val rows = jsonResponse.getJSONArray("rows")
+            
+            if (rows.length() > 0) {
+                val row = rows.getJSONObject(0)
+                val elements = row.getJSONArray("elements")
+                
+                if (elements.length() > 0) {
+                    val element = elements.getJSONObject(0)
+                    val status = element.getString("status")
+                    
+                    if (status == "OK") {
+                        val distance = element.getJSONObject("distance")
+                        val distanceValue = distance.getInt("value") // Distance in meters
+                        return distanceValue / 1000.0 // Convert to kilometers
+                    } else {
+                        return null
+                    }
+                }
+            }
+            null
+        } catch (e: Exception) {
+            null
+        }
     }
     
     /**
      * Mock distance calculation for testing purposes.
-     * Replace this with actual Google Distance Matrix API call.
+     * Used as fallback when API key is not available.
      */
     private fun calculateMockDistance(origin: String, destination: String): Double {
-        try {
+        return try {
             val originParts = origin.split(",")
             val destParts = destination.split(",")
             
@@ -57,17 +128,12 @@ class DistanceMatrixHelper {
             val destLat = destParts[0].toDouble()
             val destLng = destParts[1].toDouble()
             
-            // Calculate distance using Haversine formula
-            val distance = calculateHaversineDistance(
+            calculateHaversineDistance(
                 LatLng(originLat, originLng),
                 LatLng(destLat, destLng)
             )
-            
-            return distance
-            
         } catch (e: Exception) {
-            Log.e(TAG, "Error calculating mock distance: ${e.message}")
-            return 0.0
+            0.0
         }
     }
     
@@ -93,13 +159,15 @@ class DistanceMatrixHelper {
     
     /**
      * Calculates shipping cost based on distance and settings.
+     * Includes round trip (ida y vuelta) so distance is multiplied by 2.
      */
     fun calculateShippingCost(
         distanceKm: Double,
         fuelPrice: Double,
         litersPerKm: Double
     ): Double {
-        val cost = (distanceKm / litersPerKm) * fuelPrice // Formula: (distancia_en_km / litersPerKm) × fuelPrice
+        val roundTripDistance = distanceKm * 2 // Ida y vuelta
+        val cost = (roundTripDistance / litersPerKm) * fuelPrice // Formula: (distancia_ida_y_vuelta / litersPerKm) × fuelPrice
         return cost
     }
 }
