@@ -146,6 +146,10 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
         onError: (Exception) -> Unit
     ) {
         val kitchenOrders = movement.items.mapNotNull { item ->
+            if (item.collection == "custom" && item.customName == "discount") {
+                return@mapNotNull null
+            }
+            
             when (item.collection) {
                 "recipes" -> {
                     val recipe = FirestoreRepository.recipesLiveData.value?.find { it.id == item.collectionId }

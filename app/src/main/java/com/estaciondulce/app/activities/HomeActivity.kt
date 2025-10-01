@@ -14,11 +14,13 @@ import com.estaciondulce.app.fragments.RecipeFragment
 import com.estaciondulce.app.fragments.ShipmentFragment
 import com.estaciondulce.app.fragments.KitchenOrderFragment
 import com.estaciondulce.app.fragments.StatisticsFragment
+import com.estaciondulce.app.fragments.ChatFragment
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.utils.CustomToast
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.auth.FirebaseAuth
 
 class HomeActivity : AppCompatActivity() {
@@ -32,6 +34,7 @@ class HomeActivity : AppCompatActivity() {
     private val movementFragment = MovementFragment()
     private val shipmentFragment = ShipmentFragment()
     private val statisticsFragment = StatisticsFragment()
+    private val chatFragment = ChatFragment()
 
     /**
      * Initializes the activity, sets up Firestore listeners,
@@ -61,6 +64,7 @@ class HomeActivity : AppCompatActivity() {
         setupDashboardCards()
         setupLogoutButton()
         setupFragmentHeader()
+        setupChatFab()
         showDashboard()
     }
 
@@ -131,12 +135,23 @@ class HomeActivity : AppCompatActivity() {
     }
 
     /**
+     * Sets up the chat floating action button functionality.
+     */
+    private fun setupChatFab() {
+        findViewById<FloatingActionButton>(R.id.chatFab).setOnClickListener {
+            loadFragment(chatFragment, "Chat con Cha")
+            showFragmentContainer()
+        }
+    }
+
+    /**
      * Shows the dashboard cards and hides the fragment container and header.
      */
     private fun showDashboard() {
         findViewById<View>(R.id.dashboardScrollView).visibility = View.VISIBLE
         findViewById<View>(R.id.fragmentHeader).visibility = View.GONE
         findViewById<View>(R.id.homeFragmentContainer).visibility = View.GONE
+        findViewById<FloatingActionButton>(R.id.chatFab).visibility = View.VISIBLE
     }
 
     /**
@@ -163,6 +178,8 @@ class HomeActivity : AppCompatActivity() {
             transaction.add(R.id.homeFragmentContainer, fragment)
         }
         transaction.commit()
+        
+        findViewById<FloatingActionButton>(R.id.chatFab).visibility = View.GONE
     }
 
     /**

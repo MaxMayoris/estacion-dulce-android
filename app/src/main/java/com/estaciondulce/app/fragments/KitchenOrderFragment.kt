@@ -60,7 +60,7 @@ class KitchenOrderFragment : Fragment() {
             
             movementsWithKitchenOrders = sales.filter { movement ->
                 movement.kitchenOrderStatus != null
-            }.sortedByDescending { it.movementDate }
+            }.sortedByDescending { it.delivery?.date ?: it.movementDate }
 
             setupTableView(movementsWithKitchenOrders)
         }
@@ -106,7 +106,7 @@ class KitchenOrderFragment : Fragment() {
             columnValueGetter = { item, columnIndex ->
                 val movement = item as Movement
                 when (columnIndex) {
-                    0 -> formatDateToSpanish(movement.movementDate)
+                    0 -> formatDateToSpanish(movement.delivery?.date ?: movement.movementDate)
                     1 -> {
                         val person = repository.personsLiveData.value?.find { it.id == movement.personId }
                         person?.let { "${it.name} ${it.lastName}" } ?: "Cliente desconocido"

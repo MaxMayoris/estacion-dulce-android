@@ -11,8 +11,8 @@ android {
         applicationId = "com.estaciondulce.app"
         minSdk = 30
         targetSdk = 35
-        versionCode = 21
-        versionName = "5.3"
+        versionCode = 22
+        versionName = "5.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -35,6 +35,7 @@ android {
             versionNameSuffix = "-dev"
             buildConfigField("String", "GOOGLE_MAPS_API_KEY", "\"${project.findProperty("GOOGLE_MAPS_API_KEY_DEV") ?: ""}\"")
             resValue("string", "google_maps_key", project.findProperty("GOOGLE_MAPS_API_KEY_DEV") as String? ?: "")
+            buildConfigField("String", "OPENAI_API_KEY", "\"${project.findProperty("OPENAI_API_KEY") ?: ""}\"")
         }
         create("prod") {
             dimension = "environment"
@@ -42,6 +43,7 @@ android {
             versionNameSuffix = "-prod"
             buildConfigField("String", "GOOGLE_MAPS_API_KEY", "\"${project.findProperty("GOOGLE_MAPS_API_KEY_PROD") ?: ""}\"")
             resValue("string", "google_maps_key", project.findProperty("GOOGLE_MAPS_API_KEY_PROD") as String? ?: "")
+            buildConfigField("String", "OPENAI_API_KEY", "\"${project.findProperty("OPENAI_API_KEY") ?: ""}\"")
         }
     }
 
