@@ -11,11 +11,11 @@ import com.estaciondulce.app.models.parcelables.Person
  */
 object ContextSelector {
 
-    private const val MAX_TOKENS = 3000
-    private const val TOKENS_PER_PRODUCT = 8
-    private const val TOKENS_PER_RECIPE = 15
-    private const val TOKENS_PER_PERSON = 10
-    private const val TOKENS_PER_MOVEMENT = 20
+    private const val MAX_TOKENS = 5000
+    private const val TOKENS_PER_PRODUCT = 15
+    private const val TOKENS_PER_RECIPE = 80
+    private const val TOKENS_PER_PERSON = 20
+    private const val TOKENS_PER_MOVEMENT = 60
 
     /**
      * Selects relevant context data based on user query
@@ -31,48 +31,81 @@ object ContextSelector {
         products: List<Product>?,
         recipes: List<Recipe>?,
         persons: List<Person>?,
-        movements: List<Movement>?
+        movements: List<Movement>?,
+        measures: List<com.estaciondulce.app.models.Measure>?
     ): String {
         val context = StringBuilder()
         var remainingTokens = MAX_TOKENS
+        var totalTokensUsed = 0
 
-        // Always include products and recipes (they're essential)
         val selectedProducts = selectProducts(products, remainingTokens)
         val selectedRecipes = selectRecipes(recipes, remainingTokens)
         
-        remainingTokens -= calculateTokens(selectedProducts, TOKENS_PER_PRODUCT)
-        remainingTokens -= calculateTokens(selectedRecipes, TOKENS_PER_RECIPE)
+        val productsTokens = calculateTokens(selectedProducts, TOKENS_PER_PRODUCT)
+        val recipesTokens = calculateTokens(selectedRecipes, TOKENS_PER_RECIPE)
+        remainingTokens -= productsTokens
+        remainingTokens -= recipesTokens
+        totalTokensUsed += productsTokens + recipesTokens
+        
+        android.util.Log.d("ContextSelector", "PRODUCTOS: ${selectedProducts.size} items, ${productsTokens} tokens")
+        android.util.Log.d("ContextSelector", "RECETAS: ${selectedRecipes.size} items, ${recipesTokens} tokens")
 
-        // Add products to context
         if (selectedProducts.isNotEmpty()) {
             context.append("PRODUCTOS:\n")
             selectedProducts.forEach { product ->
-                context.append("- ${product.name}: ${product.quantity} ${product.measure}, $${product.salePrice}\n")
+                val measureName = getMeasureName(product.measure, measures)
+                val stockStatus = if (product.quantity <= product.minimumQuantity) "BAJO" else "OK"
+                context.append("- ${product.name}: ${product.quantity} $measureName, $${product.salePrice} (Stock: $stockStatus)\n")
             }
             context.append("\n")
         }
 
-        // Add recipes to context
         if (selectedRecipes.isNotEmpty()) {
             context.append("RECETAS:\n")
             selectedRecipes.forEach { recipe ->
-                context.append("- ${recipe.name}: $${recipe.salePrice}\n")
+                val hasImages = if (recipe.images.isNotEmpty()) "Con imágenes" else "Sin imágenes"
+                val nestedRecipes = if (recipe.recipes.isNotEmpty()) {
+                    recipe.recipes.joinToString(", ") { "x${it.quantity}" }
+                } else ""
+                
+                context.append("- ${recipe.name}: $${recipe.salePrice} (Costo: $${recipe.cost}) - $hasImages\n")
+                
+                if (recipe.sections.isNotEmpty()) {
+                    recipe.sections.forEach { section ->
+                        context.append("  ${section.name}:\n")
+                        section.products.forEach { product ->
+                            val productName = getProductName(product.productId, products)
+                            context.append("    - $productName: ${product.quantity}\n")
+                        }
+                    }
+                }
+                
+                if (nestedRecipes.isNotEmpty()) {
+                    context.append("  Recetas incluidas: $nestedRecipes\n")
+                }
             }
             context.append("\n")
         }
 
-        // Conditionally include persons and movements based on keywords
         val shouldIncludePersons = shouldIncludePersons(userQuery)
         val shouldIncludeMovements = shouldIncludeMovements(userQuery)
 
         if (shouldIncludePersons && persons != null && remainingTokens > 0) {
             val selectedPersons = selectPersons(persons, remainingTokens)
-            remainingTokens -= calculateTokens(selectedPersons, TOKENS_PER_PERSON)
+            val personsTokens = calculateTokens(selectedPersons, TOKENS_PER_PERSON)
+            remainingTokens -= personsTokens
+            totalTokensUsed += personsTokens
+            
+            android.util.Log.d("ContextSelector", "PERSONAS: ${selectedPersons.size} items, ${personsTokens} tokens")
             
             if (selectedPersons.isNotEmpty()) {
                 context.append("PERSONAS:\n")
                 selectedPersons.forEach { person ->
-                    context.append("- ${person.name} ${person.lastName} (${person.type})\n")
+                    val phoneInfo = if (person.phones.isNotEmpty()) {
+                        val phone = person.phones.first()
+                        "${phone.phoneNumberPrefix}${phone.phoneNumberSuffix}"
+                    } else "Sin teléfono"
+                    context.append("- ${person.name} ${person.lastName} (${person.type}) - $phoneInfo\n")
                 }
                 context.append("\n")
             }
@@ -80,18 +113,56 @@ object ContextSelector {
 
         if (shouldIncludeMovements && movements != null && remainingTokens > 0) {
             val selectedMovements = selectMovements(movements, remainingTokens)
-            remainingTokens -= calculateTokens(selectedMovements, TOKENS_PER_MOVEMENT)
+            val movementsTokens = calculateTokens(selectedMovements, TOKENS_PER_MOVEMENT)
+            remainingTokens -= movementsTokens
+            totalTokensUsed += movementsTokens
+            
+            android.util.Log.d("ContextSelector", "MOVIMIENTOS: ${selectedMovements.size} items, ${movementsTokens} tokens")
             
             if (selectedMovements.isNotEmpty()) {
                 context.append("MOVIMIENTOS RECIENTES:\n")
                 selectedMovements.forEach { movement ->
-                    context.append("- ${movement.type}: ${movement.detail} ($${movement.totalAmount})\n")
+                    val personName = getPersonName(movement.personId, persons)
+                    val deliveryInfo = movement.delivery?.let { delivery ->
+                        val addressInfo = delivery.shipment?.formattedAddress ?: "Sin dirección"
+                        " - Envío: ${delivery.status} ($addressInfo)"
+                    } ?: ""
+                    val kitchenStatus = movement.kitchenOrderStatus?.let { status ->
+                        " - Cocina: ${status.name}"
+                    } ?: ""
+                    
+                    context.append("- ${movement.type}: ${movement.detail} - $personName ($${movement.totalAmount})$deliveryInfo$kitchenStatus\n")
+                    
+                    if (movement.items.isNotEmpty()) {
+                        movement.items.forEach { item ->
+                            val itemName = when (item.collection) {
+                                "products" -> getProductName(item.collectionId, products)
+                                "recipes" -> getRecipeName(item.collectionId, recipes)
+                                "custom" -> item.customName ?: "Ítem personalizado"
+                                else -> "Ítem desconocido"
+                            }
+                            val itemKitchenStatus = if (item.collection != "custom" || item.customName != "discount") {
+                                " (Cocina: ${movement.kitchenOrderStatus?.name ?: "N/A"})"
+                            } else ""
+                            context.append("  - $itemName: ${item.quantity}$itemKitchenStatus\n")
+                        }
+                    }
                 }
                 context.append("\n")
             }
         }
 
-        return context.toString().ifEmpty { "No hay datos disponibles en este momento." }
+        val finalContext = context.toString().ifEmpty { "No hay datos disponibles en este momento." }
+        
+        android.util.Log.d("ContextSelector", "=== RESUMEN DE TOKENS ===")
+        android.util.Log.d("ContextSelector", "Consulta: $userQuery")
+        android.util.Log.d("ContextSelector", "Tokens usados: $totalTokensUsed / $MAX_TOKENS")
+        android.util.Log.d("ContextSelector", "Tokens restantes: $remainingTokens")
+        android.util.Log.d("ContextSelector", "Incluir personas: $shouldIncludePersons")
+        android.util.Log.d("ContextSelector", "Incluir movimientos: $shouldIncludeMovements")
+        android.util.Log.d("ContextSelector", "Tamaño del contexto: ${finalContext.length} caracteres")
+        
+        return finalContext
     }
 
     /**
@@ -155,5 +226,38 @@ object ContextSelector {
      */
     private fun calculateTokens(items: List<*>, tokensPerItem: Int): Int {
         return items.size * tokensPerItem
+    }
+
+    /**
+     * Resolves measure ID to measure name
+     */
+    private fun getMeasureName(measureId: String, measures: List<com.estaciondulce.app.models.Measure>?): String {
+        if (measures.isNullOrEmpty() || measureId.isEmpty()) return "unidades"
+        return measures.find { it.id == measureId }?.name ?: "unidades"
+    }
+
+    /**
+     * Resolves product ID to product name
+     */
+    private fun getProductName(productId: String, products: List<Product>?): String {
+        if (products.isNullOrEmpty() || productId.isEmpty()) return "Producto desconocido"
+        return products.find { it.id == productId }?.name ?: "Producto desconocido"
+    }
+
+    /**
+     * Resolves person ID to person name
+     */
+    private fun getPersonName(personId: String, persons: List<Person>?): String {
+        if (persons.isNullOrEmpty() || personId.isEmpty()) return "Persona desconocida"
+        val person = persons.find { it.id == personId }
+        return if (person != null) "${person.name} ${person.lastName}" else "Persona desconocida"
+    }
+
+    /**
+     * Resolves recipe ID to recipe name
+     */
+    private fun getRecipeName(recipeId: String, recipes: List<Recipe>?): String {
+        if (recipes.isNullOrEmpty() || recipeId.isEmpty()) return "Receta desconocida"
+        return recipes.find { it.id == recipeId }?.name ?: "Receta desconocida"
     }
 }

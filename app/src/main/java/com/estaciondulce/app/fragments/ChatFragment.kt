@@ -49,7 +49,6 @@ class ChatFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        // Initialize Cha's personality system
         ChaPersonality.initialize(requireContext())
         
         initializeViews(view)
@@ -102,7 +101,6 @@ class ChatFragment : Fragment() {
         val userInput = chatInputEditText.text?.toString()?.trim()
         if (userInput.isNullOrEmpty()) return
         
-        // Add user message to chat
         val userMessage = UserMessage(text = userInput)
         chatAdapter.addUserMessage(userMessage)
         
@@ -160,13 +158,15 @@ class ChatFragment : Fragment() {
         val recipes = FirestoreRepository.recipesLiveData.value
         val persons = FirestoreRepository.personsLiveData.value
         val movements = FirestoreRepository.movementsLiveData.value
+        val measures = FirestoreRepository.measuresLiveData.value
 
         return ContextSelector.selectContext(
             userQuery = userQuery,
             products = products,
             recipes = recipes,
             persons = persons,
-            movements = movements
+            movements = movements,
+            measures = measures
         )
     }
     

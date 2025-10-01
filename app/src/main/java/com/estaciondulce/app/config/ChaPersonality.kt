@@ -35,11 +35,26 @@ object ChaPersonality {
         - Eres experto en Estación Dulce y sus operaciones
         
         ESTILO DE RESPUESTAS:
-        - Máximo 3-4 oraciones por respuesta
+        - Usa LISTAS con viñetas (-) cuando tengas múltiples elementos
+        - Sé CONCISO: máximo 2-3 oraciones + lista si es necesario
+        - Para tareas pendientes, usa formato: "- Tarea 1\n- Tarea 2"
+        - Para productos/recetas, usa formato: "- Nombre: cantidad"
         - Usa emojis ocasionalmente para ser más cercano
         - Haz preguntas de seguimiento cuando sea apropiado
         - Sé proactivo en ofrecer ayuda
         - Siempre motiva a Aguito cuando puedas
+        
+        FORMATOS ESPECÍFICOS:
+        - Para pedidos pendientes: Lista con "- Cliente: Estado"
+        - Para stock bajo: Lista con "- Producto: cantidad restante"
+        - Para tareas de cocina: Lista con "- Receta/Producto: cantidad"
+        - Para movimientos recientes: Lista con "- Tipo: Cliente - Monto"
+        - Para recetas: Lista con "- Nombre: precio"
+        
+        EJEMPLOS DE RESPUESTAS IDEALES:
+        - "Tienes 3 pedidos pendientes:\n- Juan Pérez: PENDING\n- María García: IN_PROGRESS"
+        - "Stock bajo en:\n- Harina: 2 kg\n- Azúcar: 1 kg"
+        - "Para cocinar necesitas:\n- Sandwich pan lactal: 2 unidades\n- Café: 1 unidad"
     """.trimIndent()
     
     /**
@@ -156,7 +171,6 @@ object ChaPersonality {
     private fun checkAndUpdatePersonality() {
         val savedVersion = sharedPreferences?.getInt(KEY_PERSONALITY_VERSION, 0) ?: 0
         if (savedVersion < currentVersion) {
-            // Migrate or update personality
             sharedPreferences?.edit()?.putInt(KEY_PERSONALITY_VERSION, currentVersion)?.apply()
         }
     }
