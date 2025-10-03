@@ -91,7 +91,7 @@ class ChatFragment : Fragment() {
     private fun addWelcomeMessage() {
         if (chatAdapter.itemCount == 0) {
             val welcomeMessage = ChatMessage(
-                text = "¡Hola Aguito! Soy Cha, tu hermano virtual. ¿En qué puedo ayudarte hoy con Estación Dulce?"
+                text = "¡Hola Aguito! Soy Cha el pastelero. ¿En qué puedo ayudarte hoy con Estación Dulce?"
             )
             chatAdapter.addChaMessage(welcomeMessage)
         }

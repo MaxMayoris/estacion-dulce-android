@@ -47,15 +47,13 @@ object ContextSelector {
         remainingTokens -= recipesTokens
         totalTokensUsed += productsTokens + recipesTokens
         
-        android.util.Log.d("ContextSelector", "PRODUCTOS: ${selectedProducts.size} items, ${productsTokens} tokens")
-        android.util.Log.d("ContextSelector", "RECETAS: ${selectedRecipes.size} items, ${recipesTokens} tokens")
 
         if (selectedProducts.isNotEmpty()) {
             context.append("PRODUCTOS:\n")
             selectedProducts.forEach { product ->
                 val measureName = getMeasureName(product.measure, measures)
                 val stockStatus = if (product.quantity <= product.minimumQuantity) "BAJO" else "OK"
-                context.append("- ${product.name}: ${product.quantity} $measureName, $${product.salePrice} (Stock: $stockStatus)\n")
+                context.append("${product.name};${product.quantity} $measureName;$${product.salePrice} (Stock:$stockStatus)\n")
             }
             context.append("\n")
         }
@@ -64,18 +62,19 @@ object ContextSelector {
             context.append("RECETAS:\n")
             selectedRecipes.forEach { recipe ->
                 val hasImages = if (recipe.images.isNotEmpty()) "Con imágenes" else "Sin imágenes"
+                val saleStatus = if (recipe.onSale) "En venta" else "No disponible"
                 val nestedRecipes = if (recipe.recipes.isNotEmpty()) {
                     recipe.recipes.joinToString(", ") { "x${it.quantity}" }
                 } else ""
                 
-                context.append("- ${recipe.name}: $${recipe.salePrice} (Costo: $${recipe.cost}) - $hasImages\n")
+                context.append("${recipe.name};$${recipe.salePrice} (Costo:$${recipe.cost});$saleStatus;$hasImages\n")
                 
                 if (recipe.sections.isNotEmpty()) {
                     recipe.sections.forEach { section ->
-                        context.append("  ${section.name}:\n")
+                        context.append("${section.name}:\n")
                         section.products.forEach { product ->
                             val productName = getProductName(product.productId, products)
-                            context.append("    - $productName: ${product.quantity}\n")
+                            context.append("$productName;${product.quantity}\n")
                         }
                     }
                 }
@@ -96,7 +95,6 @@ object ContextSelector {
             remainingTokens -= personsTokens
             totalTokensUsed += personsTokens
             
-            android.util.Log.d("ContextSelector", "PERSONAS: ${selectedPersons.size} items, ${personsTokens} tokens")
             
             if (selectedPersons.isNotEmpty()) {
                 context.append("PERSONAS:\n")
@@ -105,7 +103,7 @@ object ContextSelector {
                         val phone = person.phones.first()
                         "${phone.phoneNumberPrefix}${phone.phoneNumberSuffix}"
                     } else "Sin teléfono"
-                    context.append("- ${person.name} ${person.lastName} (${person.type}) - $phoneInfo\n")
+                    context.append("${person.name} ${person.lastName};${person.type};$phoneInfo\n")
                 }
                 context.append("\n")
             }
@@ -117,7 +115,6 @@ object ContextSelector {
             remainingTokens -= movementsTokens
             totalTokensUsed += movementsTokens
             
-            android.util.Log.d("ContextSelector", "MOVIMIENTOS: ${selectedMovements.size} items, ${movementsTokens} tokens")
             
             if (selectedMovements.isNotEmpty()) {
                 context.append("MOVIMIENTOS RECIENTES:\n")
@@ -131,7 +128,7 @@ object ContextSelector {
                         " - Cocina: ${status.name}"
                     } ?: ""
                     
-                    context.append("- ${movement.type}: ${movement.detail} - $personName ($${movement.totalAmount})$deliveryInfo$kitchenStatus\n")
+                    context.append("${movement.type};${movement.detail};$personName;$${movement.totalAmount}$deliveryInfo$kitchenStatus\n")
                     
                     if (movement.items.isNotEmpty()) {
                         movement.items.forEach { item ->
@@ -144,7 +141,7 @@ object ContextSelector {
                             val itemKitchenStatus = if (item.collection != "custom" || item.customName != "discount") {
                                 " (Cocina: ${movement.kitchenOrderStatus?.name ?: "N/A"})"
                             } else ""
-                            context.append("  - $itemName: ${item.quantity}$itemKitchenStatus\n")
+                            context.append("$itemName;${item.quantity}$itemKitchenStatus\n")
                         }
                     }
                 }
@@ -154,13 +151,6 @@ object ContextSelector {
 
         val finalContext = context.toString().ifEmpty { "No hay datos disponibles en este momento." }
         
-        android.util.Log.d("ContextSelector", "=== RESUMEN DE TOKENS ===")
-        android.util.Log.d("ContextSelector", "Consulta: $userQuery")
-        android.util.Log.d("ContextSelector", "Tokens usados: $totalTokensUsed / $MAX_TOKENS")
-        android.util.Log.d("ContextSelector", "Tokens restantes: $remainingTokens")
-        android.util.Log.d("ContextSelector", "Incluir personas: $shouldIncludePersons")
-        android.util.Log.d("ContextSelector", "Incluir movimientos: $shouldIncludeMovements")
-        android.util.Log.d("ContextSelector", "Tamaño del contexto: ${finalContext.length} caracteres")
         
         return finalContext
     }

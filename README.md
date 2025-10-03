@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v5.5** - Enhanced Cha AI assistant with cooking and pastry knowledge, optimized token usage by removing debug logs and unnecessary spaces, added recipe availability status (onSale field), and improved context formatting with semicolon separators for better efficiency
 - **v5.4** - Added AI chat feature with Cha virtual assistant, implemented intelligent context selection for optimized responses, added typing indicator for realistic chat experience, and enhanced kitchen order validation to exclude discount items
 - **v5.3** - Implemented real Google Distance Matrix API for accurate shipping cost calculations with round-trip distance calculation
 - **v5.2** - Implemented real GPS location detection for route optimization, enhanced multiple shipment selection with improved fallback logic, and updated debug logging to use Log.d instead of println
