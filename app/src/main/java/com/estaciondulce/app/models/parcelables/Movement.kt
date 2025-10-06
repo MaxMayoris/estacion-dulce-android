@@ -22,5 +22,6 @@ data class Movement(
     val createdAt: Date? = null,
     val detail: String = "",
     val kitchenOrderStatus: com.estaciondulce.app.models.enums.EKitchenOrderStatus? = null,
-    val referenceImages: List<String> = listOf()
+    val referenceImages: List<String> = listOf(),
+    val isStock: Boolean = false
 ) : Parcelable, com.estaciondulce.app.models.Identifiable

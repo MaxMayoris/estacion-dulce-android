@@ -587,7 +587,10 @@ class AddressPickerActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap
                 )
             } else {
                 val label = intent.getStringExtra(EXTRA_ADDRESS_LABEL) ?: "Dirección"
-                address.copy(label = label)
+                address.copy(
+                    id = java.util.UUID.randomUUID().toString(),
+                    label = label
+                )
             }
 
             val formattedFinalAddress = formatAddressForDisplay(finalAddress)

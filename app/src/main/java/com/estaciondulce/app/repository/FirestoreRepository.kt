@@ -121,7 +121,14 @@ object FirestoreRepository {
                     return@addSnapshotListener
                 }
                 val movements = snapshot?.documents?.mapNotNull { doc ->
-                    doc.toObject(MovementDTO::class.java)?.toParcelable(doc.id)
+                    try {
+                        val dto = doc.toObject(MovementDTO::class.java)
+                        val isStock = doc.getBoolean("isStock")
+                        val movementDTOWithIsStock = dto?.copy(isStock = isStock)
+                        movementDTOWithIsStock?.toParcelable(doc.id)
+                    } catch (e: Exception) {
+                        null
+                    }
                 } ?: emptyList()
                 movementsLiveData.postValue(movements)
             }

@@ -22,7 +22,19 @@ foreach ($file in $files) {
     
     if (Test-Path $file) {
         $originalContent = Get-Content $file
-        $filteredContent = $originalContent | Where-Object { $_ -notmatch '^\s*//' }
+        $filteredContent = @()
+        
+        foreach ($line in $originalContent) {
+            $trimmedLine = $line.Trim()
+            # Only remove lines that are purely comments (start with // and contain only comment content)
+            if ($trimmedLine -match '^\s*//' -and $trimmedLine -match '^\s*//.*$') {
+                # This is a comment line, skip it
+                continue
+            } else {
+                # This is code, keep it
+                $filteredContent += $line
+            }
+        }
         
         # Count removed comments
         $originalComments = ($originalContent | Where-Object { $_ -match '^\s*//' }).Count

@@ -56,17 +56,33 @@ $foundVersionHistory = $false
 $addedNewEntry = $false
 
 foreach ($line in $readmeContent) {
-    if ($line -match "## 🔄 Version History") {
+    if ($line -match "## .*Version History") {
         $foundVersionHistory = $true
         $updatedReadmeContent += $line
-    } elseif ($foundVersionHistory -and $line -match "^- \*\*v[\d.]+\*\*" -and !$addedNewEntry) {
+        Write-Host "  Found version history section" -ForegroundColor Cyan
+    } elseif ($foundVersionHistory -and $line -match "^- \*\*v\d+\.\d+\*\*" -and !$addedNewEntry) {
         # Add new version entry before the first existing entry
-        $updatedReadmeContent += "- **v$VersionName** - $Description"
+        $newEntry = "- **v$VersionName** - $Description"
+        $updatedReadmeContent += $newEntry
         $updatedReadmeContent += $line
         $addedNewEntry = $true
+        Write-Host "  Added new version entry: $newEntry" -ForegroundColor Cyan
     } else {
         $updatedReadmeContent += $line
     }
+}
+
+# If we didn't find a version history section, add it
+if (-not $foundVersionHistory) {
+    Write-Host "  Warning: Version history section not found, adding at end of file" -ForegroundColor Yellow
+    $updatedReadmeContent += ""
+    $updatedReadmeContent += "## 🔄 Version History"
+    $updatedReadmeContent += ""
+    $updatedReadmeContent += "- **v$VersionName** - $Description"
+}
+
+if (-not $addedNewEntry) {
+    Write-Host "  Warning: Could not find existing version entry to add before" -ForegroundColor Yellow
 }
 
 Set-Content -Path $readmePath -Value $updatedReadmeContent
@@ -86,12 +102,21 @@ $removedLogs = 0
 foreach ($file in $files) {
     if (Test-Path $file) {
         $content = Get-Content $file
-        $filtered = $content | Where-Object { $_ -notmatch 'Log\.(d|i|w|e|v)\(' }
+        $filtered = @()
+        
+        foreach ($line in $content) {
+            # Only remove lines that are purely debug logs (start with whitespace + Log.d/Log.i/etc)
+            if ($line -match '^\s*Log\.(d|i|w|e|v)\(' -and $line -match '^\s*Log\.(d|i|w|e|v)\(.*\);?\s*$') {
+                $removedLogs++
+                Write-Host "  Removed debug log: $($line.Trim())" -ForegroundColor Yellow
+            } else {
+                $filtered += $line
+            }
+        }
         
         if ($content.Count -ne $filtered.Count) {
-            $removedLogs += ($content.Count - $filtered.Count)
             Set-Content -Path $file -Value $filtered
-            Write-Host "  Removed debug logs from: $file" -ForegroundColor Yellow
+            Write-Host "  Processed debug logs in: $file" -ForegroundColor Yellow
         }
     }
 }

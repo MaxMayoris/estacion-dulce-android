@@ -268,6 +268,34 @@ class StatisticsFragment : Fragment() {
         customLoader.hide()
     }
 
+    private fun updateMonthlySalesTotal(sales: List<Movement>) {
+        val totalSales = sales.size
+        android.util.Log.d("StatisticsFragment", "updateMonthlySalesTotal: $totalSales")
+        
+        if (binding.monthlySalesTabContent.childCount > 0) {
+            val materialCardView = binding.monthlySalesTabContent.getChildAt(0) as android.view.ViewGroup
+            android.util.Log.d("StatisticsFragment", "MaterialCardView children count: ${materialCardView.childCount}")
+            findAndUpdateTitleText(materialCardView, totalSales)
+        }
+    }
+
+    private fun findAndUpdateTitleText(parent: android.view.ViewGroup, totalSales: Int) {
+        for (i in 0 until parent.childCount) {
+            val child = parent.getChildAt(i)
+            if (child is android.widget.TextView) {
+                val currentText = child.text.toString()
+                android.util.Log.d("StatisticsFragment", "Found TextView with text: '$currentText'")
+                if (currentText.contains("Ventas acumuladas")) {
+                    child.text = "Ventas acumuladas: $totalSales"
+                    android.util.Log.d("StatisticsFragment", "Updating TextView '${child.javaClass.simpleName}' with total: $totalSales")
+                    return
+                }
+            } else if (child is android.view.ViewGroup) {
+                findAndUpdateTitleText(child, totalSales)
+            }
+        }
+    }
+
     /**
      * Updates the monthly sales chart with daily sales data for the selected month.
      */
@@ -293,6 +321,7 @@ class StatisticsFragment : Fragment() {
         val chartData = createMonthlySalesChartData(monthlySales, startOfMonth, _endOfMonth)
         setupMonthlySalesChart(binding.monthlySalesChart, chartData, monthlySales, startOfMonth, _endOfMonth)
         
+        updateMonthlySalesTotal(monthlySales)
         updateMonthlyBalance(movements, startOfMonth, _endOfMonth)
         
         customLoader.hide()
@@ -349,28 +378,56 @@ class StatisticsFragment : Fragment() {
         startOfMonth: Date, 
         _endOfMonth: Date
     ): LineData {
-        val dailySales = groupSalesByDay(sales, startOfMonth, _endOfMonth)
+        val (dailyPedidos, dailyStock) = groupSalesByDayAndType(sales, startOfMonth, _endOfMonth)
         
-        val entries = mutableListOf<Entry>()
-        val labels = mutableListOf<String>()
-        var cumulativeCount = 0.0
+        val pedidosEntries = mutableListOf<Entry>()
+        val stockEntries = mutableListOf<Entry>()
+        var cumulativePedidos = 0.0
+        var cumulativeStock = 0.0
         
-        dailySales.forEachIndexed { index, (day, count) ->
-            cumulativeCount += count
-            entries.add(Entry(index.toFloat(), cumulativeCount.toFloat()))
-            labels.add(day.toString())
+        dailyPedidos.forEachIndexed { index, (_, count) ->
+            cumulativePedidos += count
+            pedidosEntries.add(Entry(index.toFloat(), cumulativePedidos.toFloat()))
         }
         
-        val dataSet = LineDataSet(entries, "Ventas").apply {
-            color = Color.parseColor("#4CAF50")
-            setCircleColor(Color.parseColor("#4CAF50"))
+        dailyStock.forEachIndexed { index, (_, count) ->
+            cumulativeStock += count
+            stockEntries.add(Entry(index.toFloat(), cumulativeStock.toFloat()))
+        }
+        
+        val pedidosDataSet = LineDataSet(pedidosEntries, "Pedidos").apply {
+            color = androidx.core.content.ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.button_gradient_end)
+            setCircleColor(androidx.core.content.ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.button_gradient_end))
             lineWidth = 3f
             circleRadius = 4f
             valueTextColor = Color.BLACK
             valueTextSize = 10f
-            setDrawFilled(true)
-            fillColor = Color.parseColor("#4CAF50")
-            fillAlpha = 50
+            setDrawFilled(false)
+            setDrawValues(true)
+            valueFormatter = object : ValueFormatter() {
+                private var lastValue = -1f
+                
+                override fun getFormattedValue(value: Float): String {
+                    return if (value == 0f) {
+                        ""
+                    } else if (value == lastValue) {
+                        ""
+                    } else {
+                        lastValue = value
+                        value.toInt().toString()
+                    }
+                }
+            }
+        }
+        
+        val stockDataSet = LineDataSet(stockEntries, "Stock").apply {
+            color = androidx.core.content.ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.button_gradient_start)
+            setCircleColor(androidx.core.content.ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.button_gradient_start))
+            lineWidth = 3f
+            circleRadius = 4f
+            valueTextColor = Color.BLACK
+            valueTextSize = 10f
+            setDrawFilled(false)
             setDrawValues(true)
             valueFormatter = object : ValueFormatter() {
                 private var lastValue = -1f
@@ -388,7 +445,7 @@ class StatisticsFragment : Fragment() {
             }
         }
         
-        return LineData(dataSet)
+        return LineData(pedidosDataSet, stockDataSet)
     }
 
     /**
@@ -476,6 +533,39 @@ class StatisticsFragment : Fragment() {
         }
         
         return dailyCounts.toList().sortedBy { it.first }
+    }
+
+    private fun groupSalesByDayAndType(
+        sales: List<Movement>, 
+        startOfMonth: Date, 
+        @Suppress("UNUSED_PARAMETER") unusedEndOfMonth: Date
+    ): Pair<List<Pair<Int, Double>>, List<Pair<Int, Double>>> {
+        val dailyPedidosCounts = mutableMapOf<Int, Double>()
+        val dailyStockCounts = mutableMapOf<Int, Double>()
+        
+        val calendar = Calendar.getInstance()
+        calendar.time = startOfMonth
+        val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+        
+        for (day in 1..daysInMonth) {
+            dailyPedidosCounts[day] = 0.0
+            dailyStockCounts[day] = 0.0
+        }
+        
+        sales.forEach { movement ->
+            calendar.time = movement.movementDate
+            val day = calendar.get(Calendar.DAY_OF_MONTH)
+            if (movement.isStock) {
+                dailyStockCounts[day] = dailyStockCounts[day]!! + 1.0
+            } else {
+                dailyPedidosCounts[day] = dailyPedidosCounts[day]!! + 1.0
+            }
+        }
+        
+        val pedidosList = dailyPedidosCounts.toSortedMap().map { it.key to it.value }
+        val stockList = dailyStockCounts.toSortedMap().map { it.key to it.value }
+        
+        return Pair(pedidosList, stockList)
     }
 
     /**

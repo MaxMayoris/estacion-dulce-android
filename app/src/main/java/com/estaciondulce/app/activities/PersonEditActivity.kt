@@ -1124,7 +1124,13 @@ class PersonEditActivity : AppCompatActivity() {
             addressesHelper.addAddressToPerson(
                 personId = personId,
                 address = address,
-                onSuccess = { checkIfAllOperationsCompleted() },
+                onSuccess = { savedAddress ->
+                    val index = newAddresses.indexOfFirst { it.id == address.id }
+                    if (index != -1) {
+                        newAddresses[index] = savedAddress
+                    }
+                    checkIfAllOperationsCompleted()
+                },
                 onError = { exception ->
                     CustomToast.showError(this, "Error al guardar nueva dirección: ${exception.message}")
                     checkIfAllOperationsCompleted()

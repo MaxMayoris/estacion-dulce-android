@@ -250,6 +250,7 @@ class MovementEditActivity : AppCompatActivity() {
                     binding.discountCard.visibility = View.VISIBLE
                     binding.detailCard.visibility = View.VISIBLE
                     binding.referenceImagesCard.visibility = View.VISIBLE
+                    binding.isStockContainer.visibility = View.VISIBLE
                     binding.discountInput.setText("0")
                     discountAmount = 0.0
                     recalcTotalAmount()
@@ -257,6 +258,7 @@ class MovementEditActivity : AppCompatActivity() {
                     binding.shippingRow.visibility = View.GONE
                     binding.discountCard.visibility = View.GONE
                     binding.detailCard.visibility = View.GONE
+                    binding.isStockContainer.visibility = View.GONE
                     binding.referenceImagesCard.visibility = View.GONE
                     binding.shippingAddressInput.setText("")
                     selectDeliveryType("pickup")
@@ -288,6 +290,8 @@ class MovementEditActivity : AppCompatActivity() {
                 binding.discountCard.visibility = View.VISIBLE
                 binding.detailCard.visibility = View.VISIBLE
                 binding.referenceImagesCard.visibility = View.VISIBLE
+                binding.isStockContainer.visibility = View.VISIBLE
+                binding.isStockCheckbox.isChecked = movement.isStock
                 
                 movement.delivery?.let { delivery ->
                     val isShipment = delivery.type == EDeliveryType.SHIPMENT.name
@@ -1170,6 +1174,12 @@ class MovementEditActivity : AppCompatActivity() {
             ""
         }
         
+        val isStock = if (movementType == EMovementType.SALE) {
+            binding.isStockCheckbox.isChecked
+        } else {
+            false
+        }
+        
         return Movement(
             id = currentMovement?.id ?: "",
             type = movementType,
@@ -1180,7 +1190,8 @@ class MovementEditActivity : AppCompatActivity() {
             delivery = delivery,
             detail = detail,
             appliedAt = currentMovement?.appliedAt, // Preserve original appliedAt
-            createdAt = currentMovement?.createdAt ?: Date() // Use original createdAt or current date for new movements
+            createdAt = currentMovement?.createdAt ?: Date(), // Use original createdAt or current date for new movements
+            isStock = isStock
         )
     }
 
