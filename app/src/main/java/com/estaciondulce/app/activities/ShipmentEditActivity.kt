@@ -21,6 +21,7 @@ import com.estaciondulce.app.models.enums.EKitchenOrderItemStatus
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.CustomLoader
+import com.estaciondulce.app.utils.ConfirmationDialog
 import com.estaciondulce.app.helpers.AddressesHelper
 import com.estaciondulce.app.helpers.MovementsHelper
 import com.estaciondulce.app.helpers.KitchenOrdersHelper
@@ -350,11 +351,30 @@ class ShipmentEditActivity : AppCompatActivity() {
                 }
                 
                 canceledButton.setOnClickListener {
-                    updateShipmentStatus(movement, EShipmentStatus.CANCELED)
                     dialog.dismiss()
+                    showCancelShipmentConfirmation(movement)
                 }
             }
         }
+    }
+
+    /**
+     * Shows confirmation dialog before canceling a shipment
+     */
+    private fun showCancelShipmentConfirmation(movement: Movement) {
+        val person = FirestoreRepository.personsLiveData.value?.find { it.id == movement.personId }
+        val clientName = person?.let { "${it.name} ${it.lastName}" } ?: "el cliente"
+        
+        ConfirmationDialog.show(
+            context = this,
+            title = "Cancelar envío",
+            message = "¿Estás seguro de que querés cancelar el envío para $clientName?",
+            confirmButtonText = "Sí, cancelar",
+            cancelButtonText = "No, volver",
+            onConfirm = {
+                updateShipmentStatus(movement, EShipmentStatus.CANCELED)
+            }
+        )
     }
 
     private fun updateShipmentStatus(movement: Movement, newStatus: EShipmentStatus) {

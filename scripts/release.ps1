@@ -123,17 +123,19 @@ foreach ($file in $files) {
 
 Write-Host "Removed $removedLogs debug log lines" -ForegroundColor Green
 
-# Step 5: Check debug settings
+# Step 5: Check and fix debug settings
 Write-Host ""
-Write-Host "=== Step 5: Verifying debug settings ===" -ForegroundColor Green
+Write-Host "=== Step 5: Verifying and fixing debug settings ===" -ForegroundColor Green
 $loginActivityPath = "app/src/main/java/com/estaciondulce/app/activities/LoginActivity.kt"
 if (Test-Path $loginActivityPath) {
     $loginContent = Get-Content $loginActivityPath
     $skipLoginLine = $loginContent | Where-Object { $_ -match "skipLoginForDebug" }
     
     if ($skipLoginLine -match "= true") {
-        Write-Host "WARNING: skipLoginForDebug is set to true!" -ForegroundColor Red
-        Write-Host "  Please set it to false before release." -ForegroundColor Yellow
+        Write-Host "Found skipLoginForDebug = true, fixing to false..." -ForegroundColor Yellow
+        $newContent = $loginContent -replace "skipLoginForDebug\s*=\s*true", "skipLoginForDebug = false"
+        Set-Content -Path $loginActivityPath -Value $newContent -Encoding UTF8
+        Write-Host "Fixed: skipLoginForDebug is now set to false" -ForegroundColor Green
     } else {
         Write-Host "Debug settings verified (skipLoginForDebug = false)" -ForegroundColor Green
     }

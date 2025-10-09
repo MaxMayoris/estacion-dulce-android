@@ -68,6 +68,9 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v5.9** - Funciones Firebase modularizadas, corregido cálculo de costos con unidades, paginación en KitchenOrders, modal confirmación cancelar envíos, icono envíos actualizado
+- **v5.8** - Added R8/ProGuard obfuscation for release builds
+- **v5.6** - Fix bugs
 - **v5.6** - Added isStock field to movements for stock vs orders distinction, implemented dual-line sales chart with separate Pedidos and Stock tracking, enhanced statistics with total sales display, and updated chart colors to match app's primary color palette
 - **v5.5** - Enhanced Cha AI assistant with cooking and pastry knowledge, optimized token usage by removing debug logs and unnecessary spaces, added recipe availability status (onSale field), and improved context formatting with semicolon separators for better efficiency
 - **v5.4** - Added AI chat feature with Cha virtual assistant, implemented intelligent context selection for optimized responses, added typing indicator for realistic chat experience, and enhanced kitchen order validation to exclude discount items

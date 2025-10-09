@@ -2,108 +2,69 @@ package com.estaciondulce.app.adapters
 
 import android.graphics.Color
 import android.text.TextUtils
-import android.view.LayoutInflater
-import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.recyclerview.widget.RecyclerView
 import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.TableRowDynamicBinding
-import com.estaciondulce.app.models.enums.EKitchenOrderStatus
 import com.estaciondulce.app.models.parcelables.Movement
-import com.estaciondulce.app.models.TableColumnConfig
 
 class KitchenOrderAdapter(
     movementList: List<Movement>,
-    private val onRowClick: (Movement) -> Unit,
+    onRowClick: (Movement) -> Unit,
     private val attributeGetter: (Movement) -> List<Any>
-) : RecyclerView.Adapter<KitchenOrderAdapter.KitchenOrderViewHolder>() {
+) : TableAdapter<Movement>(movementList, onRowClick, { /* No delete for kitchen orders */ }) {
 
-    private var dataList: List<Movement> = movementList
-    private var columnConfigs: List<TableColumnConfig> = emptyList()
-
-    fun updateData(newData: List<Movement>) {
-        dataList = newData
-        notifyDataSetChanged()
+    override fun getCellValues(item: Movement, position: Int): List<Any> {
+        return attributeGetter(item)
     }
 
-    fun setColumnConfigs(configs: List<TableColumnConfig>) {
-        columnConfigs = configs
+    override fun bindRow(binding: TableRowDynamicBinding, item: Movement, position: Int) {
+        val cellValues = getCellValues(item, position)
+        bindRowContentWithColors(binding, cellValues)
+        
+        binding.deleteIcon.visibility = android.view.View.GONE
+        binding.actionIcon.visibility = android.view.View.GONE
+        binding.mapsIcon.visibility = android.view.View.GONE
+        
+        configureIconSpacing(binding)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): KitchenOrderViewHolder {
-        val binding = TableRowDynamicBinding.inflate(
-            LayoutInflater.from(parent.context),
-            parent,
-            false
-        )
-        return KitchenOrderViewHolder(binding, onRowClick)
-    }
-
-    override fun onBindViewHolder(holder: KitchenOrderViewHolder, position: Int) {
-        holder.bind(dataList[position], position)
-    }
-
-    override fun getItemCount(): Int = dataList.size
-
-    inner class KitchenOrderViewHolder(
-        private val binding: TableRowDynamicBinding,
-        private val onRowClick: (Movement) -> Unit
-    ) : RecyclerView.ViewHolder(binding.root) {
-
-        fun bind(movement: Movement, @Suppress("UNUSED_PARAMETER") position: Int) {
-            val cellValues = attributeGetter(movement)
-            bindRowContent(cellValues)
-            
-            binding.deleteIcon.visibility = android.view.View.GONE
-            binding.actionIcon.visibility = android.view.View.GONE
-            binding.mapsIcon.visibility = android.view.View.GONE
-            
-            binding.root.setOnClickListener {
-                onRowClick(movement)
-            }
-        }
-
-        private fun bindRowContent(cellValues: List<Any>) {
-            binding.rowContainer.removeAllViews()
-            for ((index, value) in cellValues.withIndex()) {
-                val textView = TextView(binding.root.context).apply {
-                    val isCurrency = index < columnConfigs.size && columnConfigs[index].isCurrency
-                    text = when (value) {
-                        is Double -> {
-                            val formattedValue = String.format("%.2f", value)
-                            if (isCurrency) "$$formattedValue" else formattedValue
-                        }
-                        is Boolean -> if (value) "Sí" else "No"
-                        else -> value.toString()
-                    }
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
-                    setPadding(8, 6, 8, 6)
-                    textAlignment = TextView.TEXT_ALIGNMENT_CENTER
-                    gravity = android.view.Gravity.CENTER
-                    setTextColor(binding.root.context.getColor(R.color.table_cell_text))
-                    maxLines = 2
-                    ellipsize = TextUtils.TruncateAt.END
-                    textSize = 13f
-                    setTypeface(null, android.graphics.Typeface.NORMAL)
-                    
-                    if (index == 2) {
-                        setTextColor(getStatusColor(value.toString()))
-                    }
+    private fun bindRowContentWithColors(binding: TableRowDynamicBinding, cellValues: List<Any>) {
+        binding.rowContainer.removeAllViews()
+        val context = binding.root.context
+        for ((index, value) in cellValues.withIndex()) {
+            val textView = TextView(context).apply {
+                text = when (value) {
+                    is Double -> String.format("%.2f", value)
+                    is Boolean -> if (value) "Sí" else "No"
+                    else -> value.toString()
                 }
-                binding.rowContainer.addView(textView)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+                setPadding(8, 6, 8, 6)
+                textAlignment = TextView.TEXT_ALIGNMENT_CENTER
+                gravity = android.view.Gravity.CENTER
+                setTextColor(context.getColor(R.color.table_cell_text))
+                maxLines = 2
+                ellipsize = TextUtils.TruncateAt.END
+                textSize = 13f
+                setTypeface(null, android.graphics.Typeface.NORMAL)
+                
+                if (index == 2) {
+                    setTextColor(getStatusColor(value.toString(), context))
+                }
             }
+            binding.rowContainer.addView(textView)
         }
+    }
 
-        private fun getStatusColor(statusText: String): Int {
-            return when {
-                statusText.contains("Pendiente") -> Color.parseColor("#FF9800") // Orange
-                statusText.contains("Listo para decorar") -> Color.parseColor("#2196F3") // Blue
-                statusText.contains("Listo") -> Color.parseColor("#4CAF50") // Green
-                statusText.contains("Entregado") -> Color.parseColor("#9E9E9E") // Gray
-                statusText.contains("Cancelado") -> Color.parseColor("#F44336") // Red
-                else -> binding.root.context.getColor(R.color.table_cell_text)
-            }
+    private fun getStatusColor(statusText: String, context: android.content.Context): Int {
+        return when {
+            statusText.contains("Pendiente") -> Color.parseColor("#FF9800")
+            statusText.contains("Listo para decorar") -> Color.parseColor("#2196F3")
+            statusText.contains("Listo") -> Color.parseColor("#4CAF50")
+            statusText.contains("Entregado") -> Color.parseColor("#9E9E9E")
+            statusText.contains("Cancelado") -> Color.parseColor("#F44336")
+            else -> context.getColor(R.color.table_cell_text)
         }
     }
 }

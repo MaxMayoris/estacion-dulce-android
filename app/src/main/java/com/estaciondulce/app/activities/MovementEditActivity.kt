@@ -1189,8 +1189,8 @@ class MovementEditActivity : AppCompatActivity() {
             items = itemsToSave,
             delivery = delivery,
             detail = detail,
-            appliedAt = currentMovement?.appliedAt, // Preserve original appliedAt
-            createdAt = currentMovement?.createdAt ?: Date(), // Use original createdAt or current date for new movements
+            appliedAt = null,
+            createdAt = null,
             isStock = isStock
         )
     }

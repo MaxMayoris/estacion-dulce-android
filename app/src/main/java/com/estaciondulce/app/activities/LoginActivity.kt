@@ -1,4 +1,4 @@
-package com.estaciondulce.app.activities
+﻿package com.estaciondulce.app.activities
 
 import android.content.Intent
 import android.content.pm.PackageInfo
@@ -23,7 +23,7 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var storageHelper: StorageHelper
     private lateinit var customLoader: CustomLoader
-    private val skipLoginForDebug = true
+    private val skipLoginForDebug = false
 
     /**
      * Initializes the login activity. If skipLoginForDebug is true, skips login.
@@ -53,7 +53,7 @@ class LoginActivity : AppCompatActivity() {
         try {
             val packageInfo: PackageInfo = packageManager.getPackageInfo(packageName, 0)
             val versionName = packageInfo.versionName
-            footerText.text = "Estacion Dulce Manager - v$versionName · by Maksee"
+            footerText.text = "Estacion Dulce Manager - v$versionName Â· by Maksee"
         } catch (e: PackageManager.NameNotFoundException) {
             footerText.text = "Estacion Dulce Manager by Maksee"
         }
@@ -74,14 +74,14 @@ class LoginActivity : AppCompatActivity() {
                     customLoader.hide()
                     
                     if (task.isSuccessful) {
-                        CustomToast.showSuccess(this, "Inicio de sesión exitoso!")
+                        CustomToast.showSuccess(this, "Inicio de sesiÃ³n exitoso!")
                         
                         rootLayout.postDelayed({
                             startActivity(Intent(this, HomeActivity::class.java))
                             finish()
                         }, 2000)
                     } else {
-                        val errorMessage = task.exception?.message ?: "Error en el inicio de sesión."
+                        val errorMessage = task.exception?.message ?: "Error en el inicio de sesiÃ³n."
                         CustomToast.showError(this, errorMessage)
                     }
                 }

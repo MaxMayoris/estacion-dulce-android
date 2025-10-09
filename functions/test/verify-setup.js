@@ -100,31 +100,55 @@ if (fs.existsSync(path.resolve(__dirname, "../../.firebaserc"))) {
   }
 }
 
-// Verificar código TypeScript
-if (fs.existsSync(path.resolve(__dirname, "../src/index.ts"))) {
-  const indexTs = fs.readFileSync(path.resolve(__dirname, "../src/index.ts"), "utf8");
+// Verificar código TypeScript (buscar en toda la carpeta src)
+console.log("\n💻 Verificando código TypeScript:");
+
+const checkFilesRecursively = (dir) => {
+  let allContent = "";
+  const files = fs.readdirSync(dir);
   
-  console.log("\n💻 Verificando código TypeScript:");
+  files.forEach(file => {
+    const filePath = path.join(dir, file);
+    const stat = fs.statSync(filePath);
+    
+    if (stat.isDirectory()) {
+      allContent += checkFilesRecursively(filePath);
+    } else if (file.endsWith(".ts")) {
+      allContent += fs.readFileSync(filePath, "utf8") + "\n";
+    }
+  });
   
-  if (indexTs.includes("import { onDocumentUpdated } from \"firebase-functions/v2/firestore\"")) {
+  return allContent;
+};
+
+if (fs.existsSync(path.resolve(__dirname, "../src"))) {
+  const allCode = checkFilesRecursively(path.resolve(__dirname, "../src"));
+  
+  if (allCode.includes("firebase-functions/v2/firestore") || allCode.includes("firebase-functions/v2")) {
     console.log("✅ Import Gen 2 - OK");
   } else {
-    console.log("❌ Import Gen 2 - Debe usar firebase-functions/v2/firestore");
+    console.log("❌ Import Gen 2 - Debe usar firebase-functions/v2");
     allFilesExist = false;
   }
   
-  if (indexTs.includes("import { logger } from \"firebase-functions/v2\"")) {
+  if (allCode.includes("logger") && allCode.includes("firebase-functions/v2")) {
     console.log("✅ Logger Gen 2 - OK");
   } else {
     console.log("❌ Logger Gen 2 - Debe usar firebase-functions/v2");
     allFilesExist = false;
   }
   
-  if (indexTs.includes("functions.firestore.document")) {
+  if (allCode.includes("functions.firestore.document")) {
     console.log("❌ Código Gen 1 detectado - Debe usar onDocumentUpdated");
     allFilesExist = false;
   } else {
     console.log("✅ Sin código Gen 1 - OK");
+  }
+  
+  if (fs.existsSync(path.resolve(__dirname, "../lib/index.js"))) {
+    console.log("✅ Código compilado - OK");
+  } else {
+    console.log("⚠️ Código no compilado - Ejecuta 'npm run build'");
   }
 }
 
