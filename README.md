@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v6.0** - Migrated OpenAI to Firebase Functions with MCP server integration for intelligent queries and improved security
 - **v5.9** - Funciones Firebase modularizadas, corregido cálculo de costos con unidades, paginación en KitchenOrders, modal confirmación cancelar envíos, icono envíos actualizado
 - **v5.8** - Added R8/ProGuard obfuscation for release builds
 - **v5.6** - Fix bugs

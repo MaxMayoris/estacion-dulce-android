@@ -11,8 +11,8 @@ android {
         applicationId = "com.estaciondulce.app"
         minSdk = 30
         targetSdk = 35
-        versionCode = 27
-        versionName = "5.9"
+        versionCode = 28
+        versionName = "6.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -35,7 +35,6 @@ android {
             versionNameSuffix = "-dev"
             buildConfigField("String", "GOOGLE_MAPS_API_KEY", "\"${project.findProperty("GOOGLE_MAPS_API_KEY_DEV") ?: ""}\"")
             resValue("string", "google_maps_key", project.findProperty("GOOGLE_MAPS_API_KEY_DEV") as String? ?: "")
-            buildConfigField("String", "OPENAI_API_KEY", "\"${project.findProperty("OPENAI_API_KEY") ?: ""}\"")
         }
         create("prod") {
             dimension = "environment"
@@ -43,7 +42,6 @@ android {
             versionNameSuffix = "-prod"
             buildConfigField("String", "GOOGLE_MAPS_API_KEY", "\"${project.findProperty("GOOGLE_MAPS_API_KEY_PROD") ?: ""}\"")
             resValue("string", "google_maps_key", project.findProperty("GOOGLE_MAPS_API_KEY_PROD") as String? ?: "")
-            buildConfigField("String", "OPENAI_API_KEY", "\"${project.findProperty("OPENAI_API_KEY") ?: ""}\"")
         }
     }
 
@@ -71,7 +69,20 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions { jvmTarget = "11" }
+    kotlinOptions { 
+        jvmTarget = "11"
+        freeCompilerArgs += listOf("-Xjvm-default=all")
+    }
+    
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        kotlinOptions {
+            jvmTarget = "11"
+            freeCompilerArgs += listOf(
+                "-Xjvm-default=all",
+                "-Xstring-concat=inline"
+            )
+        }
+    }
 }
 
 dependencies {
@@ -84,6 +95,7 @@ dependencies {
     implementation(libs.firebase.analytics)
 
     implementation("com.google.firebase:firebase-storage-ktx")
+    implementation("com.google.firebase:firebase-functions-ktx")
     implementation("com.google.firebase:firebase-appcheck")
     debugImplementation("com.google.firebase:firebase-appcheck-debug")
     releaseImplementation("com.google.firebase:firebase-appcheck-playintegrity")
@@ -106,6 +118,13 @@ dependencies {
     implementation(libs.androidx.navigation.fragment)
     implementation(libs.material)
     implementation(libs.flexbox)
+    
+    // DataStore for caching metadata
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    
+    // Markdown rendering for chat
+    implementation("io.noties.markwon:core:4.6.2")
+    implementation("io.noties.markwon:ext-strikethrough:4.6.2")
     // (Tenías core-ktx repetido varias veces; con una alcanza)
 
     // Imágenes

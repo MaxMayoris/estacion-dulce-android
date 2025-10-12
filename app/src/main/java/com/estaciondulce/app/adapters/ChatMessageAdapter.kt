@@ -11,6 +11,7 @@ import com.estaciondulce.app.R
 import com.estaciondulce.app.models.ChatMessage
 import com.estaciondulce.app.models.UserMessage
 import com.estaciondulce.app.models.TypingMessage
+import io.noties.markwon.Markwon
 
 /**
  * Adapter for displaying chat messages from Cha and user messages
@@ -48,11 +49,9 @@ class ChatMessageAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         val typingIndex = messages.indexOfFirst { it is TypingMessage }
         
         if (show && typingIndex == -1) {
-            // Add typing indicator
             messages.add(TypingMessage())
             notifyItemInserted(messages.size - 1)
         } else if (!show && typingIndex != -1) {
-            // Remove typing indicator
             messages.removeAt(typingIndex)
             notifyItemRemoved(typingIndex)
         }
@@ -109,12 +108,14 @@ class ChatMessageAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     class ChatMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val avatarImageView: ImageView = itemView.findViewById(R.id.chaAvatarImageView)
         private val messageTextView: TextView = itemView.findViewById(R.id.messageTextView)
+        private val markwon: Markwon by lazy {
+            Markwon.create(itemView.context)
+        }
         
         fun bind(message: ChatMessage) {
             avatarImageView.setImageResource(message.avatarResId)
-            messageTextView.text = message.text
+            markwon.setMarkdown(messageTextView, message.text)
             
-            // Make avatar clickable to show larger image
             avatarImageView.setOnClickListener {
                 showAvatarDialog(itemView.context)
             }
@@ -126,11 +127,9 @@ class ChatMessageAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 .setView(dialogView)
                 .create()
             
-            // Make the dialog dismissible by clicking outside or on the image
             dialog.setCancelable(true)
             dialog.setCanceledOnTouchOutside(true)
             
-            // Get the image view and apply circular clip
             val imageView = dialogView.findViewById<ImageView>(R.id.avatarPreviewImageView)
             imageView.clipToOutline = true
             imageView.outlineProvider = object : android.view.ViewOutlineProvider() {
@@ -142,7 +141,6 @@ class ChatMessageAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 }
             }
             
-            // Set a maximum size for the avatar (half screen)
             imageView.post {
                 val screenWidth = context.resources.displayMetrics.widthPixels
                 val maxSize = (screenWidth * 0.5).toInt()
@@ -151,7 +149,6 @@ class ChatMessageAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
                 imageView.requestLayout()
             }
             
-            // Make the image clickable to close the dialog
             imageView.setOnClickListener {
                 dialog.dismiss()
             }

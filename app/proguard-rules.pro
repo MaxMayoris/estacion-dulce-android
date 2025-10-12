@@ -9,6 +9,9 @@
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
 
+# Keep encoding for UTF-8 characters (tildes, ñ, etc.)
+-optimizations !code/simplification/string
+
 # Keep Firebase classes
 -keep class com.google.firebase.** { *; }
 -keep class com.google.android.gms.** { *; }

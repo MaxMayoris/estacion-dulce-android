@@ -13,17 +13,16 @@ import com.estaciondulce.app.R
 import com.estaciondulce.app.adapters.ChatMessageAdapter
 import com.estaciondulce.app.models.ChatMessage
 import com.estaciondulce.app.models.UserMessage
-import com.estaciondulce.app.network.OpenAIClient
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.viewmodels.ChatViewModel
-import com.estaciondulce.app.config.ChaPersonality
 import com.estaciondulce.app.helpers.ContextSelector
+import com.estaciondulce.app.helpers.FirebaseFunctionsHelper
+import com.estaciondulce.app.utils.CustomLoader
 import android.widget.ImageButton
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * Fragment for chat with Cha (virtual brother)
@@ -35,8 +34,10 @@ class ChatFragment : Fragment() {
     private lateinit var sendButton: ImageButton
     private lateinit var chatAdapter: ChatMessageAdapter
     private lateinit var chatViewModel: ChatViewModel
+    private lateinit var customLoader: CustomLoader
 
     private var nicknameCounter = 0
+    private val currentChatId = "chat-${System.currentTimeMillis()}"
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -49,7 +50,8 @@ class ChatFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        ChaPersonality.initialize(requireContext())
+        customLoader = CustomLoader(requireContext())
+        customLoader.show()
         
         initializeViews(view)
         setupRecyclerView()
@@ -57,6 +59,8 @@ class ChatFragment : Fragment() {
         setupViewModel()
         
         addWelcomeMessage()
+        
+        customLoader.hide()
     }
     
     private fun initializeViews(view: View) {
@@ -103,21 +107,24 @@ class ChatFragment : Fragment() {
         
         val userMessage = UserMessage(text = userInput)
         chatAdapter.addUserMessage(userMessage)
+        scrollToBottom()
         
         chatInputEditText.text?.clear()
         showLoading(true)
         
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                val prompt = buildPrompt(userInput)
-                val aiResponse = withContext(Dispatchers.IO) {
-                    OpenAIClient.getAIResponse(prompt)
-                }
+                val response = FirebaseFunctionsHelper.callAIGatewayMCP(
+                    chatId = currentChatId,
+                    userMessage = userInput,
+                    context = null
+                )
                 
-                if (aiResponse != null) {
-                    val chatMessage = ChatMessage(text = aiResponse)
+                if (response != null) {
+                    val chatMessage = ChatMessage(text = response.reply)
                     chatAdapter.addChaMessage(chatMessage)
                     scrollToBottom()
+                    
                 } else {
                     val errorMessage = ChatMessage(
                         text = "Lo siento ${getNextNickname()}, no pude procesar tu consulta en este momento. Inténtalo de nuevo."
@@ -125,10 +132,6 @@ class ChatFragment : Fragment() {
                     chatAdapter.addChaMessage(errorMessage)
                 }
             } catch (e: Exception) {
-                Log.e("ChatFragment", "Error sending message", e)
-                Log.e("ChatFragment", "Exception type: ${e.javaClass.simpleName}")
-                Log.e("ChatFragment", "Exception message: ${e.message}")
-                Log.e("ChatFragment", "User input was: $userInput")
                 val errorMessage = ChatMessage(
                     text = "Ups ${getNextNickname()}, algo salió mal. Inténtalo de nuevo."
                 )
@@ -137,20 +140,6 @@ class ChatFragment : Fragment() {
                 showLoading(false)
             }
         }
-    }
-    
-    private fun buildPrompt(userQuery: String): String {
-        val dataContext = buildDataContext(userQuery)
-        val personalityConfig = ChaPersonality.getCompletePersonalityWithMemory()
-
-        return """
-            $personalityConfig
-
-            Consulta del usuario: $userQuery
-
-            Información de la base de datos:
-            $dataContext
-        """.trimIndent()
     }
     
     private fun buildDataContext(userQuery: String): String {
