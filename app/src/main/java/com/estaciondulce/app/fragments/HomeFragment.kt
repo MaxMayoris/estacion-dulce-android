@@ -17,6 +17,6 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             .getPackageInfo(requireActivity().packageName, 0)
             .versionName
 
-        tvVersion.text = "Versión: $versionName"
+        tvVersion.text = getString(R.string.app_version, versionName)
     }
 }

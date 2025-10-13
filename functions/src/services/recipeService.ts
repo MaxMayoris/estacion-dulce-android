@@ -119,9 +119,6 @@ export async function updateRecipeCost(
     const oldCost = recipe.cost;
 
     if (await shouldDeferRecipeUpdate(recipe, updatedProductId, changeTime)) {
-      logger.info(
-        `Recipe ${recipeId} has sub-recipes that depend on product ${updatedProductId} but haven't been updated yet. Deferring update.`
-      );
       return {
         recipeId,
         oldCost,
@@ -140,10 +137,6 @@ export async function updateRecipeCost(
       cost: newCost,
       profitPercentage: newProfitPercentage
     });
-
-    logger.info(
-      `Updated recipe ${recipeId}: cost changed from ${oldCost} to ${newCost}, profitPercentage changed from ${recipe.profitPercentage}% to ${newProfitPercentage}%`
-    );
 
     return {
       recipeId,
@@ -232,9 +225,6 @@ async function shouldDeferRecipeUpdate(
       const subRecipeUpdateTime = subRecipeDoc.updateTime;
       
       if (subRecipeUpdateTime && subRecipeUpdateTime < changeTime) {
-        logger.info(
-          `Sub-recipe ${nestedRecipe.recipeId} was last updated at ${subRecipeUpdateTime}, before product change at ${changeTime}. Deferring parent recipe update.`
-        );
         return true;
       }
     }
@@ -379,10 +369,6 @@ export async function updateParentRecipeCost(
       cost: newCost,
       profitPercentage: newProfitPercentage
     });
-
-    logger.info(
-      `Updated parent recipe ${parentRecipeId}: cost changed from ${oldCost} to ${newCost}, profitPercentage changed from ${parentRecipe.profitPercentage}% to ${newProfitPercentage}%`
-    );
 
     visitedRecipes.add(parentRecipeId);
 

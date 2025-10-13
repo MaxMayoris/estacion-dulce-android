@@ -95,7 +95,7 @@ class ChatFragment : Fragment() {
     private fun addWelcomeMessage() {
         if (chatAdapter.itemCount == 0) {
             val welcomeMessage = ChatMessage(
-                text = "¡Hola Aguito! Soy Cha el pastelero. ¿En qué puedo ayudarte hoy con Estación Dulce?"
+                text = getString(R.string.chat_welcome)
             )
             chatAdapter.addChaMessage(welcomeMessage)
         }
@@ -127,13 +127,13 @@ class ChatFragment : Fragment() {
                     
                 } else {
                     val errorMessage = ChatMessage(
-                        text = "Lo siento ${getNextNickname()}, no pude procesar tu consulta en este momento. Inténtalo de nuevo."
+                        text = getString(R.string.chat_error_processing, getNextNickname())
                     )
                     chatAdapter.addChaMessage(errorMessage)
                 }
             } catch (e: Exception) {
                 val errorMessage = ChatMessage(
-                    text = "Ups ${getNextNickname()}, algo salió mal. Inténtalo de nuevo."
+                    text = getString(R.string.chat_error_general, getNextNickname())
                 )
                 chatAdapter.addChaMessage(errorMessage)
             } finally {

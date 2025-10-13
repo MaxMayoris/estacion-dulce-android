@@ -35,6 +35,7 @@ class ProductEditActivity : AppCompatActivity() {
 
     /**
      * Initializes the activity, sets up LiveData observers, and pre-populates fields if editing.
+     * Supports deep linking from FCM notifications using PRODUCT_ID intent extra.
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,8 +45,23 @@ class ProductEditActivity : AppCompatActivity() {
         customLoader = CustomLoader(this)
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        
         @Suppress("DEPRECATION")
         currentProduct = intent.getParcelableExtra<Product>("PRODUCT")
+        
+        val productIdFromNotification = intent.getStringExtra("PRODUCT_ID")
+        if (currentProduct == null && !productIdFromNotification.isNullOrEmpty()) {
+            customLoader.show()
+            repository.productsLiveData.observe(this) { products ->
+                if (currentProduct == null) {
+                    currentProduct = products.find { it.id == productIdFromNotification }
+                    customLoader.hide()
+                    populateFields()
+                    setupTabs()
+                }
+            }
+        }
+        
         supportActionBar?.title =
             if (currentProduct != null) "Editar Producto" else "Agregar Producto"
 
@@ -59,6 +75,15 @@ class ProductEditActivity : AppCompatActivity() {
             }
         }
 
+        populateFields()
+        setupTabs()
+        binding.saveProductButton.setOnClickListener { saveProduct() }
+    }
+    
+    /**
+     * Populates input fields with current product data if available.
+     */
+    private fun populateFields() {
         currentProduct?.let { product ->
             binding.productNameInput.setText(product.name)
             binding.productStockInput.setText(product.quantity.toString())
@@ -66,9 +91,6 @@ class ProductEditActivity : AppCompatActivity() {
             binding.productSalePriceInput.setText(product.salePrice.toString())
             binding.productMinimumQuantityInput.setText(product.minimumQuantity.toString())
         }
-
-        setupTabs()
-        binding.saveProductButton.setOnClickListener { saveProduct() }
     }
 
     /**

@@ -1,9 +1,10 @@
-﻿package com.estaciondulce.app.activities
+package com.estaciondulce.app.activities
 
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -14,6 +15,7 @@ import com.estaciondulce.app.utils.CustomLoader
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
 
 /**
  * Activity for user login.
@@ -53,9 +55,9 @@ class LoginActivity : AppCompatActivity() {
         try {
             val packageInfo: PackageInfo = packageManager.getPackageInfo(packageName, 0)
             val versionName = packageInfo.versionName
-            footerText.text = "Estacion Dulce Manager - v$versionName Â· by Maksee"
+            footerText.text = getString(R.string.login_footer, versionName)
         } catch (e: PackageManager.NameNotFoundException) {
-            footerText.text = "Estacion Dulce Manager by Maksee"
+            footerText.text = getString(R.string.login_footer_fallback)
         }
 
         loginButton.setOnClickListener {
@@ -74,18 +76,31 @@ class LoginActivity : AppCompatActivity() {
                     customLoader.hide()
                     
                     if (task.isSuccessful) {
-                        CustomToast.showSuccess(this, "Inicio de sesiÃ³n exitoso!")
+                        CustomToast.showSuccess(this, getString(R.string.login_success))
+                        
+                        subscribeToLowStockTopic()
                         
                         rootLayout.postDelayed({
                             startActivity(Intent(this, HomeActivity::class.java))
                             finish()
                         }, 2000)
                     } else {
-                        val errorMessage = task.exception?.message ?: "Error en el inicio de sesiÃ³n."
+                        val errorMessage = task.exception?.message ?: "Error en el inicio de sesión."
                         CustomToast.showError(this, errorMessage)
                     }
                 }
         }
     }
     
+    /**
+     * Subscribes to the low_stock topic to receive push notifications for low stock alerts.
+     */
+    private fun subscribeToLowStockTopic() {
+        FirebaseMessaging.getInstance().subscribeToTopic("low_stock")
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                } else {
+                }
+            }
+    }
 }

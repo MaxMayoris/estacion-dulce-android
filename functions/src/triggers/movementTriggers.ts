@@ -13,13 +13,11 @@ export const onMovementCreated = onDocumentCreated(
   {
     document: "movements/{movementId}",
     region: "southamerica-east1",
-    timeoutSeconds: 300
+    timeoutSeconds: 60
   },
   async (event) => {
     const movement = event.data?.data() as Movement;
     const movementId = event.params.movementId;
-
-    logger.info(`Movement ${movementId} created with type: ${movement.type}`);
 
     try {
       if (!movement.type || !movement.items || movement.items.length === 0) {
@@ -28,14 +26,12 @@ export const onMovementCreated = onDocumentCreated(
       }
 
       if (movement.delta && movement.appliedAt) {
-        logger.info(`Movement ${movementId} already processed. Skipping.`);
         return;
       }
 
       const delta = await calculateMovementDelta(movement);
       
       if (Object.keys(delta).length === 0) {
-        logger.info(`Movement ${movementId} has no stock impact. Skipping.`);
         return;
       }
 
@@ -51,7 +47,8 @@ export const onMovementCreated = onDocumentCreated(
         createdAt: admin.firestore.FieldValue.serverTimestamp()
       });
 
-      logger.info(`Movement ${movementId} processed successfully. Delta:`, delta);
+      const itemCount = Object.keys(delta).length;
+      logger.info(`Movement ${movementId} (${movement.type}): ${itemCount} products affected, delta applied`);
 
     } catch (error) {
       logger.error(`Error processing movement ${movementId}:`, error);
@@ -67,17 +64,14 @@ export const onMovementDeleted = onDocumentDeleted(
   {
     document: "movements/{movementId}",
     region: "southamerica-east1",
-    timeoutSeconds: 300
+    timeoutSeconds: 60
   },
   async (event) => {
     const movement = event.data?.data() as Movement;
     const movementId = event.params.movementId;
 
-    logger.info(`Movement ${movementId} deleted`);
-
     try {
       if (!movement.delta || !movement.appliedAt) {
-        logger.info(`Movement ${movementId} had no stock impact. Skipping reversal.`);
         return;
       }
 
@@ -86,9 +80,9 @@ export const onMovementDeleted = onDocumentDeleted(
       );
 
       await applyStockChanges(movementId, reverseDelta);
-
-      logger.info(`Movement ${movementId} stock reversed successfully. Reverse delta:`, reverseDelta);
-      logger.info("Note: Movement document was deleted, so reversedAt cannot be recorded.");
+      
+      const itemCount = Object.keys(reverseDelta).length;
+      logger.info(`Movement ${movementId} deleted: ${itemCount} products reversed`);
 
     } catch (error) {
       logger.error(`Error reversing movement ${movementId}:`, error);

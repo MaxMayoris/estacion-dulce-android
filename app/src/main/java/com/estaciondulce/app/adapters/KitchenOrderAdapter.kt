@@ -36,7 +36,7 @@ class KitchenOrderAdapter(
             val textView = TextView(context).apply {
                 text = when (value) {
                     is Double -> String.format("%.2f", value)
-                    is Boolean -> if (value) "Sí" else "No"
+                    is Boolean -> if (value) context.getString(R.string.yes_text) else context.getString(R.string.no_text)
                     else -> value.toString()
                 }
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)

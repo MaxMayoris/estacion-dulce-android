@@ -29,7 +29,7 @@
             android:drawableTop="@drawable/ic_logout_tinted"
             android:drawablePadding="0dp"
             android:gravity="center"
-            android:contentDescription="Cerrar sesión" />
+            android:contentDescription="@string/logout_button_desc" />
 
         <!-- App Title - Centered horizontally -->
         <TextView

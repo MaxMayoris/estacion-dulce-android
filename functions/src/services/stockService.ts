@@ -54,7 +54,6 @@ export async function applyStockChanges(movementId: string, delta: { [productId:
   }
 
   await batch.commit();
-  logger.info(`Stock changes applied for movement ${movementId}:`, delta);
 }
 
 /**
@@ -69,12 +68,10 @@ export async function updateProductCostsFromPurchase(movement: Movement): Promis
       batch.update(productRef, {
         cost: item.cost
       });
-      logger.info(`Updating product ${item.collectionId} cost to ${item.cost}`);
     }
   }
 
   await batch.commit();
-  logger.info("Product costs updated for purchase movement");
 }
 
 

@@ -11,8 +11,8 @@ android {
         applicationId = "com.estaciondulce.app"
         minSdk = 30
         targetSdk = 35
-        versionCode = 28
-        versionName = "6.0"
+        versionCode = 29
+        versionName = "6.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -71,7 +71,10 @@ android {
     }
     kotlinOptions { 
         jvmTarget = "11"
-        freeCompilerArgs += listOf("-Xjvm-default=all")
+        freeCompilerArgs += listOf(
+            "-Xjvm-default=all",
+            "-Xstring-concat=inline"
+        )
     }
     
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
@@ -81,6 +84,9 @@ android {
                 "-Xjvm-default=all",
                 "-Xstring-concat=inline"
             )
+        }
+        compilerOptions {
+            freeCompilerArgs.add("-Xno-param-assertions")
         }
     }
 }
@@ -99,6 +105,8 @@ dependencies {
     implementation("com.google.firebase:firebase-appcheck")
     debugImplementation("com.google.firebase:firebase-appcheck-debug")
     releaseImplementation("com.google.firebase:firebase-appcheck-playintegrity")
+    
+    implementation("com.google.firebase:firebase-messaging-ktx")
 
     // Google Play Services
     implementation(libs.play.services.base)

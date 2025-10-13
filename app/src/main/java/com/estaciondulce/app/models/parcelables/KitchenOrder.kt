@@ -11,10 +11,10 @@ import java.util.*
 @Parcelize
 data class KitchenOrder(
     override var id: String = "",
-    val collection: String = "", // "recipes", "products", "custom"
-    val collectionId: String = "", // ID of the recipe/product or empty for custom
-    val customName: String? = null, // Name for custom items
-    val name: String = "", // Display name
+    val collection: String = "",
+    val collectionId: String = "",
+    val customName: String? = null,
+    val name: String = "",
     val quantity: Double = 0.0,
     val status: EKitchenOrderItemStatus = EKitchenOrderItemStatus.PENDING,
     val createdAt: Date = Date(),

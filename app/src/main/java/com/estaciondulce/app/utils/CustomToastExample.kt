@@ -1,6 +1,7 @@
 package com.estaciondulce.app.utils
 
 import android.content.Context
+import com.estaciondulce.app.R
 
 /**
  * Example usage of CustomToast in different scenarios.
@@ -12,14 +13,14 @@ object CustomToastExample {
      * Example: Show success message when login is successful
      */
     fun showLoginSuccess(context: Context) {
-        CustomToast.showSuccess(context, "¡Inicio de sesión exitoso!")
+        CustomToast.showSuccess(context, context.getString(R.string.login_success))
     }
 
     /**
      * Example: Show error message when login fails
      */
     fun showLoginError(context: Context, errorMessage: String) {
-        CustomToast.showError(context, "Error de inicio de sesión: $errorMessage")
+        CustomToast.showError(context, context.getString(R.string.login_error, errorMessage))
     }
 
     /**

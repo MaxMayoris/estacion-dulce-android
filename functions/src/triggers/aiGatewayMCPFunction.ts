@@ -118,14 +118,8 @@ export const aiGatewayMCP = onCall(
             toolsList: toolsList,
             resourcesList: resourcesList
           });
-
-          logger.info("MCP session initialized", {
-            chatId: data.chatId,
-            toolsCount: toolsList?.tools?.length || 0,
-            resourcesCount: resourcesList?.resources?.length || 0
-          });
         } catch (error) {
-          logger.warn("MCP initialize failed, continuing anyway", error);
+          logger.warn("MCP initialize failed", error);
         }
       }
 
@@ -145,12 +139,6 @@ export const aiGatewayMCP = onCall(
         ...convertMCPToolsToOpenAIFunctions(mcpTools),
         ...convertMCPResourcesToOpenAIFunctions(mcpResources)
       ];
-
-      logger.info("Agent loop starting", {
-        toolsAvailable: mcpTools.length,
-        resourcesAvailable: mcpResources.length,
-        totalFunctions: openAIFunctions.length
-      });
 
       const { reply, usage, mcpMetadata } = await runAgentLoop(
         apiKey,
@@ -174,10 +162,6 @@ export const aiGatewayMCP = onCall(
       requestCache.set(data.requestId, {
         response,
         timestamp: Date.now()
-      });
-
-      logger.info("MCP+OpenAI OK", {
-        tokens: usage.totalTokens
       });
 
       return response;

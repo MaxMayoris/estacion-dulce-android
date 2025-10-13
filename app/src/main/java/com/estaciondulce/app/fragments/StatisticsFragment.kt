@@ -7,6 +7,7 @@ import android.widget.ArrayAdapter
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
+import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.FragmentStatisticsBinding
 import com.estaciondulce.app.models.enums.EMovementType
 import com.estaciondulce.app.models.parcelables.Movement
@@ -130,7 +131,12 @@ class StatisticsFragment : Fragment() {
      * Sets up period selection spinner for balance chart.
      */
     private fun setupPeriodSpinner() {
-        val periods = listOf("7 días", "2 semanas", "1 mes", "3 meses")
+        val periods = listOf(
+            getString(R.string.period_7d),
+            getString(R.string.period_2w),
+            getString(R.string.period_1m),
+            getString(R.string.period_3m)
+        )
         val periodValues = listOf("7d", "2w", "1m", "3m")
         
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, periods)
@@ -140,7 +146,7 @@ class StatisticsFragment : Fragment() {
             selectPeriod(periodValues[position])
         }
         
-        binding.periodSpinner.setText("7 días", false)
+        binding.periodSpinner.setText(getString(R.string.period_7d), false)
     }
 
     /**

@@ -1,10 +1,16 @@
 package com.estaciondulce.app.activities
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.estaciondulce.app.R
 import com.estaciondulce.app.fragments.MovementFragment
@@ -35,6 +41,14 @@ class HomeActivity : AppCompatActivity() {
     private val shipmentFragment = ShipmentFragment()
     private val statisticsFragment = StatisticsFragment()
     private val chatFragment = ChatFragment()
+    
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+        } else {
+        }
+    }
 
     /**
      * Initializes the activity, sets up Firestore listeners,
@@ -65,7 +79,26 @@ class HomeActivity : AppCompatActivity() {
         setupLogoutButton()
         setupFragmentHeader()
         setupChatFab()
+        requestNotificationPermission()
         showDashboard()
+    }
+    
+    /**
+     * Requests notification permission for Android 13+ (API 33+).
+     */
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                }
+                else -> {
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        }
     }
 
     /**
@@ -116,7 +149,7 @@ class HomeActivity : AppCompatActivity() {
             loader.show()
             auth.signOut()
             loader.hide()
-            CustomToast.showSuccess(this, "Sesión cerrada correctamente.")
+            CustomToast.showSuccess(this, getString(R.string.logout_success))
             
             val intent = Intent(this, LoginActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

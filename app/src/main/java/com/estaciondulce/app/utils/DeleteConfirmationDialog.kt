@@ -32,15 +32,13 @@ object DeleteConfirmationDialog {
         val cancelButton = dialogView.findViewById<Button>(R.id.cancelButton)
         val deleteButton = dialogView.findViewById<Button>(R.id.deleteButton)
         
-        // Set the message with the item name
-        messageView.text = "¿Estás seguro de que querés eliminar el $itemType '$itemName'?"
+        messageView.text = context.getString(R.string.delete_confirmation, itemType, itemName)
         
         val dialog = AlertDialog.Builder(context)
             .setView(dialogView)
             .setCancelable(true)
             .create()
         
-        // Set button click listeners
         cancelButton.setOnClickListener {
             onCancel?.invoke()
             dialog.dismiss()

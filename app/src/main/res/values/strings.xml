@@ -1,6 +1,36 @@
 <resources>
     <string name="app_name">Estación Dulce Manager</string>
-    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="select_prefix">Seleccione prefijo</string>
+    
+    <!-- Login -->
+    <string name="login_subtitle">Inicia sesión para continuar.</string>
+    <string name="login_button">Iniciar Sesión</string>
+    <string name="login_success">¡Inicio de sesión exitoso!</string>
+    <string name="login_error">Error de inicio de sesión: %s</string>
+    <string name="login_footer">Estacion Dulce Manager - v%s · by Maksee</string>
+    <string name="login_footer_fallback">Estacion Dulce Manager by Maksee</string>
+    
+    <!-- Home -->
+    <string name="logout_success">Sesión cerrada correctamente.</string>
+    <string name="logout_button_desc">Cerrar sesión</string>
+    <string name="app_version">Versión: %s</string>
+    
+    <!-- Chat -->
+    <string name="chat_welcome">¡Hola Aguito! Soy Cha el pastelero. ¿En qué puedo ayudarte hoy con Estación Dulce?</string>
+    <string name="chat_error_processing">Lo siento %s, no pude procesar tu consulta en este momento. Inténtalo de nuevo.</string>
+    <string name="chat_error_general">Ups %s, algo salió mal. Inténtalo de nuevo.</string>
+    
+    <!-- Statistics -->
+    <string name="period_7d">7 días</string>
+    <string name="period_2w">2 semanas</string>
+    <string name="period_1m">1 mes</string>
+    <string name="period_3m">3 meses</string>
+    
+    <!-- Delete Confirmation -->
+    <string name="delete_confirmation">¿Estás seguro de que querés eliminar el %1$s \'%2$s\'?</string>
+    
+    <!-- Kitchen Orders -->
+    <string name="yes_text">Sí</string>
+    <string name="no_text">No</string>
 </resources>
