@@ -1070,7 +1070,10 @@ class PersonEditActivity : AppCompatActivity() {
                         
                         initializeTabVisibility()
                         
-                        setResult(Activity.RESULT_OK)
+                        val resultIntent = Intent().apply {
+                            putExtra("PERSON_CREATED", true)
+                        }
+                        setResult(Activity.RESULT_OK, resultIntent)
                         finish()
                     }
                 },

@@ -50,7 +50,6 @@ object FirebaseFunctionsHelper {
             val isFirstMessage = !chatSessionsStarted.contains(chatId)
             if (isFirstMessage) {
                 chatSessionsStarted.add(chatId)
-                Log.d(TAG, "First message in chat: $chatId - sending full MCP instructions")
             }
             
             val data = hashMapOf(
@@ -64,9 +63,6 @@ object FirebaseFunctionsHelper {
                 data["context"] = context
             }
             
-            Log.d(TAG, "Calling aiGatewayMCP function for chatId: $chatId")
-            Log.d(TAG, "Request ID: $requestId")
-            
             val result = functions
                 .getHttpsCallable("aiGatewayMCP")
                 .call(data)
@@ -75,7 +71,6 @@ object FirebaseFunctionsHelper {
             val responseData = result.getData() as? Map<*, *>
             
             if (responseData == null) {
-                Log.e(TAG, "Invalid response format from aiGatewayMCP")
                 return null
             }
             
@@ -85,7 +80,6 @@ object FirebaseFunctionsHelper {
             val mcpMetadataData = responseData["mcpMetadata"] as? Map<*, *>
             
             if (reply == null || usageData == null) {
-                Log.e(TAG, "Missing required fields in response")
                 return null
             }
             
@@ -105,10 +99,6 @@ object FirebaseFunctionsHelper {
                 )
             }
             
-            Log.d(TAG, "AI Gateway MCP response received successfully")
-            Log.d(TAG, "Reply length: ${reply.length} chars")
-            Log.d(TAG, "Token usage: ${usage.totalTokens} tokens (input: ${usage.inputTokens}, output: ${usage.outputTokens})")
-            
             AIGatewayResponse(
                 reply = reply,
                 usage = usage,
@@ -117,9 +107,6 @@ object FirebaseFunctionsHelper {
             )
             
         } catch (e: Exception) {
-            Log.e(TAG, "Error calling aiGatewayMCP", e)
-            Log.e(TAG, "Exception type: ${e.javaClass.simpleName}")
-            Log.e(TAG, "Exception message: ${e.message}")
             null
         }
     }

@@ -24,7 +24,6 @@ class PersonFragment : Fragment() {
     private val personsHelper = PersonsHelper()
     private val repository = FirestoreRepository
     
-    // Tab state
     private var selectedTab: String = "client" // Default to client tab
 
     override fun onCreateView(
@@ -39,11 +38,9 @@ class PersonFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         repository.personsLiveData.observe(viewLifecycleOwner) { _ ->
-            // Apply current filter (empty search + selected tab)
             filterPersons("")
         }
         repository.categoriesLiveData.observe(viewLifecycleOwner) {
-            // Apply current filter (empty search + selected tab)
             filterPersons("")
         }
 
@@ -51,7 +48,6 @@ class PersonFragment : Fragment() {
             openPersonEditActivity(null)
         }
 
-        // Setup tab click listeners
         binding.clientTab.setOnClickListener {
             selectTab("client")
         }
@@ -88,6 +84,10 @@ class PersonFragment : Fragment() {
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
+            val personCreated = result.data?.getBooleanExtra("PERSON_CREATED", false) ?: false
+            if (personCreated) {
+                binding.searchBar.setText("")
+            }
         }
     }
 
@@ -97,7 +97,6 @@ class PersonFragment : Fragment() {
     private fun selectTab(tabType: String) {
         selectedTab = tabType
         
-        // Update tab visual states
         when (tabType) {
             "client" -> {
                 binding.clientTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_selected_background)
@@ -113,7 +112,6 @@ class PersonFragment : Fragment() {
             }
         }
         
-        // Refresh table with current filter
         val currentFilter = binding.searchBar.text.toString()
         filterPersons(currentFilter)
     }
@@ -122,10 +120,8 @@ class PersonFragment : Fragment() {
      * Configura la tabla con la lista de personas según el tab seleccionado.
      */
     private fun setupTableView(persons: List<Person>) {
-        // Persons are already filtered by tab type and search query in filterPersons
         val sortedList = persons.sortedBy { it.name }
 
-        // Setup column headers and data based on selected tab
         val (columnHeaders, columnValueGetter) = when (selectedTab) {
             "client" -> {
                 val headers = listOf("Nombre", "Teléfono")
@@ -195,7 +191,6 @@ class PersonFragment : Fragment() {
                 onRowClick = { person -> editPerson(person) },
                 onDeleteClick = { person -> deletePerson(person) }
             ) { person ->
-                // This function should return the same number of elements as columnHeaders
                 when (selectedTab) {
                     "client" -> listOf(
                         "${person.name} ${person.lastName}",
@@ -240,14 +235,12 @@ class PersonFragment : Fragment() {
     private fun filterPersons(query: String) {
         val persons = repository.personsLiveData.value ?: emptyList()
         
-        // First filter by selected tab type
         val tabFilteredPersons = when (selectedTab) {
             "client" -> persons.filter { it.type == "CLIENT" }
             "provider" -> persons.filter { it.type == "PROVIDER" }
             else -> persons
         }
         
-        // Then filter by search query
         val filteredList = if (query.isEmpty()) {
             tabFilteredPersons
         } else {
@@ -268,11 +261,9 @@ class PersonFragment : Fragment() {
     }
 
     private fun deletePerson(person: Person) {
-        // Check if person has associated movements
         val associatedMovements = repository.movementsLiveData.value?.filter { it.personId == person.id } ?: emptyList()
         
         if (associatedMovements.isNotEmpty()) {
-            // Show error message if person has movements
             val movementCount = associatedMovements.size
             val movementText = if (movementCount == 1) "movimiento" else "movimientos"
             CustomToast.showError(
@@ -283,7 +274,6 @@ class PersonFragment : Fragment() {
             return
         }
         
-        // Proceed with deletion if no movements are associated
         DeleteConfirmationDialog.show(
             context = requireContext(),
             itemName = "${person.name} ${person.lastName}",

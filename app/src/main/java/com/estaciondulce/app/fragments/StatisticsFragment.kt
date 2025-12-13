@@ -15,12 +15,13 @@ import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomLoader
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.charts.LineChart
-import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.components.AxisBase
 import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.data.*
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.formatter.PercentFormatter
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener
@@ -84,7 +85,6 @@ class StatisticsFragment : Fragment() {
     private lateinit var customLoader: CustomLoader
     
     private var selectedTab = "monthlySales"
-    private var selectedPeriod = "7d"
     private var selectedMonth = getCurrentMonthName().lowercase()
     
     private val dateFormat = SimpleDateFormat("dd/MM", Locale.getDefault())
@@ -105,12 +105,10 @@ class StatisticsFragment : Fragment() {
         customLoader = CustomLoader(requireActivity())
         
         setupTabListeners()
-        setupPeriodSpinner()
         setupMonthSpinner()
         observeMovementsData()
         
         selectTab(selectedTab)
-        selectPeriod("7d")
         selectMonth(getCurrentMonthName().lowercase())
     }
 
@@ -128,42 +126,25 @@ class StatisticsFragment : Fragment() {
     }
 
     /**
-     * Sets up period selection spinner for balance chart.
-     */
-    private fun setupPeriodSpinner() {
-        val periods = listOf(
-            getString(R.string.period_7d),
-            getString(R.string.period_2w),
-            getString(R.string.period_1m),
-            getString(R.string.period_3m)
-        )
-        val periodValues = listOf("7d", "2w", "1m", "3m")
-        
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, periods)
-        binding.periodSpinner.setAdapter(adapter)
-        
-        binding.periodSpinner.setOnItemClickListener { _, _, position, _ ->
-            selectPeriod(periodValues[position])
-        }
-        
-        binding.periodSpinner.setText(getString(R.string.period_7d), false)
-    }
-
-    /**
-     * Sets up month selection spinner for monthly sales chart.
+     * Sets up month selection spinner for both tabs (shared month selection).
      */
     private fun setupMonthSpinner() {
         val months = listOf("Septiembre", "Octubre", "Noviembre", "Diciembre")
         val monthValues = listOf("septiembre", "octubre", "noviembre", "diciembre")
         
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, months)
-        binding.monthSpinner.setAdapter(adapter)
         
+        binding.monthSpinner.setAdapter(adapter)
         binding.monthSpinner.setOnItemClickListener { _, _, position, _ ->
             selectMonth(monthValues[position])
         }
-        
         binding.monthSpinner.setText(getCurrentMonthName(), false)
+        
+        binding.balanceMonthSpinner.setAdapter(adapter)
+        binding.balanceMonthSpinner.setOnItemClickListener { _, _, position, _ ->
+            selectMonth(monthValues[position])
+        }
+        binding.balanceMonthSpinner.setText(getCurrentMonthName(), false)
     }
 
 
@@ -207,25 +188,16 @@ class StatisticsFragment : Fragment() {
     }
 
     /**
-     * Handles period selection for balance chart.
-     */
-    private fun selectPeriod(period: String) {
-        selectedPeriod = period
-        
-        if (selectedTab == "balance") {
-            updateCharts(repository.movementsLiveData.value ?: emptyList())
-        }
-    }
-
-    /**
-     * Handles month selection for monthly sales chart.
+     * Handles month selection for both tabs (shared month selection).
      */
     private fun selectMonth(month: String) {
         selectedMonth = month
         
-        if (selectedTab == "monthlySales") {
-            updateCharts(repository.movementsLiveData.value ?: emptyList())
-        }
+        val capitalizedMonth = month.replaceFirstChar { it.uppercaseChar() }
+        binding.monthSpinner.setText(capitalizedMonth, false)
+        binding.balanceMonthSpinner.setText(capitalizedMonth, false)
+        
+        updateCharts(repository.movementsLiveData.value ?: emptyList())
     }
 
 
@@ -234,42 +206,45 @@ class StatisticsFragment : Fragment() {
      */
     private fun updateCharts(movements: List<Movement>) {
         when (selectedTab) {
-            "balance" -> updateBalanceChart(movements)
+            "balance" -> {
+                updateBalanceChart(movements)
+                updateBalanceMonthlyBalance(movements)
+            }
             "monthlySales" -> {
                 updateMonthlySalesChart(movements)
                 updateRecipeSalesChart(movements)
+                updateClientSalesChart(movements)
             }
         }
     }
 
     /**
-     * Updates the balance chart with sales and purchases data for the selected period.
+     * Updates the balance chart with PURCHASE movements grouped by provider for the selected month.
      */
     private fun updateBalanceChart(movements: List<Movement>) {
         customLoader.show()
         
-        val _endDate = Date()
-        val startDate = getStartDateForPeriod(selectedPeriod, _endDate)
+        val (startOfMonth, _endOfMonth) = getMonthDateRange(selectedMonth)
         
-        val filteredMovements = movements.filter { movement ->
-            movement.movementDate >= startDate && movement.movementDate <= _endDate
+        val purchases = movements.filter { movement ->
+            movement.type == EMovementType.PURCHASE &&
+            movement.movementDate >= startOfMonth &&
+            movement.movementDate <= _endOfMonth
         }
         
-        val salesData = filteredMovements.filter { it.type == EMovementType.SALE }
-        val purchaseData = filteredMovements.filter { it.type == EMovementType.PURCHASE }
-        
-        if (salesData.isEmpty() && purchaseData.isEmpty()) {
+        if (purchases.isEmpty()) {
             showEmptyMessage(binding.balanceChart, binding.balanceEmptyMessage)
-            updateBalanceTotal(emptyList(), emptyList())
+            showEmptyMessage(binding.balanceProductsChart, binding.balanceProductsEmptyMessage)
             customLoader.hide()
             return
         }
         
         hideEmptyMessage(binding.balanceChart, binding.balanceEmptyMessage)
         
-        val chartData = createBalanceChartData(salesData, purchaseData, startDate, _endDate)
-        setupBalanceChart(binding.balanceChart, chartData, salesData, purchaseData, startDate, _endDate)
-        updateBalanceTotal(salesData, purchaseData)
+        val (chartData, labels) = createProviderSalesChartData(purchases)
+        setupProviderSalesChart(binding.balanceChart, chartData, labels)
+        
+        updateProductPurchasesChart(purchases)
         
         customLoader.hide()
     }
@@ -331,49 +306,6 @@ class StatisticsFragment : Fragment() {
         updateMonthlyBalance(movements, startOfMonth, _endOfMonth)
         
         customLoader.hide()
-    }
-
-    /**
-     * Creates chart data for balance chart with sales and purchases grouped by period.
-     */
-    private fun createBalanceChartData(
-        sales: List<Movement>, 
-        purchases: List<Movement>, 
-        startDate: Date, 
-        _endDate: Date
-    ): BarData {
-        val periodGroups = groupMovementsByPeriod(sales, purchases, startDate, _endDate)
-        
-        val salesEntries = mutableListOf<BarEntry>()
-        val purchaseEntries = mutableListOf<BarEntry>()
-        val labels = mutableListOf<String>()
-        
-        periodGroups.forEachIndexed { index, (period, data) ->
-            salesEntries.add(BarEntry(index.toFloat(), data.first.toFloat()))
-            purchaseEntries.add(BarEntry(index.toFloat(), data.second.toFloat()))
-            labels.add(period)
-        }
-        
-        val salesDataSet = BarDataSet(salesEntries, "Ventas").apply {
-            color = Color.parseColor("#4CAF50")
-            valueTextColor = Color.BLACK
-            valueTextSize = 10f
-            setDrawValues(true)
-            valueFormatter = HideZeroValueFormatter()
-        }
-        
-        val purchaseDataSet = BarDataSet(purchaseEntries, "Compras").apply {
-            color = Color.parseColor("#F44336")
-            valueTextColor = Color.BLACK
-            valueTextSize = 10f
-            setDrawValues(true)
-            valueFormatter = HideZeroValueFormatter()
-        }
-        
-        return BarData(salesDataSet, purchaseDataSet).apply {
-            barWidth = 0.3f
-            groupBars(0f, 0.1f, 0.1f)
-        }
     }
 
     /**
@@ -455,70 +387,6 @@ class StatisticsFragment : Fragment() {
     }
 
     /**
-     * Groups movements by period based on selected timeframe.
-     */
-    private fun groupMovementsByPeriod(
-        sales: List<Movement>, 
-        purchases: List<Movement>, 
-        startDate: Date, 
-        @Suppress("UNUSED_PARAMETER") unusedEndDate: Date
-    ): List<Pair<String, Pair<Double, Double>>> {
-        val calendar = Calendar.getInstance()
-        val groups = mutableMapOf<String, Pair<Double, Double>>()
-        
-        when (selectedPeriod) {
-            "7d" -> {
-                for (i in 0..6) {
-                    calendar.time = startDate
-                    calendar.add(Calendar.DAY_OF_MONTH, i)
-                    val dayKey = dateFormat.format(calendar.time)
-                    groups[dayKey] = Pair(0.0, 0.0)
-                }
-            }
-            "2w" -> {
-                for (i in 0..13) {
-                    calendar.time = startDate
-                    calendar.add(Calendar.DAY_OF_MONTH, i)
-                    val dayKey = dateFormat.format(calendar.time)
-                    groups[dayKey] = Pair(0.0, 0.0)
-                }
-            }
-            "1m" -> {
-                for (i in 0..29) {
-                    calendar.time = startDate
-                    calendar.add(Calendar.DAY_OF_MONTH, i)
-                    val dayKey = dateFormat.format(calendar.time)
-                    groups[dayKey] = Pair(0.0, 0.0)
-                }
-            }
-            "3m" -> {
-                for (i in 0..12) {
-                    calendar.time = startDate
-                    calendar.add(Calendar.WEEK_OF_YEAR, i)
-                    val weekKey = "Sem ${i + 1}"
-                    groups[weekKey] = Pair(0.0, 0.0)
-                }
-            }
-        }
-        
-        sales.forEach { movement ->
-            val key = getPeriodKey(movement.movementDate, startDate)
-            groups[key]?.let { current ->
-                groups[key] = Pair(current.first + movement.totalAmount, current.second)
-            }
-        }
-        
-        purchases.forEach { movement ->
-            val key = getPeriodKey(movement.movementDate, startDate)
-            groups[key]?.let { current ->
-                groups[key] = Pair(current.first, current.second + movement.totalAmount)
-            }
-        }
-        
-        return groups.toList().sortedBy { it.first }
-    }
-
-    /**
      * Groups sales by day for the current month (count of sales, not amount).
      */
     private fun groupSalesByDay(sales: List<Movement>, startOfMonth: Date, @Suppress("UNUSED_PARAMETER") unusedEndOfMonth: Date): List<Pair<Int, Double>> {
@@ -575,56 +443,6 @@ class StatisticsFragment : Fragment() {
     }
 
     /**
-     * Gets the period key for a movement date based on selected period.
-     */
-    private fun getPeriodKey(movementDate: Date, startDate: Date): String {
-        val calendar = Calendar.getInstance()
-        
-        return when (selectedPeriod) {
-            "7d", "2w", "1m" -> {
-                dateFormat.format(movementDate)
-            }
-            "3m" -> {
-                calendar.time = startDate
-                val startWeek = calendar.get(Calendar.WEEK_OF_YEAR)
-                calendar.time = movementDate
-                val movementWeek = calendar.get(Calendar.WEEK_OF_YEAR)
-                val weekDiff = movementWeek - startWeek + 1
-                "Sem $weekDiff"
-            }
-            else -> dateFormat.format(movementDate)
-        }
-    }
-
-    /**
-     * Gets the start date for the selected period.
-     */
-    private fun getStartDateForPeriod(period: String, _endDate: Date): Date {
-        val calendar = Calendar.getInstance()
-        calendar.time = _endDate
-        
-        return when (period) {
-            "7d" -> {
-                calendar.add(Calendar.DAY_OF_MONTH, -6)
-                calendar.time
-            }
-            "2w" -> {
-                calendar.add(Calendar.DAY_OF_MONTH, -13)
-                calendar.time
-            }
-            "1m" -> {
-                calendar.add(Calendar.DAY_OF_MONTH, -29)
-                calendar.time
-            }
-            "3m" -> {
-                calendar.add(Calendar.MONTH, -3)
-                calendar.time
-            }
-            else -> _endDate
-        }
-    }
-
-    /**
      * Gets the date range for the selected month.
      */
     private fun getMonthDateRange(month: String): Pair<Date, Date> {
@@ -677,7 +495,7 @@ class StatisticsFragment : Fragment() {
     }
 
     /**
-     * Updates the recipe sales pie chart with data for the selected month.
+     * Updates the recipe sales bar chart with data for the selected month.
      */
     private fun updateRecipeSalesChart(movements: List<Movement>) {
         customLoader.show()
@@ -701,8 +519,8 @@ class StatisticsFragment : Fragment() {
         binding.recipeSalesChart.visibility = View.VISIBLE
         binding.recipeSalesEmptyMessage.visibility = View.GONE
         
-        val recipeData = createRecipeSalesChartData(sales)
-        setupRecipeSalesChart(binding.recipeSalesChart, recipeData)
+        val (recipeData, labels) = createRecipeSalesChartData(sales)
+        setupRecipeSalesChart(binding.recipeSalesChart, recipeData, labels)
         
         updateMonthlyBalance(movements, startOfMonth, _endOfMonth)
         
@@ -710,10 +528,11 @@ class StatisticsFragment : Fragment() {
     }
 
     /**
-     * Creates pie chart data for recipe sales distribution.
+     * Creates bar chart data for recipe sales distribution.
      * Counts recipe presence in movements (1 per movement, regardless of quantity).
+     * Returns a Pair of BarData and labels list.
      */
-    private fun createRecipeSalesChartData(sales: List<Movement>): PieData {
+    private fun createRecipeSalesChartData(sales: List<Movement>): Pair<BarData, List<String>> {
         val recipeCounts = mutableMapOf<String, Int>()
         val recipes = repository.recipesLiveData.value ?: emptyList()
         
@@ -733,109 +552,399 @@ class StatisticsFragment : Fragment() {
             }
         }
         
-        val entries = mutableListOf<PieEntry>()
-        val colors = mutableListOf<Int>()
+        val sortedRecipes = recipeCounts.toList().sortedByDescending { it.second }
+        val entries = mutableListOf<BarEntry>()
+        val labels = mutableListOf<String>()
         
-        recipeCounts.forEach { (recipeName, count) ->
-            entries.add(PieEntry(count.toFloat(), recipeName))
-            colors.add(getRecipeColor(recipeName))
+        sortedRecipes.forEachIndexed { index, (recipeName, count) ->
+            entries.add(BarEntry(index.toFloat(), count.toFloat()))
+            labels.add(recipeName)
         }
         
-        val dataSet = PieDataSet(entries, "").apply {
-            this.colors = colors
-            valueTextSize = 12f
-            valueTextColor = Color.WHITE
+        val dataSet = BarDataSet(entries, "").apply {
+            color = Color.parseColor("#4CAF50")
+            valueTextColor = Color.BLACK
+            valueTextSize = 10f
+            setDrawValues(true)
             valueFormatter = HideZeroValueFormatter()
         }
         
-        return PieData(dataSet)
+        val barData = BarData(dataSet).apply {
+            barWidth = 0.5f
+        }
+        
+        return Pair(barData, labels)
     }
 
     /**
-     * Gets color for recipe name.
+     * Creates bar chart data for provider movements distribution.
+     * Groups movements by provider (personId).
      */
-    private fun getRecipeColor(recipeName: String): Int {
-        val colors = listOf(
-            Color.parseColor("#4CAF50"), // Green
-            Color.parseColor("#FF9800"), // Orange
-            Color.parseColor("#2196F3"), // Blue
-            Color.parseColor("#9C27B0"), // Purple
-            Color.parseColor("#795548"), // Brown
-            Color.parseColor("#607D8B"), // Blue Grey
-            Color.parseColor("#E91E63"), // Pink
-            Color.parseColor("#00BCD4"), // Cyan
-            Color.parseColor("#8BC34A"), // Light Green
-            Color.parseColor("#FF5722")  // Deep Orange
-        )
-        return colors[recipeName.hashCode().mod(colors.size)]
-    }
-
-    /**
-     * Sets up the recipe sales pie chart with styling and configuration.
-     */
-    private fun setupRecipeSalesChart(chart: PieChart, data: PieData) {
-        chart.data = data
-        chart.setUsePercentValues(false) // Show actual values instead of percentages
-        chart.description.isEnabled = false
-        chart.setExtraOffsets(5f, 10f, 5f, 5f)
-        chart.dragDecelerationFrictionCoef = 0.95f
-        chart.isRotationEnabled = true
-        chart.setDrawEntryLabels(false) // Remove labels on chart segments
-        chart.setEntryLabelTextSize(12f)
-        chart.setEntryLabelColor(Color.BLACK)
+    private fun createProviderSalesChartData(movements: List<Movement>): Pair<BarData, List<String>> {
+        val providerCounts = mutableMapOf<String, Double>()
+        val persons = repository.personsLiveData.value ?: emptyList()
         
-        val legend = chart.legend
-        legend.verticalAlignment = Legend.LegendVerticalAlignment.BOTTOM
-        legend.horizontalAlignment = Legend.LegendHorizontalAlignment.CENTER
-        legend.orientation = Legend.LegendOrientation.HORIZONTAL
-        legend.setDrawInside(false)
-        legend.xEntrySpace = 7f
-        legend.yEntrySpace = 5f // Add vertical spacing between rows
-        legend.yOffset = 0f
-        legend.textSize = 12f
-        legend.textColor = ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_primary)
+        movements.forEach { movement ->
+            val person = persons.find { it.id == movement.personId }
+            val providerName = if (person != null) {
+                "${person.name} ${person.lastName}".trim()
+            } else {
+                "Proveedor desconocido"
+            }
+            providerCounts[providerName] = (providerCounts[providerName] ?: 0.0) + movement.totalAmount
+        }
         
-        legend.setWordWrapEnabled(true)
-        legend.setMaxSizePercent(0.95f) // Use 95% of available width
+        val sortedProviders = providerCounts.toList().sortedByDescending { it.second }
+        val entries = mutableListOf<BarEntry>()
+        val labels = mutableListOf<String>()
         
-        chart.setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
-            override fun onValueSelected(e: Entry?, h: Highlight?) {
-                if (e != null && h != null) {
-                    chart.setDrawEntryLabels(true)
-                    chart.setEntryLabelTextSize(14f)
-                    chart.setEntryLabelColor(Color.BLACK)
-                    chart.setEntryLabelTypeface(android.graphics.Typeface.DEFAULT_BOLD)
-                    chart.invalidate()
+        sortedProviders.forEachIndexed { index, (providerName, amount) ->
+            entries.add(BarEntry(index.toFloat(), amount.toFloat()))
+            labels.add(providerName)
+        }
+        
+        val dataSet = BarDataSet(entries, "").apply {
+            color = Color.parseColor("#4CAF50")
+            valueTextColor = Color.BLACK
+            valueTextSize = 10f
+            setDrawValues(true)
+            valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val symbols = DecimalFormatSymbols().apply {
+                        groupingSeparator = '.'
+                        decimalSeparator = ','
+                    }
+                    val decimalFormat = DecimalFormat("#,##0.00", symbols)
+                    return decimalFormat.format(value.toDouble())
                 }
             }
-            
-            override fun onNothingSelected() {
-                chart.setDrawEntryLabels(false)
-                chart.invalidate()
-            }
-        })
+        }
         
-        chart.animateY(1400)
+        val barData = BarData(dataSet).apply {
+            barWidth = 0.5f
+        }
+        
+        return Pair(barData, labels)
+    }
+
+    /**
+     * Sets up the provider sales bar chart with styling and configuration.
+     */
+    private fun setupProviderSalesChart(chart: BarChart, data: BarData, labels: List<String>) {
+        chart.data = data
+        chart.description.isEnabled = false
+        chart.setFitBars(true)
+        chart.animateY(1000)
+        
+        val xAxis = chart.xAxis
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.setDrawGridLines(false)
+        xAxis.granularity = 1f
+        xAxis.isGranularityEnabled = true
+        xAxis.textColor = Color.BLACK
+        xAxis.textSize = 10f
+        xAxis.setLabelCount(labels.size, false)
+        xAxis.valueFormatter = object : ValueFormatter() {
+            override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+                val index = value.toInt()
+                return if (index >= 0 && index < labels.size) {
+                    val label = labels[index]
+                    if (label.length > 15) label.substring(0, 15) + "..." else label
+                } else ""
+            }
+        }
+        xAxis.setLabelRotationAngle(-45f)
+        
+        val leftAxis = chart.axisLeft
+        leftAxis.setDrawGridLines(true)
+        leftAxis.axisMinimum = 0f
+        leftAxis.textColor = Color.BLACK
+        leftAxis.textSize = 10f
+        
+        chart.axisRight.isEnabled = false
+        chart.legend.isEnabled = false
+        
         chart.invalidate()
     }
 
     /**
-     * Updates the balance total display with calculated balance for the period.
+     * Updates the product purchases chart with data for the selected month.
      */
-    private fun updateBalanceTotal(sales: List<Movement>, purchases: List<Movement>) {
-        val totalSales = sales.sumOf { it.totalAmount }
-        val totalPurchases = purchases.sumOf { it.totalAmount }
-        val balance = totalSales - totalPurchases
+    private fun updateProductPurchasesChart(purchases: List<Movement>) {
+        val productData = createProductPurchasesChartData(purchases)
         
-        val formattedBalance = String.format("$%.2f", balance)
-        binding.balanceTotalText.text = formattedBalance
-        
-        val color = if (balance >= 0) {
-            ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_primary)
-        } else {
-            Color.parseColor("#F44336") // Red for negative balance
+        if (productData == null) {
+            showEmptyMessage(binding.balanceProductsChart, binding.balanceProductsEmptyMessage)
+            return
         }
-        binding.balanceTotalText.setTextColor(color)
+        
+        binding.balanceProductsChart.visibility = View.VISIBLE
+        binding.balanceProductsEmptyMessage.visibility = View.GONE
+        
+        val (chartData, labels) = productData
+        setupProductPurchasesChart(binding.balanceProductsChart, chartData, labels)
+    }
+
+    /**
+     * Creates bar chart data for product purchases distribution.
+     * Groups purchase movements by product and sums total cost (cost * quantity).
+     */
+    private fun createProductPurchasesChartData(purchases: List<Movement>): Pair<BarData, List<String>>? {
+        val productCosts = mutableMapOf<String, Double>()
+        val products = repository.productsLiveData.value ?: emptyList()
+        
+        purchases.forEach { movement ->
+            movement.items.forEach { item ->
+                if (item.collection == "products") {
+                    val product = products.find { it.id == item.collectionId }
+                    val productName = product?.name ?: item.customName ?: "Producto desconocido"
+                    val totalCost = item.cost * item.quantity
+                    productCosts[productName] = (productCosts[productName] ?: 0.0) + totalCost
+                }
+            }
+        }
+        
+        if (productCosts.isEmpty()) {
+            return null
+        }
+        
+        val sortedProducts = productCosts.toList().sortedByDescending { it.second }
+        val entries = mutableListOf<BarEntry>()
+        val labels = mutableListOf<String>()
+        
+        sortedProducts.forEachIndexed { index, (productName, totalCost) ->
+            entries.add(BarEntry(index.toFloat(), totalCost.toFloat()))
+            labels.add(productName)
+        }
+        
+        val dataSet = BarDataSet(entries, "").apply {
+            color = Color.parseColor("#4CAF50")
+            valueTextColor = Color.BLACK
+            valueTextSize = 10f
+            setDrawValues(true)
+            valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val symbols = DecimalFormatSymbols().apply {
+                        groupingSeparator = '.'
+                        decimalSeparator = ','
+                    }
+                    val decimalFormat = DecimalFormat("#,##0.00", symbols)
+                    return decimalFormat.format(value.toDouble())
+                }
+            }
+        }
+        
+        val barData = BarData(dataSet).apply {
+            barWidth = 0.5f
+        }
+        
+        return Pair(barData, labels)
+    }
+
+    /**
+     * Sets up the product purchases bar chart with styling and configuration.
+     */
+    private fun setupProductPurchasesChart(chart: BarChart, data: BarData, labels: List<String>) {
+        chart.data = data
+        chart.description.isEnabled = false
+        chart.setFitBars(true)
+        chart.animateY(1000)
+        
+        val xAxis = chart.xAxis
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.setDrawGridLines(false)
+        xAxis.granularity = 1f
+        xAxis.isGranularityEnabled = true
+        xAxis.textColor = Color.BLACK
+        xAxis.textSize = 10f
+        xAxis.setLabelCount(labels.size, false)
+        xAxis.valueFormatter = object : ValueFormatter() {
+            override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+                val index = value.toInt()
+                return if (index >= 0 && index < labels.size) {
+                    val label = labels[index]
+                    if (label.length > 15) label.substring(0, 15) + "..." else label
+                } else ""
+            }
+        }
+        xAxis.setLabelRotationAngle(-45f)
+        
+        val leftAxis = chart.axisLeft
+        leftAxis.setDrawGridLines(true)
+        leftAxis.axisMinimum = 0f
+        leftAxis.textColor = Color.BLACK
+        leftAxis.textSize = 10f
+        
+        chart.axisRight.isEnabled = false
+        chart.legend.isEnabled = false
+        
+        chart.invalidate()
+    }
+
+    /**
+     * Updates the client sales chart with data for the selected month.
+     */
+    private fun updateClientSalesChart(movements: List<Movement>) {
+        val (startOfMonth, _endOfMonth) = getMonthDateRange(selectedMonth)
+        
+        val sales = movements.filter { movement ->
+            movement.type == EMovementType.SALE &&
+            movement.movementDate >= startOfMonth &&
+            movement.movementDate <= _endOfMonth
+        }
+        
+        val clientData = createClientSalesChartData(sales)
+        
+        if (clientData == null) {
+            showEmptyMessage(binding.clientSalesChart, binding.clientSalesEmptyMessage)
+            return
+        }
+        
+        binding.clientSalesChart.visibility = View.VISIBLE
+        binding.clientSalesEmptyMessage.visibility = View.GONE
+        
+        val (chartData, labels) = clientData
+        setupClientSalesChart(binding.clientSalesChart, chartData, labels)
+    }
+
+    /**
+     * Creates bar chart data for client sales distribution.
+     * Groups SALE movements by client (personId) and shows top 10 clients by total spent.
+     */
+    private fun createClientSalesChartData(sales: List<Movement>): Pair<BarData, List<String>>? {
+        val clientTotals = mutableMapOf<String, Double>()
+        val persons = repository.personsLiveData.value ?: emptyList()
+        
+        sales.forEach { movement ->
+            val person = persons.find { it.id == movement.personId }
+            val clientName = if (person != null) {
+                "${person.name} ${person.lastName}".trim()
+            } else {
+                "Cliente desconocido"
+            }
+            clientTotals[clientName] = (clientTotals[clientName] ?: 0.0) + movement.totalAmount
+        }
+        
+        if (clientTotals.isEmpty()) {
+            return null
+        }
+        
+        val topClients = clientTotals.toList()
+            .sortedByDescending { it.second }
+            .take(10)
+        
+        val entries = mutableListOf<BarEntry>()
+        val labels = mutableListOf<String>()
+        
+        topClients.forEachIndexed { index, (clientName, totalSpent) ->
+            entries.add(BarEntry(index.toFloat(), totalSpent.toFloat()))
+            labels.add(clientName)
+        }
+        
+        val dataSet = BarDataSet(entries, "").apply {
+            color = Color.parseColor("#4CAF50")
+            valueTextColor = Color.BLACK
+            valueTextSize = 10f
+            setDrawValues(true)
+            valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val symbols = DecimalFormatSymbols().apply {
+                        groupingSeparator = '.'
+                        decimalSeparator = ','
+                    }
+                    val decimalFormat = DecimalFormat("#,##0.00", symbols)
+                    return decimalFormat.format(value.toDouble())
+                }
+            }
+        }
+        
+        val barData = BarData(dataSet).apply {
+            barWidth = 0.5f
+        }
+        
+        return Pair(barData, labels)
+    }
+
+    /**
+     * Sets up the client sales bar chart with styling and configuration.
+     */
+    private fun setupClientSalesChart(chart: BarChart, data: BarData, labels: List<String>) {
+        chart.data = data
+        chart.description.isEnabled = false
+        chart.setFitBars(true)
+        chart.animateY(1000)
+        
+        val xAxis = chart.xAxis
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.setDrawGridLines(false)
+        xAxis.granularity = 1f
+        xAxis.isGranularityEnabled = true
+        xAxis.textColor = Color.BLACK
+        xAxis.textSize = 10f
+        xAxis.setLabelCount(labels.size, false)
+        xAxis.valueFormatter = object : ValueFormatter() {
+            override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+                val index = value.toInt()
+                return if (index >= 0 && index < labels.size) {
+                    val label = labels[index]
+                    if (label.length > 15) label.substring(0, 15) + "..." else label
+                } else ""
+            }
+        }
+        xAxis.setLabelRotationAngle(-45f)
+        
+        val leftAxis = chart.axisLeft
+        leftAxis.setDrawGridLines(true)
+        leftAxis.axisMinimum = 0f
+        leftAxis.textColor = Color.BLACK
+        leftAxis.textSize = 10f
+        
+        chart.axisRight.isEnabled = false
+        chart.legend.isEnabled = false
+        
+        chart.invalidate()
+    }
+
+    /**
+     * Sets up the recipe sales bar chart with styling and configuration.
+     */
+    private fun setupRecipeSalesChart(chart: BarChart, data: BarData, labels: List<String>) {
+        chart.data = data
+        chart.description.isEnabled = false
+        chart.setFitBars(true)
+        chart.animateY(1000)
+        
+        val xAxis = chart.xAxis
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.setDrawGridLines(false)
+        xAxis.granularity = 1f
+        xAxis.isGranularityEnabled = true
+        xAxis.textColor = Color.BLACK
+        xAxis.textSize = 10f
+        xAxis.setLabelCount(labels.size, false)
+        xAxis.valueFormatter = object : ValueFormatter() {
+            override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+                val index = value.toInt()
+                return if (index >= 0 && index < labels.size) {
+                    val label = labels[index]
+                    if (label.length > 15) label.substring(0, 15) + "..." else label
+                } else ""
+            }
+        }
+        xAxis.setLabelRotationAngle(-45f)
+        
+        val leftAxis = chart.axisLeft
+        leftAxis.setDrawGridLines(true)
+        leftAxis.axisMinimum = 0f
+        leftAxis.textColor = Color.BLACK
+        leftAxis.textSize = 10f
+        leftAxis.granularity = 1f
+        leftAxis.isGranularityEnabled = true
+        
+        chart.axisRight.isEnabled = false
+        chart.legend.isEnabled = false
+        
+        chart.invalidate()
     }
 
     /**
@@ -852,7 +961,13 @@ class StatisticsFragment : Fragment() {
         val totalSales = sales.sumOf { it.totalAmount }
         val totalPurchases = purchases.sumOf { it.totalAmount }
         val balance = totalSales - totalPurchases
-        val formattedBalance = String.format("$%.2f", balance)
+        
+        val symbols = DecimalFormatSymbols().apply {
+            groupingSeparator = '.'
+            decimalSeparator = ','
+        }
+        val decimalFormat = DecimalFormat("#,##0.00", symbols)
+        val formattedBalance = String.format("$%s", decimalFormat.format(balance))
         
         binding.monthlyBalanceTotalText.text = "Balance mensual: $formattedBalance"
         val color = if (balance >= 0) {
@@ -864,45 +979,35 @@ class StatisticsFragment : Fragment() {
     }
 
     /**
-     * Sets up the balance chart with data and styling.
+     * Updates the balance monthly balance total display with calculated balance for the selected month.
      */
-    private fun setupBalanceChart(
-        chart: BarChart, 
-        data: BarData, 
-        sales: List<Movement>, 
-        purchases: List<Movement>, 
-        startDate: Date, 
-        _endDate: Date
-    ) {
-        chart.data = data
-        chart.description.isEnabled = false
-        chart.setFitBars(true)
-        chart.animateY(1000)
+    private fun updateBalanceMonthlyBalance(movements: List<Movement>) {
+        val (startOfMonth, _endOfMonth) = getMonthDateRange(selectedMonth)
+        val monthlyMovements = movements.filter { movement ->
+            movement.movementDate >= startOfMonth && movement.movementDate <= _endOfMonth
+        }
         
-        val periodGroups = groupMovementsByPeriod(sales, purchases, startDate, _endDate)
-        val labels = periodGroups.map { it.first }
+        val sales = monthlyMovements.filter { it.type == EMovementType.SALE }
+        val purchases = monthlyMovements.filter { it.type == EMovementType.PURCHASE }
         
-        val xAxis = chart.xAxis
-        xAxis.position = XAxis.XAxisPosition.BOTTOM
-        xAxis.setDrawGridLines(false)
-        xAxis.granularity = 1f
-        xAxis.isGranularityEnabled = true
-        xAxis.textColor = Color.BLACK
-        xAxis.textSize = 10f
-        xAxis.valueFormatter = BalanceAxisLabelFormatter(labels)
+        val totalSales = sales.sumOf { it.totalAmount }
+        val totalPurchases = purchases.sumOf { it.totalAmount }
+        val balance = totalSales - totalPurchases
         
-        val leftAxis = chart.axisLeft
-        leftAxis.setDrawGridLines(true)
-        leftAxis.axisMinimum = 0f
-        leftAxis.textColor = Color.BLACK
-        leftAxis.textSize = 10f
+        val symbols = DecimalFormatSymbols().apply {
+            groupingSeparator = '.'
+            decimalSeparator = ','
+        }
+        val decimalFormat = DecimalFormat("#,##0.00", symbols)
+        val formattedBalance = String.format("$%s", decimalFormat.format(balance))
         
-        chart.axisRight.isEnabled = false
-        chart.legend.isEnabled = true
-        chart.legend.textColor = Color.BLACK
-        chart.legend.textSize = 12f
-        
-        chart.invalidate()
+        binding.balanceMonthlyBalanceTotalText.text = "Balance mensual: $formattedBalance"
+        val color = if (balance >= 0) {
+            ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_primary)
+        } else {
+            Color.parseColor("#F44336") // Red for negative balance
+        }
+        binding.balanceMonthlyBalanceTotalText.setTextColor(color)
     }
 
     /**

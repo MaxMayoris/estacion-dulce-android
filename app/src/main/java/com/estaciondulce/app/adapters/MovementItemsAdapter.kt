@@ -76,32 +76,21 @@ class MovementItemsAdapter(
             costWatcher = object : TextWatcher {
                 override fun afterTextChanged(s: Editable?) {
                     val text = s.toString()
-                    val newCost = text.toDoubleOrNull() ?: 0.0
+                    val newCost = text.toDoubleOrNull()
                     
                     if (text.isEmpty()) {
-                        if (items[position].cost != 0.01) {
-                            items[position].cost = 0.01
-                            binding.costEditText.setText("0.01")
-                            binding.costEditText.setSelection(binding.costEditText.text.length)
-                            onItemChanged()
-                        }
+                        items[position].cost = 0.0
+                        onItemChanged()
                         return
                     }
                     
-                    if (newCost <= 0.0) {
-                        binding.costEditText.removeTextChangedListener(this)
-                        binding.costEditText.setText("0.01")
-                        binding.costEditText.setSelection(binding.costEditText.text.length)
-                        binding.costEditText.addTextChangedListener(this)
-                        if (items[position].cost != 0.01) {
-                            items[position].cost = 0.01
+                    if (newCost != null && newCost > 0.0) {
+                        if (newCost != items[position].cost) {
+                            items[position].cost = newCost
                             onItemChanged()
                         }
-                        return
-                    }
-                    
-                    if (newCost != items[position].cost) {
-                        items[position].cost = newCost
+                    } else {
+                        items[position].cost = 0.0
                         onItemChanged()
                     }
                 }

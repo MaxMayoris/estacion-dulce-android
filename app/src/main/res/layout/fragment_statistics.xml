@@ -22,7 +22,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Ventas del mes"
+            android:text="Ventas"
             android:textAlignment="center"
             android:textSize="14sp"
             android:textStyle="bold"
@@ -37,7 +37,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Balance"
+            android:text="Compras"
             android:textAlignment="center"
             android:textSize="14sp"
             android:textStyle="bold"
@@ -57,40 +57,39 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:padding="16dp"
         android:visibility="gone">
 
-        <!-- Balance Chart -->
-        <com.google.android.material.card.MaterialCardView
+        <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/white">
+            android:layout_height="match_parent"
+            android:fillViewport="true">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <TextView
+                <!-- Balance Chart -->
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:text="Balance por Período"
-                    android:textColor="@color/text_primary"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:gravity="center" />
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/white">
 
-                <!-- Period Selection -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                <!-- Month Selection -->
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    android:hint="Seleccionar período"
+                    android:hint="Mes"
                     app:boxCornerRadiusTopStart="8dp"
                     app:boxCornerRadiusTopEnd="8dp"
                     app:boxCornerRadiusBottomStart="8dp"
@@ -100,7 +99,7 @@
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
 
                     <AutoCompleteTextView
-                        android:id="@+id/periodSpinner"
+                        android:id="@+id/balanceMonthSpinner"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="none"
@@ -108,57 +107,98 @@
 
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Balance Total Display -->
+                <!-- Monthly Balance Total Display -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
+                    android:layout_marginBottom="12dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
                     android:background="@drawable/subtotal_background"
                     android:padding="12dp">
-
                     <TextView
-                        android:layout_width="0dp"
+                        android:id="@+id/balanceMonthlyBalanceTotalText"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Total:"
+                        android:text="Balance mensual: $0"
                         android:textColor="@color/text_primary"
                         android:textSize="16sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/balanceTotalText"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="$0"
-                        android:textColor="@color/text_primary"
-                        android:textSize="18sp"
                         android:textStyle="bold"
-                        android:fontFamily="monospace" />
-
+                        android:gravity="center" />
                 </LinearLayout>
+
+                <!-- Compras por Proveedor Chart -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Compras por proveedor"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
                 <com.github.mikephil.charting.charts.BarChart
                     android:id="@+id/balanceChart"
                     android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
+                    android:layout_height="250dp" />
 
                 <TextView
                     android:id="@+id/balanceEmptyMessage"
                     android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
+                    android:layout_height="250dp"
+                    android:gravity="center"
                     android:text="No hay datos para mostrar"
                     android:textColor="@color/text_secondary"
                     android:textSize="16sp"
-                    android:gravity="center"
                     android:visibility="gone" />
+
+                <!-- Compras por Productos Chart -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="Compras por productos"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fillViewport="true">
+                    
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+                        
+                        <com.github.mikephil.charting.charts.BarChart
+                            android:id="@+id/balanceProductsChart"
+                            android:layout_width="match_parent"
+                            android:layout_height="400dp" />
+                            
+                    </LinearLayout>
+                    
+                </ScrollView>
+
+                <TextView
+                    android:id="@+id/balanceProductsEmptyMessage"
+                    android:layout_width="match_parent"
+                    android:layout_height="400dp"
+                    android:gravity="center"
+                    android:text="No hay datos de productos para mostrar en este mes."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
 
             </LinearLayout>
 
-        </com.google.android.material.card.MaterialCardView>
+        </ScrollView>
 
     </LinearLayout>
 
@@ -169,23 +209,32 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:padding="16dp"
         android:visibility="visible">
 
-        <!-- Monthly Sales Chart -->
-        <com.google.android.material.card.MaterialCardView
+        <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/white">
+            android:layout_height="match_parent"
+            android:fillViewport="true">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:padding="16dp">
+
+                <!-- Monthly Sales Chart -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/white">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
                 <!-- Month Selection -->
                 <com.google.android.material.textfield.TextInputLayout
@@ -276,7 +325,7 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical">
                         
-                        <com.github.mikephil.charting.charts.PieChart
+                        <com.github.mikephil.charting.charts.BarChart
                             android:id="@+id/recipeSalesChart"
                             android:layout_width="match_parent"
                             android:layout_height="400dp" />
@@ -295,12 +344,55 @@
                     android:textSize="16sp"
                     android:visibility="gone" />
 
+                <!-- Ventas por Cliente Chart -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="Ventas por cliente"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fillViewport="true">
+                    
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+                        
+                        <com.github.mikephil.charting.charts.BarChart
+                            android:id="@+id/clientSalesChart"
+                            android:layout_width="match_parent"
+                            android:layout_height="400dp" />
+                            
+                    </LinearLayout>
+                    
+                </ScrollView>
+
+                <TextView
+                    android:id="@+id/clientSalesEmptyMessage"
+                    android:layout_width="match_parent"
+                    android:layout_height="400dp"
+                    android:gravity="center"
+                    android:text="No hay datos de clientes para mostrar en este mes."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
             </LinearLayout>
 
-        </com.google.android.material.card.MaterialCardView>
+        </ScrollView>
 
     </LinearLayout>
-
 
 </LinearLayout>
 

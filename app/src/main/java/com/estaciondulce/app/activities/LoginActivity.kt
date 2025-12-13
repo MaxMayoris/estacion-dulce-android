@@ -1,4 +1,4 @@
-package com.estaciondulce.app.activities
+﻿package com.estaciondulce.app.activities
 
 import android.content.Intent
 import android.content.pm.PackageInfo
@@ -85,7 +85,7 @@ class LoginActivity : AppCompatActivity() {
                             finish()
                         }, 2000)
                     } else {
-                        val errorMessage = task.exception?.message ?: "Error en el inicio de sesión."
+                        val errorMessage = task.exception?.message ?: "Error en el inicio de sesiÃ³n."
                         CustomToast.showError(this, errorMessage)
                     }
                 }
