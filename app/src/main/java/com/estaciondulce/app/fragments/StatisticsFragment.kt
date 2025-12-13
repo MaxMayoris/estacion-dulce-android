@@ -552,7 +552,7 @@ class StatisticsFragment : Fragment() {
             }
         }
         
-        val sortedRecipes = recipeCounts.toList().sortedByDescending { it.second }
+        val sortedRecipes = recipeCounts.toList().sortedByDescending { it.second }.take(10)
         val entries = mutableListOf<BarEntry>()
         val labels = mutableListOf<String>()
         
@@ -604,7 +604,7 @@ class StatisticsFragment : Fragment() {
         }
         
         val dataSet = BarDataSet(entries, "").apply {
-            color = Color.parseColor("#4CAF50")
+            color = Color.parseColor("#FF5722")
             valueTextColor = Color.BLACK
             valueTextSize = 10f
             setDrawValues(true)
@@ -614,7 +614,7 @@ class StatisticsFragment : Fragment() {
                         groupingSeparator = '.'
                         decimalSeparator = ','
                     }
-                    val decimalFormat = DecimalFormat("#,##0.00", symbols)
+                    val decimalFormat = DecimalFormat("#,##0", symbols)
                     return decimalFormat.format(value.toDouble())
                 }
             }
@@ -660,6 +660,16 @@ class StatisticsFragment : Fragment() {
         leftAxis.axisMinimum = 0f
         leftAxis.textColor = Color.BLACK
         leftAxis.textSize = 10f
+        leftAxis.valueFormatter = object : ValueFormatter() {
+            override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+                val symbols = DecimalFormatSymbols().apply {
+                    groupingSeparator = '.'
+                    decimalSeparator = ','
+                }
+                val decimalFormat = DecimalFormat("#,##0", symbols)
+                return decimalFormat.format(value.toInt().toDouble())
+            }
+        }
         
         chart.axisRight.isEnabled = false
         chart.legend.isEnabled = false
@@ -708,7 +718,7 @@ class StatisticsFragment : Fragment() {
             return null
         }
         
-        val sortedProducts = productCosts.toList().sortedByDescending { it.second }
+        val sortedProducts = productCosts.toList().sortedByDescending { it.second }.take(10)
         val entries = mutableListOf<BarEntry>()
         val labels = mutableListOf<String>()
         
@@ -718,7 +728,7 @@ class StatisticsFragment : Fragment() {
         }
         
         val dataSet = BarDataSet(entries, "").apply {
-            color = Color.parseColor("#4CAF50")
+            color = Color.parseColor("#FF5722")
             valueTextColor = Color.BLACK
             valueTextSize = 10f
             setDrawValues(true)
@@ -728,7 +738,7 @@ class StatisticsFragment : Fragment() {
                         groupingSeparator = '.'
                         decimalSeparator = ','
                     }
-                    val decimalFormat = DecimalFormat("#,##0.00", symbols)
+                    val decimalFormat = DecimalFormat("#,##0", symbols)
                     return decimalFormat.format(value.toDouble())
                 }
             }
@@ -774,6 +784,16 @@ class StatisticsFragment : Fragment() {
         leftAxis.axisMinimum = 0f
         leftAxis.textColor = Color.BLACK
         leftAxis.textSize = 10f
+        leftAxis.valueFormatter = object : ValueFormatter() {
+            override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+                val symbols = DecimalFormatSymbols().apply {
+                    groupingSeparator = '.'
+                    decimalSeparator = ','
+                }
+                val decimalFormat = DecimalFormat("#,##0", symbols)
+                return decimalFormat.format(value.toInt().toDouble())
+            }
+        }
         
         chart.axisRight.isEnabled = false
         chart.legend.isEnabled = false
@@ -852,7 +872,7 @@ class StatisticsFragment : Fragment() {
                         groupingSeparator = '.'
                         decimalSeparator = ','
                     }
-                    val decimalFormat = DecimalFormat("#,##0.00", symbols)
+                    val decimalFormat = DecimalFormat("#,##0", symbols)
                     return decimalFormat.format(value.toDouble())
                 }
             }
@@ -898,6 +918,16 @@ class StatisticsFragment : Fragment() {
         leftAxis.axisMinimum = 0f
         leftAxis.textColor = Color.BLACK
         leftAxis.textSize = 10f
+        leftAxis.valueFormatter = object : ValueFormatter() {
+            override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+                val symbols = DecimalFormatSymbols().apply {
+                    groupingSeparator = '.'
+                    decimalSeparator = ','
+                }
+                val decimalFormat = DecimalFormat("#,##0", symbols)
+                return decimalFormat.format(value.toInt().toDouble())
+            }
+        }
         
         chart.axisRight.isEnabled = false
         chart.legend.isEnabled = false
