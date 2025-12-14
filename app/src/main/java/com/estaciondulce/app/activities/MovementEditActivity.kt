@@ -22,6 +22,7 @@ import com.estaciondulce.app.helpers.AddressesHelper
 import com.estaciondulce.app.helpers.MovementsHelper
 import com.estaciondulce.app.helpers.DistanceMatrixHelper
 import com.estaciondulce.app.helpers.StorageHelper
+import com.estaciondulce.app.helpers.SettingsHelper
 import com.estaciondulce.app.models.parcelables.Address
 import com.estaciondulce.app.models.enums.EMovementType
 import com.estaciondulce.app.models.enums.EPersonType
@@ -70,6 +71,7 @@ class MovementEditActivity : AppCompatActivity() {
     private var selectedAddress: Address? = null
     private val addressesHelper = AddressesHelper()
     private val distanceMatrixHelper = DistanceMatrixHelper()
+    private val settingsHelper = SettingsHelper()
     private var calculatedShippingCost: Double = 0.0
     private var selectedDeliveryType: String = EDeliveryType.PICKUP.name // Track selected delivery type
     
@@ -1221,6 +1223,10 @@ class MovementEditActivity : AppCompatActivity() {
         MovementsHelper().addMovement(
             movement = movement,
             onSuccess = { newMovement ->
+                if (movement.type == EMovementType.PURCHASE) {
+                    checkAndUpdateFuelPrice(movement)
+                }
+                
                 if (movement.type == EMovementType.SALE && tempImageUrls.isNotEmpty()) {
                     uploadTempImagesToFinalLocation(
                         tempImageUrls = tempImageUrls,
@@ -1241,6 +1247,34 @@ class MovementEditActivity : AppCompatActivity() {
                 showErrorAndHideLoader("Error al agregar el movimiento: ${exception.message}")
             }
         )
+    }
+
+    /**
+     * Checks if any product in the movement is "Nafta" and updates fuelPrice in settings.
+     */
+    private fun checkAndUpdateFuelPrice(movement: Movement) {
+        val products = repository.productsLiveData.value ?: emptyList()
+        
+        movement.items.forEach { item ->
+            if (item.collection == "products") {
+                val product = products.find { it.id == item.collectionId }
+                val productName = product?.name ?: item.customName ?: ""
+                
+                if (productName.equals("Nafta", ignoreCase = true)) {
+                    val fuelPrice = item.cost
+                    settingsHelper.updateFuelPrice(
+                        fuelPrice = fuelPrice,
+                        onSuccess = {
+                            android.util.Log.d("MovementEditActivity", "Fuel price updated to: $fuelPrice")
+                        },
+                        onError = { exception ->
+                            android.util.Log.e("MovementEditActivity", "Error updating fuel price: ${exception.message}", exception)
+                        }
+                    )
+                    return
+                }
+            }
+        }
     }
     
     /**

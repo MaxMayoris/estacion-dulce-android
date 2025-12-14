@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v6.4** - Added annual statistics tab with monthly balance chart, top 10 clients and recipes charts, and dynamic colors for balance chart
 - **v6.3** - Improved StatisticsFragment charts: limited recipe and product charts to top 10, changed purchase charts to red, removed decimals from all chart values and Y-axis labels
 - **v6.2** - Fixed search bar clearing in PersonFragment when creating new person, add new graphics to Statistics
 - **v6.1** - Added FCM push notifications for low stock alerts with deep linking to product edit screen

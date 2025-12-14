@@ -86,6 +86,7 @@ class StatisticsFragment : Fragment() {
     
     private var selectedTab = "monthlySales"
     private var selectedMonth = getCurrentMonthName().lowercase()
+    private var selectedYear = Calendar.getInstance().get(Calendar.YEAR)
     
     private val dateFormat = SimpleDateFormat("dd/MM", Locale.getDefault())
     private val monthDateFormat = SimpleDateFormat("dd", Locale.getDefault())
@@ -118,33 +119,55 @@ class StatisticsFragment : Fragment() {
     }
 
     /**
-     * Sets up tab click listeners for navigation between Balance and Monthly Sales.
+     * Sets up tab click listeners for navigation between Balance, Monthly Sales, and Annual.
      */
     private fun setupTabListeners() {
         binding.balanceTab.setOnClickListener { selectTab("balance") }
         binding.monthlySalesTab.setOnClickListener { selectTab("monthlySales") }
+        binding.annualTab.setOnClickListener { selectTab("annual") }
     }
 
     /**
-     * Sets up month selection spinner for both tabs (shared month selection).
+     * Sets up month and year selection spinners for all tabs (shared selection).
      */
     private fun setupMonthSpinner() {
         val months = listOf("Septiembre", "Octubre", "Noviembre", "Diciembre")
         val monthValues = listOf("septiembre", "octubre", "noviembre", "diciembre")
+        val years = listOf("2025", "2026")
+        val yearValues = listOf(2025, 2026)
         
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, months)
+        val monthAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, months)
+        val yearAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, years)
         
-        binding.monthSpinner.setAdapter(adapter)
+        binding.monthSpinner.setAdapter(monthAdapter)
         binding.monthSpinner.setOnItemClickListener { _, _, position, _ ->
             selectMonth(monthValues[position])
         }
         binding.monthSpinner.setText(getCurrentMonthName(), false)
         
-        binding.balanceMonthSpinner.setAdapter(adapter)
+        binding.balanceMonthSpinner.setAdapter(monthAdapter)
         binding.balanceMonthSpinner.setOnItemClickListener { _, _, position, _ ->
             selectMonth(monthValues[position])
         }
         binding.balanceMonthSpinner.setText(getCurrentMonthName(), false)
+        
+        binding.yearSpinner.setAdapter(yearAdapter)
+        binding.yearSpinner.setOnItemClickListener { _, _, position, _ ->
+            selectYear(yearValues[position])
+        }
+        binding.yearSpinner.setText(selectedYear.toString(), false)
+        
+        binding.balanceYearSpinner.setAdapter(yearAdapter)
+        binding.balanceYearSpinner.setOnItemClickListener { _, _, position, _ ->
+            selectYear(yearValues[position])
+        }
+        binding.balanceYearSpinner.setText(selectedYear.toString(), false)
+        
+        binding.annualYearSpinner.setAdapter(yearAdapter)
+        binding.annualYearSpinner.setOnItemClickListener { _, _, position, _ ->
+            selectYear(yearValues[position])
+        }
+        binding.annualYearSpinner.setText(selectedYear.toString(), false)
     }
 
 
@@ -169,18 +192,36 @@ class StatisticsFragment : Fragment() {
                 binding.balanceTab.setTextColor(Color.WHITE)
                 binding.monthlySalesTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_unselected_background)
                 binding.monthlySalesTab.setTextColor(ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_secondary))
+                binding.annualTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_unselected_background)
+                binding.annualTab.setTextColor(ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_secondary))
                 
                 binding.balanceTabContent.visibility = View.VISIBLE
                 binding.monthlySalesTabContent.visibility = View.GONE
+                binding.annualTabContent.visibility = View.GONE
             }
             "monthlySales" -> {
                 binding.monthlySalesTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_selected_background)
                 binding.monthlySalesTab.setTextColor(Color.WHITE)
                 binding.balanceTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_unselected_background)
                 binding.balanceTab.setTextColor(ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_secondary))
+                binding.annualTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_unselected_background)
+                binding.annualTab.setTextColor(ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_secondary))
                 
                 binding.balanceTabContent.visibility = View.GONE
                 binding.monthlySalesTabContent.visibility = View.VISIBLE
+                binding.annualTabContent.visibility = View.GONE
+            }
+            "annual" -> {
+                binding.annualTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_selected_background)
+                binding.annualTab.setTextColor(Color.WHITE)
+                binding.monthlySalesTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_unselected_background)
+                binding.monthlySalesTab.setTextColor(ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_secondary))
+                binding.balanceTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_unselected_background)
+                binding.balanceTab.setTextColor(ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_secondary))
+                
+                binding.balanceTabContent.visibility = View.GONE
+                binding.monthlySalesTabContent.visibility = View.GONE
+                binding.annualTabContent.visibility = View.VISIBLE
             }
         }
         
@@ -200,6 +241,19 @@ class StatisticsFragment : Fragment() {
         updateCharts(repository.movementsLiveData.value ?: emptyList())
     }
 
+    /**
+     * Handles year selection for all tabs (shared year selection).
+     */
+    private fun selectYear(year: Int) {
+        selectedYear = year
+        
+        binding.yearSpinner.setText(year.toString(), false)
+        binding.balanceYearSpinner.setText(year.toString(), false)
+        binding.annualYearSpinner.setText(year.toString(), false)
+        
+        updateCharts(repository.movementsLiveData.value ?: emptyList())
+    }
+
 
     /**
      * Updates charts based on current tab selection and movements data.
@@ -209,11 +263,17 @@ class StatisticsFragment : Fragment() {
             "balance" -> {
                 updateBalanceChart(movements)
                 updateBalanceMonthlyBalance(movements)
+                updateShipmentCostsChart(movements)
             }
             "monthlySales" -> {
                 updateMonthlySalesChart(movements)
                 updateRecipeSalesChart(movements)
                 updateClientSalesChart(movements)
+            }
+            "annual" -> {
+                updateAnnualSalesByMonthChart(movements)
+                updateAnnualClientSalesChart(movements)
+                updateAnnualShipmentProfitChart(movements)
             }
         }
     }
@@ -443,12 +503,9 @@ class StatisticsFragment : Fragment() {
     }
 
     /**
-     * Gets the date range for the selected month.
+     * Gets the date range for the selected month and year.
      */
-    private fun getMonthDateRange(month: String): Pair<Date, Date> {
-        val calendar = Calendar.getInstance()
-        val currentYear = calendar.get(Calendar.YEAR)
-        
+    private fun getMonthDateRange(month: String, year: Int = selectedYear): Pair<Date, Date> {
         val monthNumber = when (month) {
             "septiembre" -> Calendar.SEPTEMBER
             "octubre" -> Calendar.OCTOBER
@@ -458,7 +515,7 @@ class StatisticsFragment : Fragment() {
         }
         
         val startOfMonth = Calendar.getInstance().apply {
-            set(Calendar.YEAR, currentYear)
+            set(Calendar.YEAR, year)
             set(Calendar.MONTH, monthNumber)
             set(Calendar.DAY_OF_MONTH, 1)
             set(Calendar.HOUR_OF_DAY, 0)
@@ -468,7 +525,7 @@ class StatisticsFragment : Fragment() {
         }.time
         
         val _endOfMonth = Calendar.getInstance().apply {
-            set(Calendar.YEAR, currentYear)
+            set(Calendar.YEAR, year)
             set(Calendar.MONTH, monthNumber)
             set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
             set(Calendar.HOUR_OF_DAY, 23)
@@ -1111,6 +1168,591 @@ class StatisticsFragment : Fragment() {
     private fun hideEmptyMessage(chart: View, emptyMessage: View) {
         chart.visibility = View.VISIBLE
         emptyMessage.visibility = View.GONE
+    }
+
+    /**
+     * Updates the shipment costs chart comparing calculatedCost vs cost for the selected month for SALE movements with SHIPMENT delivery.
+     */
+    private fun updateShipmentCostsChart(movements: List<Movement>) {
+        val (startOfMonth, _endOfMonth) = getMonthDateRange(selectedMonth)
+        
+        val shipmentSales = movements.filter { movement ->
+            if (movement.type != EMovementType.SALE) return@filter false
+            if (movement.movementDate < startOfMonth || movement.movementDate > _endOfMonth) return@filter false
+            val delivery = movement.delivery
+            if (delivery == null) return@filter false
+            delivery.type == com.estaciondulce.app.models.enums.EDeliveryType.SHIPMENT.name &&
+            delivery.shipment != null
+        }
+
+        if (shipmentSales.isEmpty()) {
+            showEmptyMessage(binding.shipmentCostsChart, binding.shipmentCostsEmptyMessage)
+            binding.shipmentCostsTitle.text = "Ganancias de envíos: $0"
+            return
+        }
+
+        hideEmptyMessage(binding.shipmentCostsChart, binding.shipmentCostsEmptyMessage)
+
+        var totalCalculatedCost = 0.0
+        var totalCost = 0.0
+
+        shipmentSales.forEach { movement ->
+            val shipment = movement.delivery?.shipment ?: return@forEach
+            totalCalculatedCost += shipment.calculatedCost
+            totalCost += shipment.cost
+        }
+
+        val profit = totalCost - totalCalculatedCost
+        val symbols = DecimalFormatSymbols().apply {
+            groupingSeparator = '.'
+            decimalSeparator = ','
+        }
+        val decimalFormat = DecimalFormat("#,##0", symbols)
+        val formattedProfit = decimalFormat.format(profit.toInt().toDouble())
+        binding.shipmentCostsTitle.text = "Ganancias de envíos: $$formattedProfit"
+
+        val chartData = createShipmentCostsChartData(shipmentSales)
+        setupShipmentCostsChart(binding.shipmentCostsChart, chartData)
+    }
+
+    /**
+     * Creates HorizontalBarChart data comparing calculatedCost vs cost for the selected month.
+     */
+    private fun createShipmentCostsChartData(shipmentSales: List<Movement>): BarData {
+        var totalCalculatedCost = 0.0
+        var totalCost = 0.0
+
+        shipmentSales.forEach { movement ->
+            val shipment = movement.delivery?.shipment ?: return@forEach
+            totalCalculatedCost += shipment.calculatedCost
+            totalCost += shipment.cost
+        }
+
+        val calculatedCostEntry = BarEntry(0f, totalCalculatedCost.toFloat())
+        val costEntry = BarEntry(1f, totalCost.toFloat())
+
+        val calculatedCostDataSet = BarDataSet(listOf(calculatedCostEntry), "Costo Calculado").apply {
+            color = Color.parseColor("#F44336")
+            valueTextColor = Color.BLACK
+            valueTextSize = 12f
+            setDrawValues(true)
+            valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val symbols = DecimalFormatSymbols().apply {
+                        groupingSeparator = '.'
+                        decimalSeparator = ','
+                    }
+                    val decimalFormat = DecimalFormat("#,##0", symbols)
+                    return decimalFormat.format(value.toInt().toDouble())
+                }
+            }
+        }
+
+        val costDataSet = BarDataSet(listOf(costEntry), "Costo Cobrado").apply {
+            color = Color.parseColor("#4CAF50")
+            valueTextColor = Color.BLACK
+            valueTextSize = 12f
+            setDrawValues(true)
+            valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val symbols = DecimalFormatSymbols().apply {
+                        groupingSeparator = '.'
+                        decimalSeparator = ','
+                    }
+                    val decimalFormat = DecimalFormat("#,##0", symbols)
+                    return decimalFormat.format(value.toInt().toDouble())
+                }
+            }
+        }
+
+        return BarData(calculatedCostDataSet, costDataSet).apply {
+            barWidth = 0.4f
+        }
+    }
+
+    /**
+     * Sets up the shipment costs comparison BarChart with styling and configuration.
+     * Eje X (abajo): Etiquetas (Costo Calculado, Costo Cobrado)
+     * Eje Y (izquierda): Valores (montos en pesos)
+     */
+    private fun setupShipmentCostsChart(chart: BarChart, data: BarData) {
+        chart.data = data
+        chart.description.isEnabled = false
+        chart.setFitBars(true)
+        chart.animateY(1000)
+
+        val labels = listOf("Costo Calculado", "Costo Cobrado")
+
+        val xAxis = chart.xAxis
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.setDrawGridLines(false)
+        xAxis.granularity = 1f
+        xAxis.isGranularityEnabled = true
+        xAxis.textColor = Color.BLACK
+        xAxis.textSize = 12f
+        xAxis.setLabelCount(labels.size, false)
+        xAxis.valueFormatter = BalanceAxisLabelFormatter(labels)
+
+        val leftAxis = chart.axisLeft
+        leftAxis.setDrawGridLines(true)
+        leftAxis.axisMinimum = 0f
+        leftAxis.textColor = Color.BLACK
+        leftAxis.textSize = 10f
+        leftAxis.valueFormatter = object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                val symbols = DecimalFormatSymbols().apply {
+                    groupingSeparator = '.'
+                    decimalSeparator = ','
+                }
+                val decimalFormat = DecimalFormat("#,##0", symbols)
+                return decimalFormat.format(value.toInt().toDouble())
+            }
+        }
+
+        chart.axisRight.isEnabled = false
+        chart.legend.isEnabled = false
+
+        chart.invalidate()
+    }
+
+    /**
+     * Updates the annual monthly balance chart showing balance (sales - purchases) per month for the selected year.
+     */
+    private fun updateAnnualSalesByMonthChart(movements: List<Movement>) {
+        val startOfYear = Calendar.getInstance().apply {
+            set(Calendar.YEAR, selectedYear)
+            set(Calendar.MONTH, Calendar.JANUARY)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+
+        val endOfYear = Calendar.getInstance().apply {
+            set(Calendar.YEAR, selectedYear)
+            set(Calendar.MONTH, Calendar.DECEMBER)
+            set(Calendar.DAY_OF_MONTH, 31)
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+        }.time
+
+        val annualMovements = movements.filter { movement ->
+            movement.movementDate >= startOfYear &&
+            movement.movementDate <= endOfYear
+        }
+
+        if (annualMovements.isEmpty()) {
+            showEmptyMessage(binding.annualSalesByMonthChart, binding.annualSalesByMonthEmptyMessage)
+            return
+        }
+
+        hideEmptyMessage(binding.annualSalesByMonthChart, binding.annualSalesByMonthEmptyMessage)
+
+        val (chartData, labels) = createAnnualMonthlyBalanceChartData(annualMovements)
+        setupAnnualSalesByMonthChart(binding.annualSalesByMonthChart, chartData, labels)
+    }
+
+    /**
+     * Creates bar chart data for annual monthly balance (sales - purchases) by month.
+     */
+    private fun createAnnualMonthlyBalanceChartData(movements: List<Movement>): Pair<BarData, List<String>> {
+        val monthBalances = mutableMapOf<Int, Double>()
+        val monthNames = listOf("Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
+
+        for (month in Calendar.JANUARY..Calendar.DECEMBER) {
+            monthBalances[month] = 0.0
+        }
+
+        val calendar = Calendar.getInstance()
+        movements.forEach { movement ->
+            calendar.time = movement.movementDate
+            val month = calendar.get(Calendar.MONTH)
+            val currentBalance = monthBalances[month] ?: 0.0
+            val amount = if (movement.type == EMovementType.SALE) {
+                movement.totalAmount
+            } else {
+                -movement.totalAmount
+            }
+            monthBalances[month] = currentBalance + amount
+        }
+
+        val entries = mutableListOf<BarEntry>()
+        val labels = mutableListOf<String>()
+
+        monthNames.forEachIndexed { index, monthName ->
+            val monthNumber = index
+            val balance = monthBalances[monthNumber] ?: 0.0
+            entries.add(BarEntry(index.toFloat(), balance.toFloat()))
+            labels.add(monthName)
+        }
+
+        val dataSet = BarDataSet(entries, "").apply {
+            colors = entries.map { entry ->
+                if (entry.y >= 0) Color.parseColor("#4CAF50") else Color.parseColor("#F44336")
+            }
+            valueTextColor = Color.BLACK
+            valueTextSize = 10f
+            setDrawValues(true)
+            valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val symbols = DecimalFormatSymbols().apply {
+                        groupingSeparator = '.'
+                        decimalSeparator = ','
+                    }
+                    val decimalFormat = DecimalFormat("#,##0", symbols)
+                    return decimalFormat.format(value.toInt().toDouble())
+                }
+            }
+        }
+
+        val barData = BarData(dataSet).apply {
+            barWidth = 0.5f
+        }
+
+        return Pair(barData, labels)
+    }
+
+    /**
+     * Sets up the annual sales by month bar chart with styling and configuration.
+     */
+    private fun setupAnnualSalesByMonthChart(chart: BarChart, data: BarData, labels: List<String>) {
+        chart.data = data
+        chart.description.isEnabled = false
+        chart.setFitBars(true)
+        chart.animateY(1000)
+
+        val xAxis = chart.xAxis
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.setDrawGridLines(false)
+        xAxis.granularity = 1f
+        xAxis.isGranularityEnabled = true
+        xAxis.textColor = Color.BLACK
+        xAxis.textSize = 10f
+        xAxis.setLabelCount(labels.size, false)
+        xAxis.valueFormatter = BalanceAxisLabelFormatter(labels)
+
+        val leftAxis = chart.axisLeft
+        leftAxis.setDrawGridLines(true)
+        leftAxis.textColor = Color.BLACK
+        leftAxis.textSize = 10f
+        leftAxis.valueFormatter = object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                val symbols = DecimalFormatSymbols().apply {
+                    groupingSeparator = '.'
+                    decimalSeparator = ','
+                }
+                val decimalFormat = DecimalFormat("#,##0", symbols)
+                return decimalFormat.format(value.toInt().toDouble())
+            }
+        }
+
+        chart.axisRight.isEnabled = false
+        chart.legend.isEnabled = false
+
+        chart.invalidate()
+    }
+
+    /**
+     * Updates the annual client sales chart with top 10 clients for the selected year.
+     */
+    private fun updateAnnualClientSalesChart(movements: List<Movement>) {
+        val startOfYear = Calendar.getInstance().apply {
+            set(Calendar.YEAR, selectedYear)
+            set(Calendar.MONTH, Calendar.JANUARY)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+
+        val endOfYear = Calendar.getInstance().apply {
+            set(Calendar.YEAR, selectedYear)
+            set(Calendar.MONTH, Calendar.DECEMBER)
+            set(Calendar.DAY_OF_MONTH, 31)
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+        }.time
+
+        val annualSales = movements.filter { movement ->
+            movement.type == EMovementType.SALE &&
+            movement.movementDate >= startOfYear &&
+            movement.movementDate <= endOfYear
+        }
+
+        val clientData = createAnnualClientSalesChartData(annualSales)
+
+        if (clientData == null) {
+            showEmptyMessage(binding.annualClientSalesChart, binding.annualClientSalesEmptyMessage)
+            return
+        }
+
+        binding.annualClientSalesChart.visibility = View.VISIBLE
+        binding.annualClientSalesEmptyMessage.visibility = View.GONE
+
+        val (chartData, labels) = clientData
+        setupAnnualClientSalesChart(binding.annualClientSalesChart, chartData, labels)
+    }
+
+    /**
+     * Creates bar chart data for annual client sales distribution (top 10 clients).
+     */
+    private fun createAnnualClientSalesChartData(sales: List<Movement>): Pair<BarData, List<String>>? {
+        val clientTotals = mutableMapOf<String, Double>()
+        val persons = repository.personsLiveData.value ?: emptyList()
+
+        sales.forEach { movement ->
+            val person = persons.find { it.id == movement.personId }
+            val clientName = if (person != null) {
+                "${person.name} ${person.lastName}".trim()
+            } else {
+                "Cliente desconocido"
+            }
+            clientTotals[clientName] = (clientTotals[clientName] ?: 0.0) + movement.totalAmount
+        }
+
+        if (clientTotals.isEmpty()) {
+            return null
+        }
+
+        val topClients = clientTotals.toList()
+            .sortedByDescending { it.second }
+            .take(10)
+
+        val entries = mutableListOf<BarEntry>()
+        val labels = mutableListOf<String>()
+
+        topClients.forEachIndexed { index, (clientName, totalSpent) ->
+            entries.add(BarEntry(index.toFloat(), totalSpent.toFloat()))
+            labels.add(clientName)
+        }
+
+        val dataSet = BarDataSet(entries, "").apply {
+            color = Color.parseColor("#4CAF50")
+            valueTextColor = Color.BLACK
+            valueTextSize = 10f
+            setDrawValues(true)
+            valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val symbols = DecimalFormatSymbols().apply {
+                        groupingSeparator = '.'
+                        decimalSeparator = ','
+                    }
+                    val decimalFormat = DecimalFormat("#,##0", symbols)
+                    return decimalFormat.format(value.toDouble())
+                }
+            }
+        }
+
+        val barData = BarData(dataSet).apply {
+            barWidth = 0.5f
+        }
+
+        return Pair(barData, labels)
+    }
+
+    /**
+     * Sets up the annual client sales bar chart with styling and configuration.
+     */
+    private fun setupAnnualClientSalesChart(chart: BarChart, data: BarData, labels: List<String>) {
+        chart.data = data
+        chart.description.isEnabled = false
+        chart.setFitBars(true)
+        chart.animateY(1000)
+
+        val xAxis = chart.xAxis
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.setDrawGridLines(false)
+        xAxis.granularity = 1f
+        xAxis.isGranularityEnabled = true
+        xAxis.textColor = Color.BLACK
+        xAxis.textSize = 10f
+        xAxis.setLabelCount(labels.size, false)
+        xAxis.valueFormatter = object : ValueFormatter() {
+            override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+                val index = value.toInt()
+                return if (index >= 0 && index < labels.size) {
+                    val label = labels[index]
+                    if (label.length > 15) label.substring(0, 15) + "..." else label
+                } else ""
+            }
+        }
+        xAxis.setLabelRotationAngle(-45f)
+
+        val leftAxis = chart.axisLeft
+        leftAxis.setDrawGridLines(true)
+        leftAxis.axisMinimum = 0f
+        leftAxis.textColor = Color.BLACK
+        leftAxis.textSize = 10f
+        leftAxis.valueFormatter = object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                val symbols = DecimalFormatSymbols().apply {
+                    groupingSeparator = '.'
+                    decimalSeparator = ','
+                }
+                val decimalFormat = DecimalFormat("#,##0", symbols)
+                return decimalFormat.format(value.toInt().toDouble())
+            }
+        }
+
+        chart.axisRight.isEnabled = false
+        chart.legend.isEnabled = false
+
+        chart.invalidate()
+    }
+
+    /**
+     * Updates the annual recipe sales chart showing top 10 recipes sold in the selected year.
+     */
+    private fun updateAnnualShipmentProfitChart(movements: List<Movement>) {
+        val startOfYear = Calendar.getInstance().apply {
+            set(Calendar.YEAR, selectedYear)
+            set(Calendar.MONTH, Calendar.JANUARY)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+
+        val endOfYear = Calendar.getInstance().apply {
+            set(Calendar.YEAR, selectedYear)
+            set(Calendar.MONTH, Calendar.DECEMBER)
+            set(Calendar.DAY_OF_MONTH, 31)
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+        }.time
+
+        val annualSales = movements.filter { movement ->
+            movement.type == EMovementType.SALE &&
+            movement.movementDate >= startOfYear &&
+            movement.movementDate <= endOfYear
+        }
+
+        if (annualSales.isEmpty()) {
+            showEmptyMessage(binding.annualShipmentProfitChart, binding.annualShipmentProfitEmptyMessage)
+            binding.annualShipmentProfitTitle.text = "Ventas por receta"
+            return
+        }
+
+        hideEmptyMessage(binding.annualShipmentProfitChart, binding.annualShipmentProfitEmptyMessage)
+        binding.annualShipmentProfitTitle.text = "Ventas por receta"
+
+        val (chartData, labels) = createAnnualShipmentProfitChartData(annualSales)
+        setupAnnualShipmentProfitChart(binding.annualShipmentProfitChart, chartData, labels)
+    }
+
+    /**
+     * Creates bar chart data for annual recipe sales distribution (top 10 recipes).
+     */
+    private fun createAnnualShipmentProfitChartData(sales: List<Movement>): Pair<BarData, List<String>> {
+        val recipeCounts = mutableMapOf<String, Int>()
+        val recipes = repository.recipesLiveData.value ?: emptyList()
+        
+        sales.forEach { movement ->
+            val recipesInMovement = mutableSetOf<String>()
+            
+            movement.items.forEach { item ->
+                if (item.collection == "recipes") {
+                    val recipe = recipes.find { it.id == item.collectionId }
+                    val recipeName = recipe?.name ?: "Receta desconocida"
+                    recipesInMovement.add(recipeName)
+                }
+            }
+            
+            recipesInMovement.forEach { recipeName ->
+                recipeCounts[recipeName] = (recipeCounts[recipeName] ?: 0) + 1
+            }
+        }
+        
+        val sortedRecipes = recipeCounts.toList().sortedByDescending { it.second }.take(10)
+        val entries = mutableListOf<BarEntry>()
+        val labels = mutableListOf<String>()
+        
+        sortedRecipes.forEachIndexed { index, (recipeName, count) ->
+            entries.add(BarEntry(index.toFloat(), count.toFloat()))
+            labels.add(recipeName)
+        }
+        
+        val dataSet = BarDataSet(entries, "").apply {
+            color = Color.parseColor("#4CAF50")
+            valueTextColor = Color.BLACK
+            valueTextSize = 10f
+            setDrawValues(true)
+            valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val symbols = DecimalFormatSymbols().apply {
+                        groupingSeparator = '.'
+                        decimalSeparator = ','
+                    }
+                    val decimalFormat = DecimalFormat("#,##0", symbols)
+                    return decimalFormat.format(value.toInt().toDouble())
+                }
+            }
+        }
+        
+        val barData = BarData(dataSet).apply {
+            barWidth = 0.5f
+        }
+        
+        return Pair(barData, labels)
+    }
+
+    /**
+     * Sets up the annual recipe sales BarChart with styling and configuration.
+     */
+    private fun setupAnnualShipmentProfitChart(chart: BarChart, data: BarData, labels: List<String>) {
+        chart.data = data
+        chart.description.isEnabled = false
+        chart.setFitBars(true)
+        chart.animateY(1000)
+
+        val xAxis = chart.xAxis
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.setDrawGridLines(false)
+        xAxis.granularity = 1f
+        xAxis.isGranularityEnabled = true
+        xAxis.textColor = Color.BLACK
+        xAxis.textSize = 10f
+        xAxis.setLabelCount(labels.size, false)
+        xAxis.valueFormatter = object : ValueFormatter() {
+            override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+                val index = value.toInt()
+                return if (index >= 0 && index < labels.size) {
+                    val label = labels[index]
+                    if (label.length > 15) label.substring(0, 15) + "..." else label
+                } else ""
+            }
+        }
+        xAxis.setLabelRotationAngle(-45f)
+
+        val leftAxis = chart.axisLeft
+        leftAxis.setDrawGridLines(true)
+        leftAxis.axisMinimum = 0f
+        leftAxis.textColor = Color.BLACK
+        leftAxis.textSize = 10f
+        leftAxis.valueFormatter = object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                val symbols = DecimalFormatSymbols().apply {
+                    groupingSeparator = '.'
+                    decimalSeparator = ','
+                }
+                val decimalFormat = DecimalFormat("#,##0", symbols)
+                return decimalFormat.format(value.toInt().toDouble())
+            }
+        }
+
+        chart.axisRight.isEnabled = false
+        chart.legend.isEnabled = false
+
+        chart.invalidate()
     }
 }
 
