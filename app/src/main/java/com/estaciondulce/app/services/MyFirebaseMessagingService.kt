@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -23,12 +24,12 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
-        remoteMessage.data.isNotEmpty().let {
+        if (remoteMessage.data.isNotEmpty()) {
             handleDataPayload(remoteMessage.data)
+        } else {
         }
 
         remoteMessage.notification?.let {
-            Log.d(TAG, "Notification: ${it.title}")
         }
     }
 
@@ -38,14 +39,29 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     private fun handleDataPayload(data: Map<String, String>) {
         val screen = data["screen"]
         val productId = data["productId"]
-        val title = data["title"] ?: "Estación Dulce"
-        val body = data["body"] ?: ""
+        val title = data["title"]?.trim() ?: "Estación Dulce"
+        val body = data["body"]?.trim() ?: ""
+
+        if (title.isEmpty() && body.isEmpty()) {
+            return
+        }
+
+        if (body.isEmpty()) {
+            return
+        }
 
         when (screen) {
             "product_detail" -> {
                 if (!productId.isNullOrEmpty()) {
                     showNotification(title, body, productId)
+                } else {
                 }
+            }
+            "kitchen_orders" -> {
+                showNotification(title, body, null)
+            }
+            "home" -> {
+                showNotification(title, body, null)
             }
             else -> {
                 showNotification(title, body, null)
@@ -57,6 +73,10 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
      * Shows a notification with optional deep link to ProductEditActivity.
      */
     private fun showNotification(title: String, body: String, productId: String?) {
+        if (title.isEmpty() || body.isEmpty()) {
+            return
+        }
+
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         val intent = if (!productId.isNullOrEmpty()) {
@@ -77,6 +97,12 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val logoBitmap = try {
+            BitmapFactory.decodeResource(resources, R.mipmap.ic_logo_ed_circle_192x192)
+        } catch (e: Exception) {
+            null
+        }
+
         val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
@@ -84,6 +110,10 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
+
+        logoBitmap?.let {
+            notificationBuilder.setLargeIcon(it)
+        }
 
         notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build())
     }
@@ -93,7 +123,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
      */
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Log.d(TAG, "FCM token refreshed")
     }
 
     companion object {

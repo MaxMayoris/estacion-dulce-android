@@ -79,13 +79,14 @@ class LoginActivity : AppCompatActivity() {
                         CustomToast.showSuccess(this, getString(R.string.login_success))
                         
                         subscribeToLowStockTopic()
+                        subscribeToPendingOrdersTopic()
                         
                         rootLayout.postDelayed({
                             startActivity(Intent(this, HomeActivity::class.java))
                             finish()
                         }, 2000)
                     } else {
-                        val errorMessage = task.exception?.message ?: "Error en el inicio de sesiÃ³n."
+                        val errorMessage = task.exception?.message ?: "Error en el inicio de sesiÃƒÂ³n."
                         CustomToast.showError(this, errorMessage)
                     }
                 }
@@ -97,6 +98,18 @@ class LoginActivity : AppCompatActivity() {
      */
     private fun subscribeToLowStockTopic() {
         FirebaseMessaging.getInstance().subscribeToTopic("low_stock")
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                } else {
+                }
+            }
+    }
+    
+    /**
+     * Subscribes to the pending_orders topic to receive daily push notifications for pending orders.
+     */
+    private fun subscribeToPendingOrdersTopic() {
+        FirebaseMessaging.getInstance().subscribeToTopic("pending_orders")
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                 } else {

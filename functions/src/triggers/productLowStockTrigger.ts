@@ -19,6 +19,16 @@ export const onProductLowStock = onDocumentUpdated(
     const after = event.data?.after.data() as Product;
     const productId = event.params.productId;
 
+    if (!before || !after) {
+      logger.warn(`Product ${productId}: Missing before or after data, skipping notification`);
+      return;
+    }
+
+    if (!productId || productId.trim() === "") {
+      logger.warn("Product ID is empty, skipping notification");
+      return;
+    }
+
     const beforeStock = before.quantity;
     const afterStock = after.quantity;
     
@@ -33,14 +43,28 @@ export const onProductLowStock = onDocumentUpdated(
       return;
     }
 
+    const productName = after.name?.trim() || "Producto sin nombre";
+    if (!productName || productName === "") {
+      logger.warn(`Product ${productId}: Product name is empty, skipping notification`);
+      return;
+    }
+
+    const title = "⚠️ Stock Bajo";
+    const body = `${productName}: Stock actual ${afterStock}, mínimo ${after.minimumQuantity}`;
+
+    if (!title || !body || body.trim() === "") {
+      logger.warn(`Product ${productId}: Notification title or body is empty, skipping notification`);
+      return;
+    }
+
     try {
       await admin.messaging().send({
         topic: "low_stock",
         data: {
           productId: productId,
           screen: "product_detail",
-          title: "⚠️ Stock Bajo",
-          body: `${after.name}: Stock actual ${afterStock}, mínimo ${after.minimumQuantity}`
+          title: title,
+          body: body
         },
         android: {
           priority: "high" as const,
@@ -50,7 +74,7 @@ export const onProductLowStock = onDocumentUpdated(
         }
       });
       
-      logger.info(`Product ${productId} (${after.name}): stock ${beforeStock} → ${afterStock} (min: ${after.minimumQuantity}), push sent`);
+      logger.info(`Product ${productId} (${productName}): stock ${beforeStock} → ${afterStock} (min: ${after.minimumQuantity}), push sent`);
     } catch (error) {
       logger.error(`Error sending low stock notification for product ${productId}:`, error);
       throw error;

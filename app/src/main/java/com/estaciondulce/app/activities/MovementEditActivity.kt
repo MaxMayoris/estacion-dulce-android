@@ -1488,6 +1488,15 @@ class MovementEditActivity : AppCompatActivity() {
     private fun buildSearchResults(products: List<Product>, recipes: List<Recipe>, isPurchase: Boolean): List<ItemSearchResult> {
         val results = mutableListOf<ItemSearchResult>()
         
+        results.add(ItemSearchResult(
+            id = "custom",
+            name = "Personalizar item",
+            type = EItemType.PRODUCT,
+            price = 0.0,
+            collection = "custom",
+            collectionId = ""
+        ))
+        
         if (isPurchase) {
             val sortedProducts = products.sortedBy { it.name }
             for (product in sortedProducts) {
@@ -1501,14 +1510,6 @@ class MovementEditActivity : AppCompatActivity() {
                 ))
             }
         } else {
-            results.add(ItemSearchResult(
-                id = "custom",
-                name = "Personalizar item",
-                type = EItemType.PRODUCT, // Use PRODUCT type for custom items
-                price = 0.0,
-                collection = "custom",
-                collectionId = ""
-            ))
             
             val sortedRecipes = recipes.sortedBy { it.name }
             for (recipe in sortedRecipes) {
