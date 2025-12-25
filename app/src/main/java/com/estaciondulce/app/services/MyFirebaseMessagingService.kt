@@ -10,6 +10,7 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.estaciondulce.app.R
+import com.estaciondulce.app.activities.HomeActivity
 import com.estaciondulce.app.activities.ProductEditActivity
 import com.estaciondulce.app.models.parcelables.Product
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -53,40 +54,37 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         when (screen) {
             "product_detail" -> {
                 if (!productId.isNullOrEmpty()) {
-                    showNotification(title, body, productId)
+                    showNotification(title, body, productId, screen)
                 } else {
                 }
             }
             "kitchen_orders" -> {
-                showNotification(title, body, null)
+                showNotification(title, body, null, screen)
             }
             "home" -> {
-                showNotification(title, body, null)
+                showNotification(title, body, null, screen)
             }
             else -> {
-                showNotification(title, body, null)
+                showNotification(title, body, null, screen)
             }
         }
     }
 
     /**
-     * Shows a notification with optional deep link to ProductEditActivity.
+     * Shows a notification with deep link to HomeActivity with fragment navigation.
      */
-    private fun showNotification(title: String, body: String, productId: String?) {
+    private fun showNotification(title: String, body: String, productId: String?, screen: String?) {
         if (title.isEmpty() || body.isEmpty()) {
             return
         }
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val intent = if (!productId.isNullOrEmpty()) {
-            Intent(this, ProductEditActivity::class.java).apply {
+        val intent = Intent(this, HomeActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+            putExtra("NAVIGATE_TO_FRAGMENT", screen ?: "home")
+            if (!productId.isNullOrEmpty()) {
                 putExtra("PRODUCT_ID", productId)
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            }
-        } else {
-            packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
         }
 

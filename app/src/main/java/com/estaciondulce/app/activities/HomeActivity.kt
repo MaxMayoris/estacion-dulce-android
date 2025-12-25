@@ -33,6 +33,7 @@ class HomeActivity : AppCompatActivity() {
 
     private lateinit var loader: CustomLoader
     private lateinit var auth: FirebaseAuth
+    private var hasNavigatedFromNotification = false
     
     private val productFragment = ProductFragment()
     private val recipeFragment = RecipeFragment()
@@ -56,16 +57,37 @@ class HomeActivity : AppCompatActivity() {
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        auth = FirebaseAuth.getInstance()
+        
+        if (auth.currentUser == null) {
+            val loginIntent = Intent(this, LoginActivity::class.java)
+            val navigateToFragment = intent.getStringExtra("NAVIGATE_TO_FRAGMENT")
+            val productId = intent.getStringExtra("PRODUCT_ID")
+            
+            if (navigateToFragment != null) {
+                loginIntent.putExtra("NAVIGATE_TO_FRAGMENT", navigateToFragment)
+            }
+            if (!productId.isNullOrEmpty()) {
+                loginIntent.putExtra("PRODUCT_ID", productId)
+            }
+            
+            startActivity(loginIntent)
+            finish()
+            return
+        }
+        
         setTheme(R.style.Theme_EstacionDulceApp_Home)
         setContentView(R.layout.activity_home)
         
         loader = CustomLoader(this)
-        auth = FirebaseAuth.getInstance()
         loader.show()
 
         FirestoreRepository.startListeners()
 
-        val dataLoadedObserver = androidx.lifecycle.Observer<Any> { checkDataLoaded() }
+        val dataLoadedObserver = androidx.lifecycle.Observer<Any> { 
+            checkDataLoaded()
+        }
         FirestoreRepository.recipesLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.productsLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.measuresLiveData.observe(this, dataLoadedObserver)
@@ -81,6 +103,36 @@ class HomeActivity : AppCompatActivity() {
         setupChatFab()
         requestNotificationPermission()
         showDashboard()
+    }
+    
+    /**
+     * Handles navigation to fragment from push notification.
+     * Waits for data to be loaded before navigating.
+     */
+    private fun handleNotificationNavigation() {
+        val navigateToFragment = intent.getStringExtra("NAVIGATE_TO_FRAGMENT")
+        val productId = intent.getStringExtra("PRODUCT_ID")
+        
+        if (navigateToFragment != null) {
+            when (navigateToFragment) {
+                "kitchen_orders" -> {
+                    loadFragment(KitchenOrderFragment(), "Pedidos")
+                    showFragmentContainer()
+                }
+                "product_detail" -> {
+                    if (!productId.isNullOrEmpty()) {
+                        val intent = Intent(this, ProductEditActivity::class.java)
+                        intent.putExtra("PRODUCT_ID", productId)
+                        startActivity(intent)
+                    }
+                }
+                "home" -> {
+                    showDashboard()
+                }
+            }
+            intent.removeExtra("NAVIGATE_TO_FRAGMENT")
+            intent.removeExtra("PRODUCT_ID")
+        }
     }
     
     /**
@@ -230,6 +282,10 @@ class HomeActivity : AppCompatActivity() {
 
         if (recipesLoaded && productsLoaded && measuresLoaded && categoriesLoaded && sectionsLoaded && personsLoaded && movementsLoaded && shipmentSettingsLoaded) {
             loader.hide()
+            if (!hasNavigatedFromNotification) {
+                handleNotificationNavigation()
+                hasNavigatedFromNotification = true
+            }
         }
     }
 

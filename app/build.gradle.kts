@@ -11,8 +11,8 @@ android {
         applicationId = "com.estaciondulce.app"
         minSdk = 30
         targetSdk = 35
-        versionCode = 33
-        versionName = "6.5"
+        versionCode = 34
+        versionName = "6.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

@@ -68,6 +68,8 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v6.6** - Fixed push notifications display, added navigation from notifications to kitchen_orders and product_detail fragments, improved notification handling for logged in and logged out users
+- **v6.6** - Fixed push notifications display, added navigation from notifications to kitchen_orders and product_detail fragments, improved notification handling for logged in and logged out users
 - **v6.5** - Added custom item option for purchases, improved push notifications with logo and validations, and added daily scheduled notification for pending orders
 - **v6.4** - Added annual statistics tab with monthly balance chart, top 10 clients and recipes charts, and dynamic colors for balance chart
 - **v6.3** - Improved StatisticsFragment charts: limited recipe and product charts to top 10, changed purchase charts to red, removed decimals from all chart values and Y-axis labels

@@ -60,11 +60,13 @@ export const onProductLowStock = onDocumentUpdated(
     try {
       await admin.messaging().send({
         topic: "low_stock",
-        data: {
-          productId: productId,
-          screen: "product_detail",
+        notification: {
           title: title,
           body: body
+        },
+        data: {
+          productId: productId,
+          screen: "product_detail"
         },
         android: {
           priority: "high" as const,

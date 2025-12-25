@@ -1,4 +1,4 @@
-﻿package com.estaciondulce.app.activities
+package com.estaciondulce.app.activities
 
 import android.content.Intent
 import android.content.pm.PackageInfo
@@ -82,11 +82,22 @@ class LoginActivity : AppCompatActivity() {
                         subscribeToPendingOrdersTopic()
                         
                         rootLayout.postDelayed({
-                            startActivity(Intent(this, HomeActivity::class.java))
+                            val homeIntent = Intent(this, HomeActivity::class.java)
+                            val navigateToFragment = intent.getStringExtra("NAVIGATE_TO_FRAGMENT")
+                            val productId = intent.getStringExtra("PRODUCT_ID")
+                            
+                            if (navigateToFragment != null) {
+                                homeIntent.putExtra("NAVIGATE_TO_FRAGMENT", navigateToFragment)
+                            }
+                            if (!productId.isNullOrEmpty()) {
+                                homeIntent.putExtra("PRODUCT_ID", productId)
+                            }
+                            
+                            startActivity(homeIntent)
                             finish()
                         }, 2000)
                     } else {
-                        val errorMessage = task.exception?.message ?: "Error en el inicio de sesiÃƒÂ³n."
+                        val errorMessage = task.exception?.message ?: "Error en el inicio de sesiÃ³n."
                         CustomToast.showError(this, errorMessage)
                     }
                 }
