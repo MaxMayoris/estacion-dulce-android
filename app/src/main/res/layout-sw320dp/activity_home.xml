@@ -369,6 +369,53 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Timesheet Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/timesheetCard"
+                style="@style/DashboardCardStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="12dp">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/ic_timesheet"
+                        android:tint="@color/button_gradient_start"
+                        android:contentDescription="Jornadas" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="20dp"
+                        android:text="Jornadas"
+                        android:textSize="18sp"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium" />
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@android:drawable/ic_media_play"
+                        android:tint="@color/button_gradient_start"
+                        android:contentDescription="Ir a jornada" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Statistics Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/statisticsCard"

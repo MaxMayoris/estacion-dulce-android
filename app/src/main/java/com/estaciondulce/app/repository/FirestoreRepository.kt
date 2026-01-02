@@ -8,6 +8,8 @@ import com.estaciondulce.app.models.parcelables.Movement
 import com.estaciondulce.app.models.parcelables.Person
 import com.estaciondulce.app.models.parcelables.Product
 import com.estaciondulce.app.models.parcelables.Recipe
+import com.estaciondulce.app.models.parcelables.WorkCategory
+import com.estaciondulce.app.models.parcelables.Worker
 import com.estaciondulce.app.models.Section
 import com.estaciondulce.app.models.parcelables.ShipmentSettings
 import com.estaciondulce.app.models.dtos.MovementDTO
@@ -15,6 +17,8 @@ import com.estaciondulce.app.models.dtos.PersonDTO
 import com.estaciondulce.app.models.dtos.ProductDTO
 import com.estaciondulce.app.models.dtos.RecipeDTO
 import com.estaciondulce.app.models.dtos.ShipmentSettingsDTO
+import com.estaciondulce.app.models.dtos.WorkCategoryDTO
+import com.estaciondulce.app.models.dtos.WorkerDTO
 import com.estaciondulce.app.models.mappers.*
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -34,6 +38,8 @@ object FirestoreRepository {
     val personsLiveData = MutableLiveData<List<Person>>()
     val movementsLiveData = MutableLiveData<List<Movement>>()
     val shipmentSettingsLiveData = MutableLiveData<ShipmentSettings?>()
+    val workCategoriesLiveData = MutableLiveData<List<WorkCategory>>()
+    val workersLiveData = MutableLiveData<List<Worker>>()
 
     private var productsListener: ListenerRegistration? = null
     private var recipesListener: ListenerRegistration? = null
@@ -43,6 +49,8 @@ object FirestoreRepository {
     private var personsListener: ListenerRegistration? = null
     private var movementsListener: ListenerRegistration? = null
     private var shipmentSettingsListener: ListenerRegistration? = null
+    private var workCategoriesListener: ListenerRegistration? = null
+    private var workersListener: ListenerRegistration? = null
 
     /**
      * Starts real-time snapshot listeners for all collections.
@@ -142,6 +150,32 @@ object FirestoreRepository {
                 shipmentSettingsLiveData.postValue(settings)
             }
 
+        workCategoriesListener = firestore.collection("workCategories")
+            .whereEqualTo("isActive", true)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    workCategoriesLiveData.postValue(emptyList())
+                    return@addSnapshotListener
+                }
+                val categories = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(WorkCategoryDTO::class.java)?.toParcelable(doc.id)
+                } ?: emptyList()
+                workCategoriesLiveData.postValue(categories.sortedBy { it.order })
+            }
+
+        workersListener = firestore.collection("workers")
+            .whereEqualTo("isActive", true)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    workersLiveData.postValue(emptyList())
+                    return@addSnapshotListener
+                }
+                val workers = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(WorkerDTO::class.java)?.toParcelable(doc.id)
+                } ?: emptyList()
+                workersLiveData.postValue(workers)
+            }
+
     }
 
     fun stopListeners() {
@@ -153,5 +187,7 @@ object FirestoreRepository {
         personsListener?.remove()
         movementsListener?.remove()
         shipmentSettingsListener?.remove()
+        workCategoriesListener?.remove()
+        workersListener?.remove()
     }
 }

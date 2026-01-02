@@ -21,6 +21,7 @@ import com.estaciondulce.app.fragments.ShipmentFragment
 import com.estaciondulce.app.fragments.KitchenOrderFragment
 import com.estaciondulce.app.fragments.StatisticsFragment
 import com.estaciondulce.app.fragments.ChatFragment
+import com.estaciondulce.app.fragments.TimesheetFragment
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.utils.CustomToast
@@ -34,6 +35,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var loader: CustomLoader
     private lateinit var auth: FirebaseAuth
     private var hasNavigatedFromNotification = false
+    private var authStateListener: FirebaseAuth.AuthStateListener? = null
     
     private val productFragment = ProductFragment()
     private val recipeFragment = RecipeFragment()
@@ -42,6 +44,7 @@ class HomeActivity : AppCompatActivity() {
     private val shipmentFragment = ShipmentFragment()
     private val statisticsFragment = StatisticsFragment()
     private val chatFragment = ChatFragment()
+    private val timesheetFragment = TimesheetFragment()
     
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -60,21 +63,101 @@ class HomeActivity : AppCompatActivity() {
         
         auth = FirebaseAuth.getInstance()
         
-        if (auth.currentUser == null) {
-            val loginIntent = Intent(this, LoginActivity::class.java)
-            val navigateToFragment = intent.getStringExtra("NAVIGATE_TO_FRAGMENT")
-            val productId = intent.getStringExtra("PRODUCT_ID")
+        val navigateToFragment = intent.getStringExtra("NAVIGATE_TO_FRAGMENT") 
+            ?: intent.getStringExtra("screen")
+        val productId = intent.getStringExtra("PRODUCT_ID") 
+            ?: intent.getStringExtra("productId")
+        
+        val isUserLoggedIn = auth.currentUser != null
+        
+        if (!isUserLoggedIn) {
+            var handled = false
             
-            if (navigateToFragment != null) {
-                loginIntent.putExtra("NAVIGATE_TO_FRAGMENT", navigateToFragment)
-            }
-            if (!productId.isNullOrEmpty()) {
-                loginIntent.putExtra("PRODUCT_ID", productId)
+            authStateListener = FirebaseAuth.AuthStateListener { firebaseAuth ->
+                if (handled) return@AuthStateListener
+                
+                val user = firebaseAuth.currentUser
+                
+                if (user != null) {
+                    authStateListener?.let { listener ->
+                        auth.removeAuthStateListener(listener)
+                        authStateListener = null
+                    }
+                    handled = true
+                    initializeHomeActivity(navigateToFragment, productId)
+                }
             }
             
-            startActivity(loginIntent)
-            finish()
+            auth.addAuthStateListener(authStateListener!!)
+            
+            fun checkAndHandle(delay: Long) {
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    if (handled || authStateListener == null) return@postDelayed
+                    
+                    val user = auth.currentUser
+                    
+                    if (user != null) {
+                        authStateListener?.let { listener ->
+                            auth.removeAuthStateListener(listener)
+                            authStateListener = null
+                        }
+                        handled = true
+                        initializeHomeActivity(navigateToFragment, productId)
+                    } else if (delay >= 2000) {
+                        authStateListener?.let { listener ->
+                            auth.removeAuthStateListener(listener)
+                            authStateListener = null
+                        }
+                        handled = true
+                        redirectToLogin(navigateToFragment, productId)
+                    }
+                }, delay)
+            }
+            
+            checkAndHandle(300)
+            checkAndHandle(600)
+            checkAndHandle(1000)
+            checkAndHandle(1500)
+            checkAndHandle(2000)
+            
             return
+        }
+        
+        initializeHomeActivity(navigateToFragment, productId)
+    }
+    
+    private fun redirectToLogin(navigateToFragment: String?, productId: String?) {
+        val loginIntent = Intent(this, LoginActivity::class.java)
+        
+        val finalNavigateToFragment = navigateToFragment 
+            ?: intent.getStringExtra("NAVIGATE_TO_FRAGMENT") 
+            ?: intent.getStringExtra("screen")
+        val finalProductId = productId 
+            ?: intent.getStringExtra("PRODUCT_ID") 
+            ?: intent.getStringExtra("productId")
+        
+        if (finalNavigateToFragment != null) {
+            loginIntent.putExtra("NAVIGATE_TO_FRAGMENT", finalNavigateToFragment)
+            loginIntent.putExtra("screen", finalNavigateToFragment)
+        }
+        if (!finalProductId.isNullOrEmpty()) {
+            loginIntent.putExtra("PRODUCT_ID", finalProductId)
+            loginIntent.putExtra("productId", finalProductId)
+        }
+        
+        startActivity(loginIntent)
+        finish()
+    }
+    
+    private fun initializeHomeActivity(navigateToFragment: String?, productId: String?) {
+        val finalNavigateToFragment = navigateToFragment ?: intent.getStringExtra("screen")
+        val finalProductId = productId ?: intent.getStringExtra("productId")
+        
+        if (finalNavigateToFragment != null) {
+            intent.putExtra("NAVIGATE_TO_FRAGMENT", finalNavigateToFragment)
+        }
+        if (!finalProductId.isNullOrEmpty()) {
+            intent.putExtra("PRODUCT_ID", finalProductId)
         }
         
         setTheme(R.style.Theme_EstacionDulceApp_Home)
@@ -96,6 +179,8 @@ class HomeActivity : AppCompatActivity() {
         FirestoreRepository.personsLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.movementsLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.shipmentSettingsLiveData.observe(this) { checkDataLoaded() }
+        FirestoreRepository.workCategoriesLiveData.observe(this, dataLoadedObserver)
+        FirestoreRepository.workersLiveData.observe(this, dataLoadedObserver)
 
         setupDashboardCards()
         setupLogoutButton()
@@ -110,8 +195,10 @@ class HomeActivity : AppCompatActivity() {
      * Waits for data to be loaded before navigating.
      */
     private fun handleNotificationNavigation() {
-        val navigateToFragment = intent.getStringExtra("NAVIGATE_TO_FRAGMENT")
-        val productId = intent.getStringExtra("PRODUCT_ID")
+        val navigateToFragment = intent.getStringExtra("NAVIGATE_TO_FRAGMENT") 
+            ?: intent.getStringExtra("screen")
+        val productId = intent.getStringExtra("PRODUCT_ID") 
+            ?: intent.getStringExtra("productId")
         
         if (navigateToFragment != null) {
             when (navigateToFragment) {
@@ -184,6 +271,11 @@ class HomeActivity : AppCompatActivity() {
 
         findViewById<MaterialCardView>(R.id.shipmentsCard).setOnClickListener {
             loadFragment(shipmentFragment, "Envios")
+            showFragmentContainer()
+        }
+
+        findViewById<MaterialCardView>(R.id.timesheetCard).setOnClickListener {
+            loadFragment(timesheetFragment, "Jornadas")
             showFragmentContainer()
         }
 
@@ -279,13 +371,23 @@ class HomeActivity : AppCompatActivity() {
         val personsLoaded = FirestoreRepository.personsLiveData.value != null
         val movementsLoaded = FirestoreRepository.movementsLiveData.value != null
         val shipmentSettingsLoaded = FirestoreRepository.shipmentSettingsLiveData.value != null
+        val workCategoriesLoaded = FirestoreRepository.workCategoriesLiveData.value != null
+        val workersLoaded = FirestoreRepository.workersLiveData.value != null
 
-        if (recipesLoaded && productsLoaded && measuresLoaded && categoriesLoaded && sectionsLoaded && personsLoaded && movementsLoaded && shipmentSettingsLoaded) {
+        if (recipesLoaded && productsLoaded && measuresLoaded && categoriesLoaded && sectionsLoaded && personsLoaded && movementsLoaded && shipmentSettingsLoaded && workCategoriesLoaded && workersLoaded) {
             loader.hide()
             if (!hasNavigatedFromNotification) {
                 handleNotificationNavigation()
                 hasNavigatedFromNotification = true
             }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        authStateListener?.let { listener ->
+            auth.removeAuthStateListener(listener)
+            authStateListener = null
         }
     }
 
@@ -296,7 +398,11 @@ class HomeActivity : AppCompatActivity() {
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if (findViewById<View>(R.id.homeFragmentContainer).visibility == View.VISIBLE) {
-            showDashboard()
+            if (supportFragmentManager.backStackEntryCount > 0) {
+                supportFragmentManager.popBackStack()
+            } else {
+                showDashboard()
+            }
         } else {
             super.onBackPressed()
         }

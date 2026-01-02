@@ -1,10 +1,9 @@
-package com.estaciondulce.app.activities
+﻿package com.estaciondulce.app.activities
 
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -34,9 +33,23 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         
         setTheme(R.style.Theme_EstacionDulceApp_Login)
+        
+        val navigateToFragmentOnCreate = intent.getStringExtra("NAVIGATE_TO_FRAGMENT")
+            ?: intent.getStringExtra("screen")
+        val productIdOnCreate = intent.getStringExtra("PRODUCT_ID")
+            ?: intent.getStringExtra("productId")
 
         if (skipLoginForDebug) {
-            startActivity(Intent(this, HomeActivity::class.java))
+            val homeIntent = Intent(this, HomeActivity::class.java)
+            
+            if (navigateToFragmentOnCreate != null) {
+                homeIntent.putExtra("NAVIGATE_TO_FRAGMENT", navigateToFragmentOnCreate)
+            }
+            if (!productIdOnCreate.isNullOrEmpty()) {
+                homeIntent.putExtra("PRODUCT_ID", productIdOnCreate)
+            }
+            
+            startActivity(homeIntent)
             finish()
             return
         }
@@ -84,20 +97,26 @@ class LoginActivity : AppCompatActivity() {
                         rootLayout.postDelayed({
                             val homeIntent = Intent(this, HomeActivity::class.java)
                             val navigateToFragment = intent.getStringExtra("NAVIGATE_TO_FRAGMENT")
+                                ?: intent.getStringExtra("screen")
                             val productId = intent.getStringExtra("PRODUCT_ID")
+                                ?: intent.getStringExtra("productId")
+                            
                             
                             if (navigateToFragment != null) {
                                 homeIntent.putExtra("NAVIGATE_TO_FRAGMENT", navigateToFragment)
+                                homeIntent.putExtra("screen", navigateToFragment)
                             }
                             if (!productId.isNullOrEmpty()) {
                                 homeIntent.putExtra("PRODUCT_ID", productId)
+                                homeIntent.putExtra("productId", productId)
                             }
                             
+                            homeIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                             startActivity(homeIntent)
                             finish()
                         }, 2000)
                     } else {
-                        val errorMessage = task.exception?.message ?: "Error en el inicio de sesiÃ³n."
+                        val errorMessage = task.exception?.message ?: "Error en el inicio de sesiÃƒÂ³n."
                         CustomToast.showError(this, errorMessage)
                     }
                 }
@@ -114,6 +133,12 @@ class LoginActivity : AppCompatActivity() {
                 } else {
                 }
             }
+        
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+            } else {
+            }
+        }
     }
     
     /**

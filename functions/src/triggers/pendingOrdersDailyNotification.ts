@@ -8,14 +8,18 @@ interface KitchenOrder {
   status: string;
 }
 
+interface PendingOrderGroup {
+  movementId: string;
+  orders: KitchenOrder[];
+  clientName: string;
+}
+
 /**
  * Core logic for checking pending orders and sending notifications.
  * Can be used by both scheduled and callable functions.
  */
 async function checkAndSendPendingOrdersNotification(): Promise<{ success: boolean; message: string; pendingOrdersCount: number; movementsCount: number }> {
   try {
-    logger.info("Starting pending orders notification check");
-
     const db = admin.firestore();
     
     // Get all SALE movements where kitchenOrderStatus is not READY
@@ -24,7 +28,6 @@ async function checkAndSendPendingOrdersNotification(): Promise<{ success: boole
       .get();
 
     if (movementsSnapshot.empty) {
-      logger.info("No SALE movements found");
       return {
         success: false,
         message: "No SALE movements found",
@@ -33,7 +36,7 @@ async function checkAndSendPendingOrdersNotification(): Promise<{ success: boole
       };
     }
 
-    const pendingOrders: Array<{ movementId: string; orders: KitchenOrder[] }> = [];
+    const pendingOrders: PendingOrderGroup[] = [];
 
     // Process each movement
     for (const movementDoc of movementsSnapshot.docs) {
@@ -68,9 +71,27 @@ async function checkAndSendPendingOrdersNotification(): Promise<{ success: boole
         .filter(order => order.status !== "READY" && order.status !== "DONE");
 
       if (kitchenOrders.length > 0) {
+        const personId = movementData.personId;
+        let clientName = "Cliente";
+        
+        if (personId) {
+          try {
+            const personDoc = await db.collection("persons").doc(personId).get();
+            if (personDoc.exists) {
+              const personData = personDoc.data();
+              const firstName = personData?.name || "";
+              const lastName = personData?.lastName || "";
+              clientName = `${firstName} ${lastName}`.trim() || "Cliente";
+            }
+          } catch (error) {
+            logger.error(`Error fetching person ${personId}:`, error);
+          }
+        }
+        
         pendingOrders.push({
           movementId: movementId,
-          orders: kitchenOrders
+          orders: kitchenOrders,
+          clientName: clientName
         });
       }
     }
@@ -108,7 +129,6 @@ async function checkAndSendPendingOrdersNotification(): Promise<{ success: boole
           }
         });
 
-        logger.info("Notification sent: No pending orders, sent administrative tasks reminder");
         return {
           success: true,
           message: "Notification sent: No pending orders",
@@ -179,7 +199,7 @@ async function checkAndSendPendingOrdersNotification(): Promise<{ success: boole
           body += `\n... y ${remaining} pedido${remaining !== 1 ? "s" : ""} más`;
           break;
         }
-        body += `- ${order.name} (x${order.quantity})\n`;
+        body += `- ${order.name} (x${order.quantity}) para ${movement.clientName}\n`;
         itemsAdded++;
       }
       if (itemsAdded >= maxItems) break;
@@ -189,7 +209,6 @@ async function checkAndSendPendingOrdersNotification(): Promise<{ success: boole
     const trimmedBody = body.trim();
 
     if (!title || !trimmedBody || title.trim() === "" || trimmedBody === "") {
-      logger.warn(`Notification title or body is empty - Title: "${title}", Body length: ${trimmedBody.length}`);
       return {
         success: false,
         message: "Notification title or body is empty",
@@ -216,7 +235,6 @@ async function checkAndSendPendingOrdersNotification(): Promise<{ success: boole
         }
       });
       
-      logger.info(`Notification sent: ${totalOrders} orders in ${totalMovements} movements`);
       return {
         success: true,
         message: `Notification sent: ${totalOrders} orders in ${totalMovements} movements`,
@@ -234,12 +252,12 @@ async function checkAndSendPendingOrdersNotification(): Promise<{ success: boole
 }
 
 /**
- * Scheduled Cloud Function that runs every 3 minutes for testing.
+ * Scheduled Cloud Function that runs daily at 7 AM.
  * Sends a push notification with all pending kitchen orders for the day.
  */
 export const onPendingOrdersDailyNotification = onSchedule(
   {
-    schedule: "*/2 * * * *", // Every 2 minutes for testing
+    schedule: "0 7 * * *", // Daily at 07:00 AM
     timeZone: "America/Argentina/Buenos_Aires", // UTC-3
     region: "southamerica-east1",
     timeoutSeconds: 60

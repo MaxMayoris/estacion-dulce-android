@@ -1,0 +1,39 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    
+    <!-- Clock circle -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="?attr/colorOnSurface"
+        android:strokeWidth="1"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M12,2C6.5,2 2,6.5 2,12s4.5,10 10,10s10,-4.5 10,-10S17.5,2 12,2z" />
+    
+    <!-- Hour hand pointing to 3 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="?attr/colorOnSurface"
+        android:strokeWidth="1"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M12,12L9,12" />
+    
+    <!-- Minute hand pointing to 12 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="?attr/colorOnSurface"
+        android:strokeWidth="1"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M12,12L12,7" />
+    
+    <!-- Center dot -->
+    <path
+        android:fillColor="?attr/colorOnSurface"
+        android:pathData="M12,11.5c0.3,0 0.5,0.2 0.5,0.5s-0.2,0.5 -0.5,0.5s-0.5,-0.2 -0.5,-0.5S11.7,11.5 12,11.5z" />
+        
+</vector>

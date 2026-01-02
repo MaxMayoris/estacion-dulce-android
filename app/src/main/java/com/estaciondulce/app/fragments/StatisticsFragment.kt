@@ -110,6 +110,7 @@ class StatisticsFragment : Fragment() {
         observeMovementsData()
         
         selectTab(selectedTab)
+        selectYear(selectedYear)
         selectMonth(getCurrentMonthName().lowercase())
     }
 
@@ -131,8 +132,8 @@ class StatisticsFragment : Fragment() {
      * Sets up month and year selection spinners for all tabs (shared selection).
      */
     private fun setupMonthSpinner() {
-        val months = listOf("Septiembre", "Octubre", "Noviembre", "Diciembre")
-        val monthValues = listOf("septiembre", "octubre", "noviembre", "diciembre")
+        val months = listOf("Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre")
+        val monthValues = listOf("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre")
         val years = listOf("2025", "2026")
         val yearValues = listOf(2025, 2026)
         
@@ -507,11 +508,19 @@ class StatisticsFragment : Fragment() {
      */
     private fun getMonthDateRange(month: String, year: Int = selectedYear): Pair<Date, Date> {
         val monthNumber = when (month) {
+            "enero" -> Calendar.JANUARY
+            "febrero" -> Calendar.FEBRUARY
+            "marzo" -> Calendar.MARCH
+            "abril" -> Calendar.APRIL
+            "mayo" -> Calendar.MAY
+            "junio" -> Calendar.JUNE
+            "julio" -> Calendar.JULY
+            "agosto" -> Calendar.AUGUST
             "septiembre" -> Calendar.SEPTEMBER
             "octubre" -> Calendar.OCTOBER
             "noviembre" -> Calendar.NOVEMBER
             "diciembre" -> Calendar.DECEMBER
-            else -> Calendar.DECEMBER
+            else -> Calendar.getInstance().get(Calendar.MONTH)
         }
         
         val startOfMonth = Calendar.getInstance().apply {
@@ -543,11 +552,19 @@ class StatisticsFragment : Fragment() {
     private fun getCurrentMonthName(): String {
         val calendar = Calendar.getInstance()
         return when (calendar.get(Calendar.MONTH)) {
+            Calendar.JANUARY -> "Enero"
+            Calendar.FEBRUARY -> "Febrero"
+            Calendar.MARCH -> "Marzo"
+            Calendar.APRIL -> "Abril"
+            Calendar.MAY -> "Mayo"
+            Calendar.JUNE -> "Junio"
+            Calendar.JULY -> "Julio"
+            Calendar.AUGUST -> "Agosto"
             Calendar.SEPTEMBER -> "Septiembre"
             Calendar.OCTOBER -> "Octubre"
             Calendar.NOVEMBER -> "Noviembre"
             Calendar.DECEMBER -> "Diciembre"
-            else -> "Diciembre" // Default to december if current month is not in range
+            else -> "Enero"
         }
     }
 

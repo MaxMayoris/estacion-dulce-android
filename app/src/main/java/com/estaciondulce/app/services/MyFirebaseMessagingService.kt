@@ -27,10 +27,16 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         if (remoteMessage.data.isNotEmpty()) {
             handleDataPayload(remoteMessage.data)
-        } else {
         }
 
-        remoteMessage.notification?.let {
+        remoteMessage.notification?.let { notification ->
+            if (remoteMessage.data.isNotEmpty()) {
+                val screen = remoteMessage.data["screen"]
+                val productId = remoteMessage.data["productId"]
+                showNotification(notification.title ?: "", notification.body ?: "", productId, screen)
+            } else {
+                showNotification(notification.title ?: "", notification.body ?: "", null, null)
+            }
         }
     }
 

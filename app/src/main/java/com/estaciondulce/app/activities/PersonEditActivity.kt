@@ -441,6 +441,7 @@ class PersonEditActivity : AppCompatActivity() {
         val closeButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.closeButton)
 
         val phonePrefixOptions = listOf(
+            "Buenos Aires (11)",
             "Córdoba (351)",
             "Santa Fe (341)",
             "Mendoza (261)",
@@ -456,6 +457,8 @@ class PersonEditActivity : AppCompatActivity() {
             "San Juan (264)",
             "San Luis (266)",
             "La Rioja (382)",
+            "Catamarca (383)",
+            "La Pampa (295)",
             "Neuquén (299)",
             "Río Negro (294)",
             "Chubut (297)",
@@ -556,6 +559,7 @@ class PersonEditActivity : AppCompatActivity() {
 
 
         val phonePrefixOptions = listOf(
+            "Buenos Aires (11)",
             "Córdoba (351)",
             "Santa Fe (341)",
             "Mendoza (261)",
@@ -571,6 +575,8 @@ class PersonEditActivity : AppCompatActivity() {
             "San Juan (264)",
             "San Luis (266)",
             "La Rioja (382)",
+            "Catamarca (383)",
+            "La Pampa (295)",
             "Neuquén (299)",
             "Río Negro (294)",
             "Chubut (297)",
