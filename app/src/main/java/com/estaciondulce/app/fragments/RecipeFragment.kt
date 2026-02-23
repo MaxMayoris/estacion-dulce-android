@@ -79,7 +79,7 @@ class RecipeFragment : Fragment() {
      */
     private fun setupTableView(recipes: List<Recipe>) {
         val sortedList = recipes.sortedBy { it.name }
-        val columnConfigs = listOf("Nombre", "Costo", "Venta", "En Venta").toColumnConfigs(currencyColumns = setOf(1, 2))
+        val columnConfigs = listOf("Nombre", "Venta", "Stock", "Venta").toColumnConfigs(currencyColumns = setOf(1))
         binding.recipeTable.setupTableWithConfigs(
             columnConfigs = columnConfigs,
             data = sortedList,
@@ -90,8 +90,8 @@ class RecipeFragment : Fragment() {
             ) { recipe ->
                 listOf(
                     recipe.name,
-                    recipe.cost,
                     recipe.salePrice,
+                    recipe.inStock,
                     recipe.onSale
                 )
             },
@@ -100,8 +100,8 @@ class RecipeFragment : Fragment() {
                 val recipe = item as Recipe
                 when (columnIndex) {
                     0 -> recipe.name
-                    1 -> recipe.cost
-                    2 -> recipe.salePrice
+                    1 -> recipe.salePrice
+                    2 -> recipe.inStock
                     3 -> recipe.onSale
                     else -> null
                 }

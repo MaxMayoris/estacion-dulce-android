@@ -99,42 +99,63 @@
                     android:textColor="@color/white"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
-                <!-- Checkboxes Layout -->
+                <!-- Checkboxes Layout (2x2 Grid) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:orientation="vertical">
 
-                    <CheckBox
-                        android:id="@+id/recipeOnSaleCheckbox"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="En venta"
-                        android:textSize="16sp"
-                        android:textColor="@color/text_primary"
-                        android:buttonTint="@color/button_gradient_start"
-                        android:layout_marginEnd="16dp"/>
+                        android:orientation="horizontal">
 
-                    <CheckBox
-                        android:id="@+id/recipeOnSaleQueryCheckbox"
-                        android:layout_width="wrap_content"
+                        <CheckBox
+                            android:id="@+id/recipeOnSaleCheckbox"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="En venta"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary"
+                            android:buttonTint="@color/button_gradient_start"/>
+
+                        <CheckBox
+                            android:id="@+id/recipeInStockCheckbox"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="En stock"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary"
+                            android:buttonTint="@color/button_gradient_start"/>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Consultar"
-                        android:textSize="16sp"
-                        android:textColor="@color/text_primary"
-                        android:buttonTint="@color/button_gradient_start"
-                        android:layout_marginEnd="16dp"/>
+                        android:orientation="horizontal">
 
-                    <CheckBox
-                        android:id="@+id/recipeCustomizableCheckbox"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Customizable"
-                        android:textSize="16sp"
-                        android:textColor="@color/text_primary"
-                        android:buttonTint="@color/button_gradient_start"/>
+                        <CheckBox
+                            android:id="@+id/recipeOnSaleQueryCheckbox"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Consultar"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary"
+                            android:buttonTint="@color/button_gradient_start"/>
 
+                        <CheckBox
+                            android:id="@+id/recipeCustomizableCheckbox"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Custom"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary"
+                            android:buttonTint="@color/button_gradient_start"/>
+                    </LinearLayout>
                 </LinearLayout>
 
             </LinearLayout>

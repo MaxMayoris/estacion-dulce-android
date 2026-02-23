@@ -163,6 +163,7 @@ class RecipeEditActivity : AppCompatActivity() {
             binding.recipeOnSaleCheckbox.isChecked = r.onSale
             binding.recipeOnSaleQueryCheckbox.isChecked = r.onSaleQuery
             binding.recipeCustomizableCheckbox.isChecked = r.customizable
+            binding.recipeInStockCheckbox.isChecked = r.inStock
             binding.recipeUnitInput.setText(r.unit.toString())
             binding.recipeDescriptionInput.setText(r.description)
             recipeDetail = r.detail
@@ -1015,8 +1016,10 @@ class RecipeEditActivity : AppCompatActivity() {
                     profitPercentage = profitPercentage,
                     unit = binding.recipeUnitInput.text.toString().toIntOrNull() ?: 1,
                     onSale = binding.recipeOnSaleCheckbox.isChecked,
-                    onSaleQuery = binding.recipeOnSaleQueryCheckbox.isChecked,
-                    images = existingImageUrls.toList(),
+                onSaleQuery = binding.recipeOnSaleQueryCheckbox.isChecked,
+                customizable = binding.recipeCustomizableCheckbox.isChecked,
+                inStock = binding.recipeInStockCheckbox.isChecked,
+                images = existingImageUrls.toList(),
                     description = binding.recipeDescriptionInput.text.toString(),
                     detail = recipeDetail,
                     categories = selectedCategories.toList(),

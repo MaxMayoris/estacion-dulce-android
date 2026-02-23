@@ -248,14 +248,13 @@ class TimesheetStatisticsActivity : AppCompatActivity() {
      */
     private fun updateCategoriesChart(blocks: List<WorkBlock>) {
         val categories = FirestoreRepository.workCategoriesLiveData.value?.associateBy { it.id } ?: mapOf()
-        val categoryHours = mutableMapOf<String, Long>()
+        val categoryMinutes = mutableMapOf<String, Long>()
 
         blocks.forEach { block ->
-            val hours = block.durationMinutes / 60
-            categoryHours[block.categoryId] = (categoryHours[block.categoryId] ?: 0L) + hours
+            categoryMinutes[block.categoryId] = (categoryMinutes[block.categoryId] ?: 0L) + block.durationMinutes
         }
 
-        if (categoryHours.isEmpty()) {
+        if (categoryMinutes.isEmpty()) {
             binding.categoriesChart.visibility = View.GONE
             binding.categoriesEmptyMessage.visibility = View.VISIBLE
             return
@@ -267,8 +266,9 @@ class TimesheetStatisticsActivity : AppCompatActivity() {
         val entries = mutableListOf<BarEntry>()
         val labels = mutableListOf<String>()
 
-        categoryHours.toList().sortedByDescending { it.second }.forEachIndexed { index, (categoryId, hours) ->
+        categoryMinutes.toList().sortedByDescending { it.second }.forEachIndexed { index, (categoryId, totalMinutes) ->
             val category = categories[categoryId]
+            val hours = totalMinutes / 60.0
             entries.add(BarEntry(index.toFloat(), hours.toFloat()))
             labels.add(category?.name ?: "Desconocida")
         }
@@ -278,6 +278,19 @@ class TimesheetStatisticsActivity : AppCompatActivity() {
             valueTextColor = Color.BLACK
             valueTextSize = 10f
             setDrawValues(true)
+            valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val totalMinutes = Math.round(value * 60).toLong()
+                    val h = totalMinutes / 60
+                    val m = totalMinutes % 60
+                    return when {
+                        h > 0 && m > 0 -> "${h}h ${m}m"
+                        h > 0 -> "${h}h"
+                        m > 0 -> "${m}m"
+                        else -> "0h"
+                    }
+                }
+            }
         }
 
         val barData = BarData(dataSet).apply {

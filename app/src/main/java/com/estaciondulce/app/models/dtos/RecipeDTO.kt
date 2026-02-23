@@ -9,6 +9,7 @@ data class RecipeDTO(
     val onSale: Boolean = false,
     val onSaleQuery: Boolean = false,
     val customizable: Boolean = false,
+    val inStock: Boolean = false,
     val salePrice: Double = 0.0,
     val suggestedPrice: Double = 0.0,
     val profitPercentage: Double = 0.0,

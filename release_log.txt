@@ -1,0 +1,117 @@
+Starting release... 
+=== EstacionDulceApp Release Script ===
+
+Release Parameters:
+  Version Name: 7.1
+  Version Code: 36
+  Description: Add in-stock field for recipes and improve UI layout
+
+=== Step 1: Updating version numbers ===
+Updated build.gradle.kts
+
+=== Step 2: Updating README.md ===
+  Found version history section
+  Added new version entry: - **v7.1** - Add in-stock field for recipes and improve UI layout
+Updated README.md with new version entry
+
+=== Step 3: Removing comments from modified files ===
+=== Removing single-line comments from modified .kt files ===
+warning: in the working copy of 'app/src/main/java/com/estaciondulce/app/activities/HomeActivity.kt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/java/com/estaciondulce/app/activities/LoginActivity.kt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/java/com/estaciondulce/app/activities/TimesheetStatisticsActivity.kt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/java/com/estaciondulce/app/fragments/RecipeFragment.kt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/java/com/estaciondulce/app/fragments/StatisticsFragment.kt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/java/com/estaciondulce/app/repository/FirestoreRepository.kt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/res/layout/activity_recipe_edit.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/res/layout/fragment_statistics.xml', LF will be replaced by CRLF the next time Git touches it
+Found 8 modified .kt files:
+  - app/src/main/java/com/estaciondulce/app/activities/LoginActivity.kt
+  - app/src/main/java/com/estaciondulce/app/activities/RecipeEditActivity.kt
+  - app/src/main/java/com/estaciondulce/app/activities/TimesheetStatisticsActivity.kt
+  - app/src/main/java/com/estaciondulce/app/fragments/RecipeFragment.kt
+  - app/src/main/java/com/estaciondulce/app/helpers/SettingsHelper.kt
+  - app/src/main/java/com/estaciondulce/app/models/dtos/RecipeDTO.kt
+  - app/src/main/java/com/estaciondulce/app/models/mappers/RecipeMapper.kt
+  - app/src/main/java/com/estaciondulce/app/models/parcelables/Recipe.kt
+Processing: app/src/main/java/com/estaciondulce/app/activities/LoginActivity.kt
+  Processed successfully
+Processing: app/src/main/java/com/estaciondulce/app/activities/RecipeEditActivity.kt
+  Processed successfully
+Processing: app/src/main/java/com/estaciondulce/app/activities/TimesheetStatisticsActivity.kt
+  Processed successfully
+Processing: app/src/main/java/com/estaciondulce/app/fragments/RecipeFragment.kt
+  Processed successfully
+Processing: app/src/main/java/com/estaciondulce/app/helpers/SettingsHelper.kt
+  Processed successfully
+Processing: app/src/main/java/com/estaciondulce/app/models/dtos/RecipeDTO.kt
+  Processed successfully
+Processing: app/src/main/java/com/estaciondulce/app/models/mappers/RecipeMapper.kt
+  Processed successfully
+Processing: app/src/main/java/com/estaciondulce/app/models/parcelables/Recipe.kt
+  Processed successfully
+
+=== Summary ===
+Files processed: 8
+Total comments removed: 0
+Comment removal completed successfully!
+
+=== Step 4: Removing debug logs ===
+warning: in the working copy of 'app/src/main/java/com/estaciondulce/app/activities/HomeActivity.kt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/java/com/estaciondulce/app/fragments/StatisticsFragment.kt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/java/com/estaciondulce/app/repository/FirestoreRepository.kt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/res/layout/activity_recipe_edit.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/res/layout/fragment_statistics.xml', LF will be replaced by CRLF the next time Git touches it
+Removed 0 debug log lines
+
+=== Step 5: Verifying and fixing debug settings ===
+Found skipLoginForDebug = true, fixing to false...
+Fixed: skipLoginForDebug is now set to false
+
+=== Step 6: Compiling and checking for warnings ===
+Running gradlew compileDevDebugKotlin...
+Compilation successful
+
+=== Step 7: Checking release bundle for warnings ===
+Running gradlew bundleProdRelease --warning-mode all...
+Release bundle build successful (0 warnings)
+
+=== Step 8: Creating final release bundle ===
+Running gradlew bundleProdRelease...
+Final release bundle created successfully
+
+=== Step 9: Git Status ===
+Modified files ready for commit:
+   M .gitignore
+   M README.md
+   M app/build.gradle.kts
+   M app/src/main/java/com/estaciondulce/app/activities/HomeActivity.kt
+   M app/src/main/java/com/estaciondulce/app/activities/RecipeEditActivity.kt
+   M app/src/main/java/com/estaciondulce/app/activities/TimesheetStatisticsActivity.kt
+   M app/src/main/java/com/estaciondulce/app/fragments/RecipeFragment.kt
+   M app/src/main/java/com/estaciondulce/app/fragments/StatisticsFragment.kt
+   M app/src/main/java/com/estaciondulce/app/helpers/SettingsHelper.kt
+   M app/src/main/java/com/estaciondulce/app/models/dtos/RecipeDTO.kt
+   M app/src/main/java/com/estaciondulce/app/models/mappers/RecipeMapper.kt
+   M app/src/main/java/com/estaciondulce/app/models/parcelables/Recipe.kt
+   M app/src/main/java/com/estaciondulce/app/repository/FirestoreRepository.kt
+   M app/src/main/res/layout/activity_recipe_edit.xml
+   M app/src/main/res/layout/fragment_statistics.xml
+   M app/src/main/res/layout/item_day_summary.xml
+   D gradle.properties.example
+  ?? .agent/
+  ?? release_log.txt
+  ?? run_release.bat
+  ?? run_release_v2.bat
+
+=== Release Preparation Complete! ===
+Version: 7.1 (36)
+Description: Add in-stock field for recipes and improve UI layout
+
+Next steps:
+1. Review the changes with: git diff
+2. Commit with: git add .
+3. Then: git commit -m "Add in-stock field for recipes and improve UI layout"
+4. Push with: git push
+
+Release script completed successfully!
+DONE 

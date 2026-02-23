@@ -25,3 +25,7 @@ gradle.properties
 
 # Release rules (internal use only)
 release-rules.mdc
+
+# Build verification scripts and logs
+/run_compilation.bat
+/build_logs/

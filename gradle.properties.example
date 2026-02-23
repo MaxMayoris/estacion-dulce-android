@@ -1,8 +1,0 @@
-# Gradle Properties Example
-# Copy this file to gradle.properties and fill in your actual values
-
-GOOGLE_MAPS_API_KEY_DEV=key_here
-GOOGLE_MAPS_API_KEY_PROD=key_here
-
-# Other sensitive configuration
-# Add any other sensitive keys or configuration here
