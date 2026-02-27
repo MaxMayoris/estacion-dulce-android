@@ -40,6 +40,7 @@ import com.estaciondulce.app.models.enums.EItemType
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.CustomLoader
+import com.estaciondulce.app.utils.ImageUtils
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -441,6 +442,8 @@ class MovementEditActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        ImageUtils.clearTempFiles(this)
+        tempImageFiles.forEach { it.delete() }
     }
 
     /**
@@ -1628,28 +1631,42 @@ class MovementEditActivity : AppCompatActivity() {
     private fun uploadImagesToTempStorage(uris: List<Uri>) {
         if (uris.isEmpty()) return
         
+        val validUris = uris.filter { uri ->
+            val size = ImageUtils.getImageSize(this, uri)
+            if (size > 4 * 1024 * 1024) {
+                CustomToast.showError(this, "La imagen es demasiado grande. Máximo 4MB.")
+                false
+            } else {
+                true
+            }
+        }
+
+        if (validUris.isEmpty()) return
+
         customLoader.show()
         
         val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", java.util.Locale.getDefault())
             .format(java.util.Date())
         
         var completedUploads = 0
-        val totalUploads = uris.size
+        val totalUploads = validUris.size
         
-        uris.forEachIndexed { index, uri ->
-            val fileName = if (uris.size > 1) {
+        validUris.forEachIndexed { index, originalUri ->
+            val fileName = if (validUris.size > 1) {
                 "${timestamp}-${index + 1}.jpg"
             } else {
                 "${timestamp}.jpg"
             }
             
+            val compressedUri = ImageUtils.compressImage(this, originalUri)
+            
             storageHelper.uploadTempImage(
-                imageUri = uri,
+                imageUri = compressedUri,
                 uid = tempStorageUid,
                 fileName = fileName,
                 onSuccess = { downloadUrl ->
                     tempImageUrls.add(downloadUrl)
-                    tempUrlToOriginalUriMap[downloadUrl] = uri
+                    tempUrlToOriginalUriMap[downloadUrl] = compressedUri
                     completedUploads++
                     
                     if (completedUploads == totalUploads) {

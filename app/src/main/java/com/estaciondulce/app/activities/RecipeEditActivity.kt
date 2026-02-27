@@ -34,6 +34,7 @@ import com.estaciondulce.app.utils.DeleteConfirmationDialog
 import com.estaciondulce.app.adapters.RecipeImageAdapter
 import com.estaciondulce.app.adapters.ProductSearchAdapter
 import com.estaciondulce.app.adapters.RecipeSearchAdapter
+import com.estaciondulce.app.utils.ImageUtils
 import android.util.TypedValue
 import java.io.File
 import java.io.IOException
@@ -235,6 +236,12 @@ class RecipeEditActivity : AppCompatActivity() {
         loader.hide()
     }
     
+    override fun onDestroy() {
+        super.onDestroy()
+        ImageUtils.clearTempFiles(this)
+        tempImageFiles.forEach { it.delete() }
+    }
+
     private fun showDetailDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_recipe_detail, null)
         val dialog = AlertDialog.Builder(this)
@@ -1462,23 +1469,43 @@ class RecipeEditActivity : AppCompatActivity() {
         val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", java.util.Locale.getDefault())
             .format(java.util.Date())
         
-        var completedUploads = 0
-        val totalUploads = uris.size
+        val validUris = mutableListOf<Uri>()
+        val maxFileSize = 4 * 1024 * 1024L // 4MB
         
-        uris.forEachIndexed { index, uri ->
-            val fileName = if (uris.size > 1) {
+        uris.forEach { uri ->
+            val size = ImageUtils.getImageSize(this, uri)
+            if (size > maxFileSize) {
+                CustomToast.showError(this, "La imagen es demasiado grande. Máximo 4MB.")
+            } else {
+                validUris.add(uri)
+            }
+        }
+        
+        if (validUris.isEmpty()) {
+            showImageUploadProgress(false)
+            loader.hide()
+            return
+        }
+
+        var completedUploads = 0
+        val totalUploads = validUris.size
+        
+        validUris.forEachIndexed { index, originalUri ->
+            val fileName = if (validUris.size > 1) {
                 "${timestamp}-${index + 1}.jpg"
             } else {
                 "${timestamp}.jpg"
             }
             
+            val compressedUri = ImageUtils.compressImage(this, originalUri)
+            
             storageHelper.uploadTempImage(
-                imageUri = uri,
+                imageUri = compressedUri,
                 uid = tempStorageUid,
                 fileName = fileName,
                 onSuccess = { downloadUrl ->
                     tempImageUrls.add(downloadUrl)
-                    tempUrlToOriginalUriMap[downloadUrl] = uri
+                    tempUrlToOriginalUriMap[downloadUrl] = compressedUri // Store compressed URI for final upload
                     completedUploads++
                     
                     if (completedUploads == totalUploads) {

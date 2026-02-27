@@ -1,1 +1,20 @@
 Running git add... 
+warning: in the working copy of 'app/src/main/java/com/estaciondulce/app/activities/HomeActivity.kt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/java/com/estaciondulce/app/fragments/StatisticsFragment.kt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/java/com/estaciondulce/app/repository/FirestoreRepository.kt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/res/layout/activity_recipe_edit.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/src/main/res/layout/fragment_statistics.xml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'release_log.txt', LF will be replaced by CRLF the next time Git touches it
+Running git commit... 
+[main f27fbe6] Add in-stock field for recipes and improve UI layout
+ 18 files changed, 326 insertions(+), 48 deletions(-)
+ create mode 100644 .agent/workflows/develop.md
+ create mode 100644 .agent/workflows/release.md
+ create mode 100644 git_log.txt
+ create mode 100644 git_release.bat
+ delete mode 100644 gradle.properties.example
+ create mode 100644 release_log.txt
+Running git push... 
+To https://github.com/MaxMayoris/estacion-dulce-android.git
+   c9b808d..f27fbe6  main -> main
+DONE 

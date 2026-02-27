@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v8.0** - Implement image compression (1200px, WebP, 75% quality) and size validation for recipes and movements
 - **v7.1** - Add in-stock field for recipes and improve UI layout
 - **v7.0** - Added Timesheet functionality, fixed Statistics and phone prefix issues
 - **v6.6** - Fixed push notifications display, added navigation from notifications to kitchen_orders and product_detail fragments, improved notification handling for logged in and logged out users
