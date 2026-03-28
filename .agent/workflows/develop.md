@@ -23,9 +23,10 @@ private fun cleanWhatsAppPhoneNumber(phoneText: String): String
 ## Compilation Verification
 // turbo
 1. **ALWAYS run compilation check** after completing instructions that modify code.
-2. **Use command**: `cmd /c run_compilation.bat`
-3. **DO NOT finish until ALL compilation errors are resolved**.
-4. **Fix ALL warnings and errors** before considering task complete.
+2. **Use command**: `cmd /c run_compilation.bat` (or `call gradlew ...` if running directly)
+3. **IMPORTANT**: Always use `call` before `gradlew` on Windows to ensure the shell process continues correctly.
+4. **DO NOT finish until ALL compilation errors are resolved**.
+5. **Fix ALL warnings and errors** before considering task complete.
 
 ## Development Workflow
 1. Make code changes.
