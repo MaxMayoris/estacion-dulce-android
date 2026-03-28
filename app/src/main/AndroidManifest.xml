@@ -60,6 +60,7 @@
         <activity android:name=".activities.DayDetailActivity" />
         <activity android:name=".activities.WorkBlockEditActivity" />
         <activity android:name=".activities.TimesheetStatisticsActivity" />
+        <activity android:name=".activities.DiscountEditActivity" />
         <activity 
             android:name=".activities.FullScreenImageActivity"
             android:theme="@style/Theme.AppCompat.NoActionBar" />

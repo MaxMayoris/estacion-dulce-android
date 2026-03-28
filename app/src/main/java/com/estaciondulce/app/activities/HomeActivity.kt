@@ -17,6 +17,7 @@ import com.estaciondulce.app.fragments.MovementFragment
 import com.estaciondulce.app.fragments.PersonFragment
 import com.estaciondulce.app.fragments.ProductFragment
 import com.estaciondulce.app.fragments.RecipeFragment
+import com.estaciondulce.app.fragments.DiscountFragment
 import com.estaciondulce.app.fragments.ShipmentFragment
 import com.estaciondulce.app.fragments.KitchenOrderFragment
 import com.estaciondulce.app.fragments.StatisticsFragment
@@ -39,6 +40,7 @@ class HomeActivity : AppCompatActivity() {
     
     private val productFragment = ProductFragment()
     private val recipeFragment = RecipeFragment()
+    private val discountFragment = DiscountFragment()
     private val personFragment = PersonFragment()
     private val movementFragment = MovementFragment()
     private val shipmentFragment = ShipmentFragment()
@@ -251,6 +253,11 @@ class HomeActivity : AppCompatActivity() {
 
         findViewById<MaterialCardView>(R.id.recipesCard).setOnClickListener {
             loadFragment(recipeFragment, "Recetas")
+            showFragmentContainer()
+        }
+
+        findViewById<MaterialCardView>(R.id.discountsCard).setOnClickListener {
+            loadFragment(discountFragment, "Descuentos")
             showFragmentContainer()
         }
 
