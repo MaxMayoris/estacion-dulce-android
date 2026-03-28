@@ -1,0 +1,63 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preProdReleaseBuild UP-TO-DATE
+> Task :app:extractProdReleaseVersionControlInfo UP-TO-DATE
+> Task :app:mergeProdReleaseShaders UP-TO-DATE
+> Task :app:compileProdReleaseShaders NO-SOURCE
+> Task :app:generateProdReleaseAssets UP-TO-DATE
+> Task :app:mergeProdReleaseAssets UP-TO-DATE
+> Task :app:buildKotlinToolingMetadata UP-TO-DATE
+> Task :app:checkProdReleaseDuplicateClasses UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors
+> Task :app:dataBindingMergeDependencyArtifactsProdRelease UP-TO-DATE
+> Task :app:generateProdReleaseResValues UP-TO-DATE
+> Task :app:generateProdReleaseResources UP-TO-DATE
+> Task :app:processProdReleaseGoogleServices UP-TO-DATE
+> Task :app:mergeProdReleaseResources UP-TO-DATE
+> Task :app:packageProdReleaseResources UP-TO-DATE
+> Task :app:processProdReleaseNavigationResources UP-TO-DATE
+> Task :app:parseProdReleaseLocalResources UP-TO-DATE
+> Task :app:dataBindingGenBaseClassesProdRelease UP-TO-DATE
+> Task :app:generateProdReleaseBuildConfig UP-TO-DATE
+> Task :app:checkProdReleaseAarMetadata UP-TO-DATE
+> Task :app:compileProdReleaseNavigationResources UP-TO-DATE
+> Task :app:mapProdReleaseSourceSetPaths UP-TO-DATE
+> Task :app:createProdReleaseCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksProdRelease UP-TO-DATE
+> Task :app:processProdReleaseMainManifest UP-TO-DATE
+> Task :app:processProdReleaseManifest UP-TO-DATE
+> Task :app:processProdReleaseManifestForPackage UP-TO-DATE
+> Task :app:processProdReleaseResources UP-TO-DATE
+> Task :app:compileProdReleaseKotlin UP-TO-DATE
+> Task :app:javaPreCompileProdRelease UP-TO-DATE
+> Task :app:compileProdReleaseJavaWithJavac UP-TO-DATE
+> Task :app:mergeProdReleaseArtProfile UP-TO-DATE
+> Task :app:expandProdReleaseArtProfileWildcards UP-TO-DATE
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:mergeProdReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :app:processProdReleaseJavaRes UP-TO-DATE
+> Task :app:mergeProdReleaseJavaResource UP-TO-DATE
+> Task :app:mergeProdReleaseStartupProfile UP-TO-DATE
+> Task :app:mergeProdReleaseJniLibFolders UP-TO-DATE
+> Task :app:mergeProdReleaseNativeLibs NO-SOURCE
+> Task :app:stripProdReleaseDebugSymbols NO-SOURCE
+> Task :app:writeProdReleaseAppMetadata UP-TO-DATE
+> Task :app:collectProdReleaseDependencies UP-TO-DATE
+> Task :app:configureProdReleaseDependencies UP-TO-DATE
+> Task :app:extractProdReleaseNativeSymbolTables NO-SOURCE
+> Task :app:generateProdReleaseLintVitalReportModel UP-TO-DATE
+> Task :app:lintVitalAnalyzeProdRelease UP-TO-DATE
+> Task :app:lintVitalReportProdRelease UP-TO-DATE
+> Task :app:lintVitalProdRelease
+> Task :app:parseProdReleaseIntegrityConfig UP-TO-DATE
+> Task :app:validateSigningProdRelease UP-TO-DATE
+> Task :app:minifyProdReleaseWithR8
+> Task :app:buildProdReleasePreBundle
+> Task :app:compileProdReleaseArtProfile
+> Task :app:packageProdReleaseBundle
+> Task :app:signProdReleaseBundle
+> Task :app:produceProdReleaseBundleIdeListingFile
+> Task :app:createProdReleaseBundleListingFileRedirect UP-TO-DATE
+> Task :app:bundleProdRelease
+
+BUILD SUCCESSFUL in 1m 19s
+52 actionable tasks: 8 executed, 44 up-to-date

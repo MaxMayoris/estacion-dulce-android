@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v8.2** - Remove old image-optimizer-job in favor of Agentic Release Workflow
 - **v8.1** - Add discount section
 - **v8.0** - Implement image compression (1200px, WebP, 75% quality) and size validation for recipes and movements
 - **v7.1** - Add in-stock field for recipes and improve UI layout

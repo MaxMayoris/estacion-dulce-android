@@ -42,7 +42,6 @@ object ImageUtils {
         context: Context,
         uri: Uri
     ): Uri {
-        val originalSize = getImageSize(context, uri)
         
         return try {
             val originalBitmap = getBitmapFromUri(context, uri) ?: return uri
@@ -63,8 +62,6 @@ object ImageUtils {
             }
             out.flush()
             out.close()
-            
-            val compressedSize = tempFile.length()
             
             if (originalBitmap != orientedBitmap && originalBitmap != resizedBitmap) originalBitmap.recycle()
             if (orientedBitmap != resizedBitmap) orientedBitmap.recycle()

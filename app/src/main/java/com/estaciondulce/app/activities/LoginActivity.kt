@@ -1,4 +1,4 @@
-﻿package com.estaciondulce.app.activities
+package com.estaciondulce.app.activities
 
 import android.content.Intent
 import android.content.pm.PackageInfo
@@ -24,7 +24,7 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var storageHelper: StorageHelper
     private lateinit var customLoader: CustomLoader
-    private val skipLoginForDebug = true
+    private val skipLoginForDebug = false
 
     /**
      * Initializes the login activity. If skipLoginForDebug is true, skips login.
