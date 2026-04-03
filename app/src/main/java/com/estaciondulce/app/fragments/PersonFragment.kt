@@ -24,7 +24,7 @@ class PersonFragment : Fragment() {
     private val personsHelper = PersonsHelper()
     private val repository = FirestoreRepository
     
-    private var selectedTab: String = "client" // Default to client tab
+    private var selectedTab: String = "client"
 
     override fun onCreateView(
         inflater: android.view.LayoutInflater,
@@ -38,10 +38,10 @@ class PersonFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         repository.personsLiveData.observe(viewLifecycleOwner) { _ ->
-            filterPersons("")
+            filterPersons(binding.searchBar.text.toString())
         }
         repository.categoriesLiveData.observe(viewLifecycleOwner) {
-            filterPersons("")
+            filterPersons(binding.searchBar.text.toString())
         }
 
         binding.addPersonButton.setOnClickListener {

@@ -91,7 +91,7 @@ class TimesheetStatisticsActivity : AppCompatActivity() {
             startDate = startDate,
             endDate = endDate,
             onSuccess = { workDays ->
-                loadBlocksForMonth(workDays, startDate, endDate)
+                loadBlocksForMonth(workDays)
             },
             onError = { exception ->
                 com.estaciondulce.app.utils.CustomToast.showError(
@@ -105,8 +105,7 @@ class TimesheetStatisticsActivity : AppCompatActivity() {
     /**
      * Loads all blocks for the month to calculate statistics
      */
-    @Suppress("UNUSED_PARAMETER")
-    private fun loadBlocksForMonth(workDays: List<WorkDay>, _startDate: String, _endDate: String) {
+    private fun loadBlocksForMonth(workDays: List<WorkDay>) {
         val allBlocks = mutableListOf<WorkBlock>()
         var loadedDays = 0
         val totalDays = workDays.size

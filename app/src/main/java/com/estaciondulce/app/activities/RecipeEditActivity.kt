@@ -493,7 +493,7 @@ class RecipeEditActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun showProductSearchPopup(@Suppress("UNUSED_PARAMETER") anchor: View, products: List<Map.Entry<String, Pair<String, Double>>>, section: RecipeSection) {
+    private fun showProductSearchPopup(products: List<Map.Entry<String, Pair<String, Double>>>, section: RecipeSection) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_product_search, null)
         val dialog = AlertDialog.Builder(this)
             .setView(dialogView)

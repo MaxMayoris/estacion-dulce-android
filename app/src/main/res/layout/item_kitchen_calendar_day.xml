@@ -30,26 +30,15 @@
             android:textColor="@color/text_primary" />
 
         <TextView
-            android:id="@+id/dayHoursText"
+            android:id="@+id/ordersCountText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="1dp"
-            android:text="0"
-            android:textSize="9sp"
-            android:textColor="@color/button_gradient_start" />
-
-        <TextView
-            android:id="@+id/dayCategoriesText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
             android:text=""
             android:textSize="9sp"
-            android:textColor="@color/text_secondary"
-            android:maxLines="2"
-            android:ellipsize="end"
-            android:gravity="center"
-            android:textAlignment="center" />
+            android:textColor="@color/button_gradient_start"
+            android:textStyle="bold"
+            android:visibility="invisible" />
 
     </LinearLayout>
 

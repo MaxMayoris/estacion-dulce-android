@@ -275,9 +275,7 @@ class ShipmentFragment : Fragment() {
         val delivery = movement.delivery ?: return
         val shipment = delivery.shipment
         if (shipment?.lat != null) {
-            val person = repository.personsLiveData.value?.find { it.id == movement.personId }
-            val destinationName = if (person != null) "${person.name} ${person.lastName}" else "Destino"
-            openGoogleMapsSingleDestination(shipment.lat, shipment.lng, destinationName)
+            openGoogleMapsSingleDestination(shipment.lat, shipment.lng)
         } else {
             CustomToast.showWarning(requireContext(), "No se encontraron coordenadas para este envío")
         }
@@ -500,8 +498,7 @@ class ShipmentFragment : Fragment() {
     /**
      * Opens Google Maps with a single destination (from current location).
      */
-    @Suppress("UNUSED_PARAMETER")
-    private fun openGoogleMapsSingleDestination(lat: Double, lng: Double, _destinationName: String) {
+    private fun openGoogleMapsSingleDestination(lat: Double, lng: Double) {
         try {
             val mapsUrl = "https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving"
             

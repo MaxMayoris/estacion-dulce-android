@@ -360,8 +360,8 @@ class StatisticsFragment : Fragment() {
         
         hideEmptyMessage(binding.monthlySalesChart, binding.monthlySalesEmptyMessage)
         
-        val chartData = createMonthlySalesChartData(monthlySales, startOfMonth, _endOfMonth)
-        setupMonthlySalesChart(binding.monthlySalesChart, chartData, monthlySales, startOfMonth, _endOfMonth)
+        val chartData = createMonthlySalesChartData(monthlySales, startOfMonth)
+        setupMonthlySalesChart(binding.monthlySalesChart, chartData, monthlySales, startOfMonth)
         
         updateMonthlySalesTotal(monthlySales)
         updateMonthlyBalance(movements, startOfMonth, _endOfMonth)
@@ -374,10 +374,9 @@ class StatisticsFragment : Fragment() {
      */
     private fun createMonthlySalesChartData(
         sales: List<Movement>, 
-        startOfMonth: Date, 
-        _endOfMonth: Date
+        startOfMonth: Date
     ): LineData {
-        val (dailyPedidos, dailyStock) = groupSalesByDayAndType(sales, startOfMonth, _endOfMonth)
+        val (dailyPedidos, dailyStock) = groupSalesByDayAndType(sales, startOfMonth)
         
         val pedidosEntries = mutableListOf<Entry>()
         val stockEntries = mutableListOf<Entry>()
@@ -450,7 +449,7 @@ class StatisticsFragment : Fragment() {
     /**
      * Groups sales by day for the current month (count of sales, not amount).
      */
-    private fun groupSalesByDay(sales: List<Movement>, startOfMonth: Date, @Suppress("UNUSED_PARAMETER") unusedEndOfMonth: Date): List<Pair<Int, Double>> {
+    private fun groupSalesByDay(sales: List<Movement>, startOfMonth: Date): List<Pair<Int, Double>> {
         val dailyCounts = mutableMapOf<Int, Double>()
         
         val calendar = Calendar.getInstance()
@@ -472,8 +471,7 @@ class StatisticsFragment : Fragment() {
 
     private fun groupSalesByDayAndType(
         sales: List<Movement>, 
-        startOfMonth: Date, 
-        @Suppress("UNUSED_PARAMETER") unusedEndOfMonth: Date
+        startOfMonth: Date
     ): Pair<List<Pair<Int, Double>>, List<Pair<Int, Double>>> {
         val dailyPedidosCounts = mutableMapOf<Int, Double>()
         val dailyStockCounts = mutableMapOf<Int, Double>()
@@ -1121,14 +1119,13 @@ class StatisticsFragment : Fragment() {
         chart: LineChart, 
         data: LineData, 
         sales: List<Movement>, 
-        startOfMonth: Date, 
-        _endOfMonth: Date
+        startOfMonth: Date
     ) {
         chart.data = data
         chart.description.isEnabled = false
         chart.animateY(1000)
         
-        val dailySales = groupSalesByDay(sales, startOfMonth, _endOfMonth)
+        val dailySales = groupSalesByDay(sales, startOfMonth)
         val labels = dailySales.map { it.first.toString() }
         
         val totalSalesCount = sales.size

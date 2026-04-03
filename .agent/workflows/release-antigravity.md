@@ -16,7 +16,7 @@ This includes but is not limited to:
 - Any other compiler warnings
 
 **ALL WARNINGS MUST BE FIXED** using appropriate solutions:
-- `@Suppress("UNUSED_PARAMETER")` for unused parameters
+- Delete unused parameters completely (do not use `@Suppress("UNUSED_PARAMETER")`)
 - `@Suppress("DEPRECATION")` for deprecated methods
 - Parameter renaming (e.g., `exception` → `_`)
 - Code refactoring to eliminate the warning

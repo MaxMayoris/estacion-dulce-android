@@ -9,7 +9,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.estaciondulce.app.R
 import com.estaciondulce.app.models.parcelables.WorkDay
 import com.estaciondulce.app.models.parcelables.WorkCategory
-import com.estaciondulce.app.repository.FirestoreRepository
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -118,4 +117,3 @@ class CalendarDayAdapter(
 
     override fun getItemCount(): Int = days.size
 }
-

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="?attr/selectableItemBackground">
+
+    <TextView
+        android:id="@+id/clientNameText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cliente: Nombre"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"/>
+
+    <TextView
+        android:id="@+id/orderTimeText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Hora de entrega: 12:30"
+        android:textSize="12sp"
+        android:textColor="@color/button_gradient_start"
+        android:layout_marginTop="2dp"/>
+
+</LinearLayout>
