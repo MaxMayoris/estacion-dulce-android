@@ -41,6 +41,7 @@ class KitchenOrderFragment : Fragment() {
     private var currentMonth: Calendar = Calendar.getInstance()
     private val monthYearFormat = SimpleDateFormat("MMMM yyyy", Locale("es"))
     private lateinit var calendarAdapter: KitchenCalendarAdapter
+    private var selectedDate: Date = Calendar.getInstance().time
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -85,6 +86,8 @@ class KitchenOrderFragment : Fragment() {
 
     private fun setupCalendarView() {
         calendarAdapter = KitchenCalendarAdapter(emptyList()) { day ->
+            selectedDate = day.date
+            calendarAdapter.setSelectedDate(day.date)
             showDayOrders(day)
         }
         binding.calendarRecyclerView.layoutManager = GridLayoutManager(requireContext(), 7)
@@ -149,6 +152,24 @@ class KitchenOrderFragment : Fragment() {
             calendar.add(Calendar.DAY_OF_MONTH, 1)
         }
         calendarAdapter.updateDays(days)
+        calendarAdapter.setSelectedDate(selectedDate)
+        
+        // Show selected date's details
+        val startCal = Calendar.getInstance()
+        startCal.time = selectedDate
+        startCal.set(Calendar.HOUR_OF_DAY, 0)
+        startCal.set(Calendar.MINUTE, 0)
+        startCal.set(Calendar.SECOND, 0)
+        startCal.set(Calendar.MILLISECOND, 0)
+        val dayStart = startCal.timeInMillis
+        val dayEnd = dayStart + 24 * 60 * 60 * 1000L - 1
+        
+        val selectedDayOrders = movementsWithKitchenOrders.filter { movement ->
+            val movTime = (movement.delivery?.date ?: movement.movementDate).time
+            movTime in dayStart..dayEnd
+        }
+        val calDayForDetail = CalendarDay(selectedDate, 0, true, selectedDayOrders)
+        showDayOrders(calDayForDetail)
     }
 
     private fun showDayOrders(day: CalendarDay) {

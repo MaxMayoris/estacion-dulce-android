@@ -163,6 +163,70 @@ class TimesheetStatisticsActivity : AppCompatActivity() {
         }
 
         binding.totalHoursText.text = "Horas trabajadas: $totalStr"
+        calculateAndDisplayProfitPerHour(totalMinutes)
+    }
+
+    /**
+     * Calculates monthly balance and displays the profit per hour worked
+     */
+    private fun calculateAndDisplayProfitPerHour(totalMinutes: Long) {
+        if (totalMinutes == 0L) {
+            binding.profitPerHourText.visibility = View.GONE
+            return
+        }
+
+        val startOfMonth = Calendar.getInstance().apply {
+            timeInMillis = currentMonth.timeInMillis
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+
+        val endOfMonth = Calendar.getInstance().apply {
+            timeInMillis = currentMonth.timeInMillis
+            set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+        }.time
+
+        val movements = FirestoreRepository.movementsLiveData.value ?: emptyList()
+        var totalSales = 0.0
+        var totalPurchases = 0.0
+
+        movements.forEach { movement ->
+            if (movement.movementDate in startOfMonth..endOfMonth) {
+                if (movement.type == com.estaciondulce.app.models.enums.EMovementType.SALE) {
+                    totalSales += movement.totalAmount
+                } else if (movement.type == com.estaciondulce.app.models.enums.EMovementType.PURCHASE) {
+                    totalPurchases += movement.totalAmount
+                }
+            }
+        }
+
+        val balance = totalSales - totalPurchases
+        val hoursWorked = totalMinutes / 60.0
+        val profitPerHour = balance / hoursWorked
+
+        val symbols = java.text.DecimalFormatSymbols().apply {
+            groupingSeparator = '.'
+            decimalSeparator = ','
+        }
+        val decimalFormat = java.text.DecimalFormat("#,##0.00", symbols)
+        val formattedProfit = decimalFormat.format(profitPerHour)
+
+        binding.profitPerHourText.visibility = View.VISIBLE
+        binding.profitPerHourText.text = "Ganancia por hora: $$formattedProfit"
+        
+        val color = if (profitPerHour >= 0) {
+            ContextCompat.getColor(this, R.color.button_gradient_start)
+        } else {
+            Color.parseColor("#F44336")
+        }
+        binding.profitPerHourText.setTextColor(color)
     }
 
     /**

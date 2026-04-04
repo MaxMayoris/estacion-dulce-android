@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v9.1** - Enhance KitchenOrder calendar UI consistency and add profit per hour calculation in Timesheet statistics
 - **v9.0** - Fix person name search logic in PersonFragment to preserve current query when repository data updates
 - **v8.2** - Remove old image-optimizer-job in favor of Agentic Release Workflow
 - **v8.1** - Add discount section

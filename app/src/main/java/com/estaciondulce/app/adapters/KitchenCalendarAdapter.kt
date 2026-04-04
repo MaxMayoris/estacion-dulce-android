@@ -22,6 +22,22 @@ class KitchenCalendarAdapter(
     private val onDayClick: (CalendarDay) -> Unit
 ) : RecyclerView.Adapter<KitchenCalendarAdapter.ViewHolder>() {
 
+    private var selectedDate: Date? = java.util.Calendar.getInstance().time
+
+    fun setSelectedDate(date: Date?) {
+        selectedDate = date
+        notifyDataSetChanged()
+    }
+
+    private fun isSameDay(date1: Date, date2: Date): Boolean {
+        val cal1 = java.util.Calendar.getInstance()
+        cal1.time = date1
+        val cal2 = java.util.Calendar.getInstance()
+        cal2.time = date2
+        return cal1.get(java.util.Calendar.YEAR) == cal2.get(java.util.Calendar.YEAR) &&
+               cal1.get(java.util.Calendar.DAY_OF_YEAR) == cal2.get(java.util.Calendar.DAY_OF_YEAR)
+    }
+
     fun updateDays(newDays: List<CalendarDay>) {
         days = newDays
         notifyDataSetChanged()
@@ -56,28 +72,45 @@ class KitchenCalendarAdapter(
             }
 
             // Regular day cell
+            val isSelected = selectedDate != null && isSameDay(day.date, selectedDate!!)
+            val isToday = isSameDay(day.date, java.util.Calendar.getInstance().time)
+            
             binding.dayNumberText.text = day.dayNumber.toString()
-            binding.dayNumberText.setTextColor(ContextCompat.getColor(context, R.color.text_primary))
-            cardView.setCardBackgroundColor(ContextCompat.getColor(context, R.color.white))
             cardView.cardElevation = context.resources.displayMetrics.density * 1f // 1dp
-            cardView.strokeWidth = 0
-            binding.root.isClickable = true
-            binding.root.isFocusable = true
-
+            
+            // Text color for orders count
             if (day.orders.isNotEmpty()) {
                 binding.ordersCountText.visibility = View.VISIBLE
                 binding.ordersCountText.text = "${day.orders.size}"
-                binding.ordersCountText.setTextColor(ContextCompat.getColor(context, R.color.button_gradient_start))
             } else {
                 binding.ordersCountText.visibility = View.INVISIBLE
                 binding.ordersCountText.text = "0"
+            }
+            
+            binding.root.isClickable = true
+            binding.root.isFocusable = true
+            
+            if (isSelected) {
+                cardView.setCardBackgroundColor(ContextCompat.getColor(context, R.color.button_gradient_start))
+                binding.dayNumberText.setTextColor(ContextCompat.getColor(context, R.color.white))
+                binding.ordersCountText.setTextColor(ContextCompat.getColor(context, R.color.white))
+                cardView.strokeWidth = 0
+            } else {
+                cardView.setCardBackgroundColor(ContextCompat.getColor(context, R.color.white))
+                binding.dayNumberText.setTextColor(ContextCompat.getColor(context, R.color.text_primary))
                 binding.ordersCountText.setTextColor(ContextCompat.getColor(context, R.color.button_gradient_start))
             }
 
+            if (isToday && !isSelected) {
+                cardView.setCardBackgroundColor(ContextCompat.getColor(context, R.color.light_purple))
+                cardView.strokeWidth = 2
+                cardView.strokeColor = ContextCompat.getColor(context, R.color.button_gradient_start)
+            } else if (!isSelected) {
+                cardView.strokeWidth = 0
+            }
+
             binding.root.setOnClickListener {
-                if (day.orders.isNotEmpty()) {
-                    onDayClick(day)
-                }
+                onDayClick(day)
             }
         }
     }

@@ -72,23 +72,34 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Total Hours -->
+            <!-- Total Hours & Profit -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
+                android:orientation="vertical"
+                android:gravity="center"
                 android:background="@drawable/subtotal_background"
                 android:padding="12dp">
                 <TextView
                     android:id="@+id/totalHoursText"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Horas trabajadas: 0h"
                     android:textColor="@color/text_primary"
                     android:textSize="16sp"
                     android:textStyle="bold"
+                    android:gravity="center" />
+                <TextView
+                    android:id="@+id/profitPerHourText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Ganancia por hora: $0.00"
+                    android:textColor="@color/button_gradient_start"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
                     android:gravity="center" />
             </LinearLayout>
 

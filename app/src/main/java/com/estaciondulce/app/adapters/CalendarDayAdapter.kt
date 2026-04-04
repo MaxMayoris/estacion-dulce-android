@@ -59,6 +59,7 @@ class CalendarDayAdapter(
             val cardView = holder.itemView as com.google.android.material.card.MaterialCardView
             cardView.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.context, android.R.color.transparent))
             cardView.strokeWidth = 0
+            cardView.cardElevation = 0f
             holder.itemView.isClickable = false
             holder.itemView.isFocusable = false
             return
@@ -89,6 +90,7 @@ class CalendarDayAdapter(
         val cardView = holder.itemView as com.google.android.material.card.MaterialCardView
         val context = holder.itemView.context
         
+        cardView.cardElevation = context.resources.displayMetrics.density * 1f
         holder.itemView.isClickable = true
         holder.itemView.isFocusable = true
         
