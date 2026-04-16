@@ -666,7 +666,7 @@ class StatisticsFragment : Fragment() {
             providerCounts[providerName] = (providerCounts[providerName] ?: 0.0) + movement.totalAmount
         }
         
-        val sortedProviders = providerCounts.toList().sortedByDescending { it.second }
+        val sortedProviders = providerCounts.toList().sortedByDescending { it.second }.take(10)
         val entries = mutableListOf<BarEntry>()
         val labels = mutableListOf<String>()
         
@@ -1050,7 +1050,7 @@ class StatisticsFragment : Fragment() {
     }
 
     /**
-     * Updates the monthly balance total display with calculated balance for the selected month.
+     * Updates the monthly balance total display with calculated total sales for the selected month.
      */
     private fun updateMonthlyBalance(movements: List<Movement>, startOfMonth: Date, _endOfMonth: Date) {
         val monthlyMovements = movements.filter { movement ->
@@ -1058,30 +1058,22 @@ class StatisticsFragment : Fragment() {
         }
         
         val sales = monthlyMovements.filter { it.type == EMovementType.SALE }
-        val purchases = monthlyMovements.filter { it.type == EMovementType.PURCHASE }
         
         val totalSales = sales.sumOf { it.totalAmount }
-        val totalPurchases = purchases.sumOf { it.totalAmount }
-        val balance = totalSales - totalPurchases
         
         val symbols = DecimalFormatSymbols().apply {
             groupingSeparator = '.'
             decimalSeparator = ','
         }
         val decimalFormat = DecimalFormat("#,##0.00", symbols)
-        val formattedBalance = String.format("$%s", decimalFormat.format(balance))
+        val formattedSales = String.format("$%s", decimalFormat.format(totalSales))
         
-        binding.monthlyBalanceTotalText.text = "Balance mensual: $formattedBalance"
-        val color = if (balance >= 0) {
-            ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_primary)
-        } else {
-            Color.parseColor("#F44336") // Red for negative balance
-        }
-        binding.monthlyBalanceTotalText.setTextColor(color)
+        binding.monthlyBalanceTotalText.text = "Total de ingresos: $formattedSales"
+        binding.monthlyBalanceTotalText.setTextColor(ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_primary))
     }
 
     /**
-     * Updates the balance monthly balance total display with calculated balance for the selected month.
+     * Updates the balance monthly balance total display with calculated total purchases for the selected month.
      */
     private fun updateBalanceMonthlyBalance(movements: List<Movement>) {
         val (startOfMonth, _endOfMonth) = getMonthDateRange(selectedMonth)
@@ -1089,27 +1081,19 @@ class StatisticsFragment : Fragment() {
             movement.movementDate >= startOfMonth && movement.movementDate <= _endOfMonth
         }
         
-        val sales = monthlyMovements.filter { it.type == EMovementType.SALE }
         val purchases = monthlyMovements.filter { it.type == EMovementType.PURCHASE }
         
-        val totalSales = sales.sumOf { it.totalAmount }
         val totalPurchases = purchases.sumOf { it.totalAmount }
-        val balance = totalSales - totalPurchases
         
         val symbols = DecimalFormatSymbols().apply {
             groupingSeparator = '.'
             decimalSeparator = ','
         }
         val decimalFormat = DecimalFormat("#,##0.00", symbols)
-        val formattedBalance = String.format("$%s", decimalFormat.format(balance))
+        val formattedPurchases = String.format("$%s", decimalFormat.format(totalPurchases))
         
-        binding.balanceMonthlyBalanceTotalText.text = "Balance mensual: $formattedBalance"
-        val color = if (balance >= 0) {
-            ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_primary)
-        } else {
-            Color.parseColor("#F44336") // Red for negative balance
-        }
-        binding.balanceMonthlyBalanceTotalText.setTextColor(color)
+        binding.balanceMonthlyBalanceTotalText.text = "Total de compras: $formattedPurchases"
+        binding.balanceMonthlyBalanceTotalText.setTextColor(ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_primary))
     }
 
     /**

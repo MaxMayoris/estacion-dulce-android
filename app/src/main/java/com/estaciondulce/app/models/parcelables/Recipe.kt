@@ -33,6 +33,16 @@ data class RecipeNested(
 ) : Parcelable
 
 /**
+ * Details for baking process of a recipe.
+ */
+@Parcelize
+data class BakingDetails(
+    val temperature: Int = 0,
+    val duration: Int = 0,
+    val comments: String = ""
+) : Parcelable
+
+/**
  * Recipe data model with cost calculation, pricing, and hierarchical structure.
  */
 @Parcelize
@@ -55,7 +65,8 @@ data class Recipe(
     val detail: String = "",
     val categories: List<String> = listOf(),
     val sections: @RawValue List<RecipeSection> = listOf(),
-    val recipes: @RawValue List<RecipeNested> = listOf()
+    val recipes: @RawValue List<RecipeNested> = listOf(),
+    val bakingDetails: BakingDetails? = null
 ) : Parcelable, com.estaciondulce.app.models.Identifiable {
 
     /**

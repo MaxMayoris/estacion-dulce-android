@@ -150,6 +150,7 @@ class RecipeEditActivity : AppCompatActivity() {
             setupSectionSelector(sectionsMap)
         })
         repository.recipesLiveData.observe(this, Observer { setupRecipeSearchBar() })
+        setupBakingDurationPicker()
 
         imageAdapter = RecipeImageAdapter { imageUrl ->
             deleteImage(imageUrl)
@@ -168,6 +169,11 @@ class RecipeEditActivity : AppCompatActivity() {
             binding.recipeUnitInput.setText(r.unit.toString())
             binding.recipeDescriptionInput.setText(r.description)
             recipeDetail = r.detail
+            r.bakingDetails?.let { baking ->
+                binding.recipeBakingTemperatureInput.setText(if (baking.temperature > 0) baking.temperature.toString() else "")
+                binding.recipeBakingDurationInput.setText(if (baking.duration > 0) baking.duration.toString() else "")
+                binding.recipeBakingCommentsInput.setText(baking.comments)
+            }
             existingImageUrls.clear()
             existingImageUrls.addAll(r.images)
             tempImageUrls.clear()
@@ -820,7 +826,12 @@ class RecipeEditActivity : AppCompatActivity() {
             detail = recipeDetail,
             categories = selectedCategories.toList(),
             sections = selectedSections,
-            recipes = selectedRecipes
+            recipes = selectedRecipes,
+            bakingDetails = com.estaciondulce.app.models.parcelables.BakingDetails(
+                temperature = binding.recipeBakingTemperatureInput.text.toString().toIntOrNull() ?: 0,
+                duration = binding.recipeBakingDurationInput.text.toString().toIntOrNull() ?: 0,
+                comments = binding.recipeBakingCommentsInput.text.toString().trim()
+            )
         )
         val (costPerUnit, suggestedPrice) = recipesHelper.calculateCostAndSuggestedPrice(updatedRecipe, productsMap, recipesMap)
         binding.recipeCostInput.setText(String.format("%.2f", costPerUnit))
@@ -853,6 +864,35 @@ class RecipeEditActivity : AppCompatActivity() {
         binding.recipeSearchBar.setOnClickListener {
             showRecipeSearchDialog()
         }
+    }
+
+    private fun setupBakingDurationPicker() {
+        binding.recipeBakingDurationInput.setOnClickListener {
+            showDurationPickerDialog()
+        }
+        val durationInputLayout = findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.recipeBakingDurationInputLayout)
+        durationInputLayout?.setEndIconOnClickListener {
+            showDurationPickerDialog()
+        }
+    }
+
+    private fun showDurationPickerDialog() {
+        val currentDuration = binding.recipeBakingDurationInput.text.toString().toIntOrNull() ?: 0
+        val currentHours = currentDuration / 60
+        val currentMinutes = currentDuration % 60
+
+        val timePickerDialog = android.app.TimePickerDialog(
+            this,
+            { _, hourOfDay, minute ->
+                val totalMinutes = hourOfDay * 60 + minute
+                binding.recipeBakingDurationInput.setText(totalMinutes.toString())
+            },
+            currentHours,
+            currentMinutes,
+            true
+        )
+        timePickerDialog.setTitle("Horas y Minutos")
+        timePickerDialog.show()
     }
 
     private fun showRecipeSearchDialog() {
@@ -1031,7 +1071,12 @@ class RecipeEditActivity : AppCompatActivity() {
                     detail = recipeDetail,
                     categories = selectedCategories.toList(),
                     sections = selectedSections,
-                    recipes = selectedRecipes
+                    recipes = selectedRecipes,
+                    bakingDetails = com.estaciondulce.app.models.parcelables.BakingDetails(
+                        temperature = binding.recipeBakingTemperatureInput.text.toString().toIntOrNull() ?: 0,
+                        duration = binding.recipeBakingDurationInput.text.toString().toIntOrNull() ?: 0,
+                        comments = binding.recipeBakingCommentsInput.text.toString().trim()
+                    )
                 )
                 if (updatedRecipe.id.isEmpty()) {
                 recipesHelper.addRecipe(

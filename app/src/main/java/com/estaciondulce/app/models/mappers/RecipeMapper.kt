@@ -32,7 +32,8 @@ fun Recipe.toDTO(): RecipeDTO {
         detail = detail,
         categories = categories,
         sections = sections.map { it.toDTO() },
-        recipes = recipes.map { it.toDTO() }
+        recipes = recipes.map { it.toDTO() },
+        bakingDetails = bakingDetails?.toDTO()
     )
 }
 
@@ -56,7 +57,8 @@ fun RecipeDTO.toParcelable(id: String = ""): Recipe {
         detail = detail,
         categories = categories,
         sections = sections.map { it.toParcelable() },
-        recipes = recipes.map { it.toParcelable() }
+        recipes = recipes.map { it.toParcelable() },
+        bakingDetails = bakingDetails?.toParcelable()
     )
 }
 
@@ -138,6 +140,27 @@ fun RecipeDTO.toMap(): Map<String, Any?> {
         "detail" to detail,
         "categories" to categories,
         "sections" to sections,
-        "recipes" to recipes
+        "recipes" to recipes,
+        "bakingDetails" to bakingDetails
+    )
+}
+
+/**
+ * Extension functions to convert between BakingDetails (Parcelable) and BakingDetailsDTO (Firestore)
+ */
+
+fun com.estaciondulce.app.models.parcelables.BakingDetails.toDTO(): com.estaciondulce.app.models.dtos.BakingDetailsDTO {
+    return com.estaciondulce.app.models.dtos.BakingDetailsDTO(
+        temperature = temperature,
+        duration = duration,
+        comments = comments
+    )
+}
+
+fun com.estaciondulce.app.models.dtos.BakingDetailsDTO.toParcelable(): com.estaciondulce.app.models.parcelables.BakingDetails {
+    return com.estaciondulce.app.models.parcelables.BakingDetails(
+        temperature = temperature,
+        duration = duration,
+        comments = comments
     )
 }

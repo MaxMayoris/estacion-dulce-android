@@ -243,6 +243,7 @@ class KitchenOrderEditActivity : AppCompatActivity() {
         val itemName = itemView.findViewById<TextView>(R.id.itemName)
         val itemStatus = itemView.findViewById<TextView>(R.id.itemStatus)
         val statusActionButton = itemView.findViewById<MaterialButton>(R.id.statusActionButton)
+        val itemBakingDetails = itemView.findViewById<TextView>(R.id.itemBakingDetails)
 
         val quantity = if (kitchenOrder.quantity == kitchenOrder.quantity.toInt().toDouble()) {
             kitchenOrder.quantity.toInt().toString()
@@ -250,6 +251,23 @@ class KitchenOrderEditActivity : AppCompatActivity() {
             String.format("%.1f", kitchenOrder.quantity)
         }
         itemName.text = "${quantity}x ${kitchenOrder.name}"
+        
+        if (kitchenOrder.collection == "recipes") {
+            val recipe = FirestoreRepository.recipesLiveData.value?.find { it.id == kitchenOrder.collectionId }
+            recipe?.bakingDetails?.let { baking ->
+                val hasTemp = baking.temperature > 0
+                val hasDuration = baking.duration > 0
+                if (hasTemp || hasDuration) {
+                    var detailsText = "Horneado:"
+                    if (hasTemp) detailsText += " ${baking.temperature}°C"
+                    if (hasTemp && hasDuration) detailsText += " —"
+                    if (hasDuration) detailsText += " ${baking.duration} min"
+                    
+                    itemBakingDetails.text = detailsText
+                    itemBakingDetails.visibility = View.VISIBLE
+                }
+            }
+        }
         
         val statusTextValue = getStatusText(kitchenOrder.status)
         val statusColor = getStatusColor(kitchenOrder.status)

@@ -21,7 +21,17 @@ data class RecipeDTO(
     val detail: String = "",
     val categories: List<String> = listOf(),
     val sections: List<RecipeSectionDTO> = listOf(),
-    val recipes: List<RecipeNestedDTO> = listOf()
+    val recipes: List<RecipeNestedDTO> = listOf(),
+    val bakingDetails: BakingDetailsDTO? = null
+)
+
+/**
+ * DTO for BakingDetails data in Firestore
+ */
+data class BakingDetailsDTO(
+    val temperature: Int = 0,
+    val duration: Int = 0,
+    val comments: String = ""
 )
 
 /**
