@@ -284,7 +284,8 @@ class AddressPickerActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap
 
 
             confirmButton.isEnabled = true
-            confirmButton.text = "Confirmar"
+            val customText = intent.getStringExtra("EXTRA_CONFIRM_BUTTON_TEXT")
+            confirmButton.text = customText ?: "Confirmar"
 
             if (isEditMode && addressToEdit != null) {
                 loadExistingAddress()

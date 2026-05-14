@@ -39,6 +39,12 @@ import android.net.Uri
 import android.util.Log
 import java.text.SimpleDateFormat
 import java.util.*
+import android.app.Activity
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
+import com.estaciondulce.app.activities.AddressPickerActivity
+import com.estaciondulce.app.helpers.DistanceMatrixHelper
+import com.estaciondulce.app.models.parcelables.Address
 
 /**
  * Fragment to display and manage shipments.
@@ -51,12 +57,25 @@ class ShipmentFragment : Fragment() {
     private lateinit var customLoader: CustomLoader
     private lateinit var googleRoutesHelper: GoogleRoutesHelper
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var distanceMatrixHelper: DistanceMatrixHelper
     
     private var isSelectionMode = false
     private val selectedShipments = mutableSetOf<String>()
     
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
+    }
+    
+    private val addressPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            @Suppress("DEPRECATION")
+            val address = result.data?.getParcelableExtra<Address>(AddressPickerActivity.RESULT_ADDRESS)
+            if (address != null) {
+                calculateQuickShippingCost(address)
+            }
+        }
     }
     
     override fun onCreateView(
@@ -74,6 +93,15 @@ class ShipmentFragment : Fragment() {
         customLoader = CustomLoader(requireContext())
         googleRoutesHelper = GoogleRoutesHelper(requireContext())
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
+        distanceMatrixHelper = DistanceMatrixHelper()
+        
+        binding.calculateCostButton.setOnClickListener {
+            val intent = Intent(requireContext(), AddressPickerActivity::class.java)
+            intent.putExtra(AddressPickerActivity.EXTRA_ADDRESS_LABEL, "Calcular costo")
+            intent.putExtra(AddressPickerActivity.EXTRA_DRAFT_MODE, true)
+            intent.putExtra("EXTRA_CONFIRM_BUTTON_TEXT", "Calcular")
+            addressPickerLauncher.launch(intent)
+        }
         
         if (!hasLocationPermission()) {
             requestLocationPermission()
@@ -103,8 +131,52 @@ class ShipmentFragment : Fragment() {
         setupSelectionModeControls()
     }
     
+    private fun calculateQuickShippingCost(address: Address) {
+        if (address.latitude == null || address.longitude == null) {
+            CustomToast.showError(requireContext(), "La dirección seleccionada no tiene coordenadas válidas")
+            return
+        }
+
+        val settings = FirestoreRepository.shipmentSettingsLiveData.value
+        if (settings == null || settings.baseAddress.isEmpty() || settings.fuelPrice <= 0 || settings.litersPerKm <= 0) {
+            CustomToast.showError(requireContext(), "Configuración de envío no disponible.")
+            return
+        }
+
+        val destination = "${address.latitude},${address.longitude}"
+        customLoader.show()
+
+        distanceMatrixHelper.calculateDistance(settings.baseAddress, destination) { distance, error ->
+            activity?.runOnUiThread {
+                customLoader.hide()
+                if (error != null) {
+                    CustomToast.showError(requireContext(), "Error al calcular distancia: $error")
+                    return@runOnUiThread
+                }
+                if (distance == null || distance <= 0) {
+                    CustomToast.showError(requireContext(), "No se pudo calcular la distancia")
+                    return@runOnUiThread
+                }
+
+                val cost = distanceMatrixHelper.calculateShippingCost(
+                    distance, settings.fuelPrice, settings.litersPerKm
+                )
+
+                val formattedCost = String.format("%.2f", cost)
+                val formattedDistance = String.format("%.2f", distance)
+
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Costo de Envío")
+                    .setMessage("Distancia: $formattedDistance km\nCosto calculado: $$formattedCost")
+                    .setPositiveButton("Aceptar", null)
+                    .show()
+                
+                CustomToast.showSuccess(requireContext(), "Cálculo exitoso")
+            }
+        }
+    }
+
     private fun setupTableView(shipments: List<Movement>) {
-        println("DEBUG: setupTableView called with ${shipments.size} shipments")
         val sortedList = shipments.sortedByDescending { it.delivery?.date ?: Date() }
         val columnConfigs = listOf("Fecha", "Cliente", "Estado").toColumnConfigs()
         binding.shipmentTable.setupTableWithConfigs(

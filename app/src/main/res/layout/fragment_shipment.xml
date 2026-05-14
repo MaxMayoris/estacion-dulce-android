@@ -17,9 +17,22 @@
         android:inputType="text"
         android:textSize="14sp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/selectDestinationsButton"
+        app:layout_constraintEnd_toStartOf="@id/calculateCostButton"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_margin="16dp" />
+
+    <!-- Calculate Cost Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/calculateCostButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="Calcular costo"
+        app:srcCompat="@drawable/ic_search_scaled"
+        style="@style/CustomFloatingActionButtonStyle"
+        app:layout_constraintTop_toTopOf="@id/searchBar"
+        app:layout_constraintBottom_toBottomOf="@id/searchBar"
+        app:layout_constraintEnd_toStartOf="@id/selectDestinationsButton"
+        android:layout_marginEnd="8dp" />
 
     <!-- Select Destinations Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
