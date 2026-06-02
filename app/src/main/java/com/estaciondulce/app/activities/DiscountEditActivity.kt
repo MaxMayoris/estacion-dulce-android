@@ -2,6 +2,7 @@ package com.estaciondulce.app.activities
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.DatePickerDialog
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -12,6 +13,10 @@ import com.estaciondulce.app.helpers.RecipesHelper
 import com.estaciondulce.app.models.parcelables.Recipe
 import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.utils.CustomToast
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class DiscountEditActivity : AppCompatActivity() {
 
@@ -19,6 +24,8 @@ class DiscountEditActivity : AppCompatActivity() {
     private lateinit var loader: CustomLoader
     private var recipe: Recipe? = null
     private val recipesHelper = RecipesHelper()
+    private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    private var selectedEndDate: Date? = null
 
     @SuppressLint("DefaultLocale")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,6 +72,15 @@ class DiscountEditActivity : AppCompatActivity() {
                 binding.recipeDiscountPriceInput.setText(String.format("%.2f", r.salePrice))
             }
 
+            selectedEndDate = r.discountEndDate
+            val dateLimitActive = selectedEndDate != null
+            binding.recipeDiscountEndDateCheckbox.isChecked = dateLimitActive
+            if (selectedEndDate != null) {
+                binding.recipeDiscountEndDateInput.setText(dateFormat.format(selectedEndDate!!))
+            } else {
+                binding.recipeDiscountEndDateInput.setText("")
+            }
+
             updateDiscountVisibility(r.onDiscount)
             updateProfitPercentages()
         }
@@ -74,6 +90,17 @@ class DiscountEditActivity : AppCompatActivity() {
         binding.recipeOnDiscountCheckbox.setOnCheckedChangeListener { _, isChecked ->
             updateDiscountVisibility(isChecked)
             updateProfitPercentages()
+        }
+
+        binding.recipeDiscountEndDateCheckbox.setOnCheckedChangeListener { _, isChecked ->
+            binding.discountEndDateLayout.visibility = if (isChecked) View.VISIBLE else View.GONE
+            if (isChecked && selectedEndDate == null) {
+                showDatePickerDialog()
+            }
+        }
+
+        binding.recipeDiscountEndDateInput.setOnClickListener {
+            showDatePickerDialog()
         }
 
         binding.recipeDiscountPriceInput.addTextChangedListener(object : TextWatcher {
@@ -89,24 +116,60 @@ class DiscountEditActivity : AppCompatActivity() {
         }
     }
 
+    private fun showDatePickerDialog() {
+        val calendar = Calendar.getInstance()
+        selectedEndDate?.let {
+            calendar.time = it
+        }
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+        val datePickerDialog = DatePickerDialog(
+            this,
+            { _, selectedYear, selectedMonth, selectedDay ->
+                val newCalendar = Calendar.getInstance().apply {
+                    set(Calendar.YEAR, selectedYear)
+                    set(Calendar.MONTH, selectedMonth)
+                    set(Calendar.DAY_OF_MONTH, selectedDay)
+                    set(Calendar.HOUR_OF_DAY, 23)
+                    set(Calendar.MINUTE, 59)
+                    set(Calendar.SECOND, 59)
+                    set(Calendar.MILLISECOND, 999)
+                }
+                val newDate = newCalendar.time
+                selectedEndDate = newDate
+                binding.recipeDiscountEndDateInput.setText(dateFormat.format(newDate))
+            },
+            year,
+            month,
+            day
+        )
+        datePickerDialog.datePicker.minDate = System.currentTimeMillis() - 1000
+        datePickerDialog.show()
+    }
+
     private fun updateDiscountVisibility(isDiscounted: Boolean) {
         if (isDiscounted) {
             binding.discountPriceLayout.visibility = View.VISIBLE
             binding.recipeDiscountPriceInput.isEnabled = true
+            binding.recipeDiscountEndDateCheckbox.visibility = View.VISIBLE
+            val limitChecked = binding.recipeDiscountEndDateCheckbox.isChecked
+            binding.discountEndDateLayout.visibility = if (limitChecked) View.VISIBLE else View.GONE
         } else {
             binding.discountPriceLayout.visibility = View.GONE
             binding.recipeDiscountPriceInput.isEnabled = false
+            binding.recipeDiscountEndDateCheckbox.visibility = View.GONE
+            binding.discountEndDateLayout.visibility = View.GONE
         }
     }
 
     @SuppressLint("DefaultLocale")
     private fun updateProfitPercentages() {
         recipe?.let { r ->
-            // Original profit percentage
             val originalProfit = if (r.cost > 0) ((r.salePrice - r.cost) / r.cost) * 100 else 0.0
             binding.profitPercentageValue.text = String.format("%.1f%%", originalProfit)
 
-            // Discount profit percentage
             val discountPriceInputText = binding.recipeDiscountPriceInput.text.toString()
             val discountPrice = discountPriceInputText.toDoubleOrNull() ?: 0.0
             
@@ -137,10 +200,20 @@ class DiscountEditActivity : AppCompatActivity() {
                 return
             }
 
-            // Create updated recipe
+            val finalEndDate = if (isDiscounted && binding.recipeDiscountEndDateCheckbox.isChecked) {
+                if (selectedEndDate == null) {
+                    CustomToast.showError(this, "Por favor seleccione una fecha límite")
+                    return
+                }
+                selectedEndDate
+            } else {
+                null
+            }
+
             val updatedRecipe = r.copy(
                 onDiscount = isDiscounted,
-                discountPrice = discountPrice
+                discountPrice = discountPrice,
+                discountEndDate = finalEndDate
             )
 
             loader.show()

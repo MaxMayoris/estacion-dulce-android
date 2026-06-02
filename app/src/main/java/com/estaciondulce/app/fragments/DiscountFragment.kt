@@ -74,7 +74,7 @@ class DiscountFragment : Fragment() {
                 listOf(
                     recipe.name,
                     recipe.salePrice,
-                    recipe.onDiscount
+                    recipe.isDiscountActive()
                 )
             },
             pageSize = 10,
@@ -83,7 +83,7 @@ class DiscountFragment : Fragment() {
                 when (columnIndex) {
                     0 -> recipe.name
                     1 -> recipe.salePrice
-                    2 -> recipe.onDiscount
+                    2 -> recipe.isDiscountActive()
                     else -> null
                 }
             }

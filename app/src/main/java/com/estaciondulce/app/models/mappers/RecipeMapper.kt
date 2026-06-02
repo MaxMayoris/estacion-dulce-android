@@ -33,7 +33,8 @@ fun Recipe.toDTO(): RecipeDTO {
         categories = categories,
         sections = sections.map { it.toDTO() },
         recipes = recipes.map { it.toDTO() },
-        bakingDetails = bakingDetails?.toDTO()
+        bakingDetails = bakingDetails?.toDTO(),
+        discountEndDate = discountEndDate
     )
 }
 
@@ -58,7 +59,8 @@ fun RecipeDTO.toParcelable(id: String = ""): Recipe {
         categories = categories,
         sections = sections.map { it.toParcelable() },
         recipes = recipes.map { it.toParcelable() },
-        bakingDetails = bakingDetails?.toParcelable()
+        bakingDetails = bakingDetails?.toParcelable(),
+        discountEndDate = discountEndDate
     )
 }
 
@@ -141,7 +143,8 @@ fun RecipeDTO.toMap(): Map<String, Any?> {
         "categories" to categories,
         "sections" to sections,
         "recipes" to recipes,
-        "bakingDetails" to bakingDetails
+        "bakingDetails" to bakingDetails,
+        "discountEndDate" to discountEndDate
     )
 }
 

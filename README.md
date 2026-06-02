@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v9.4** - Added a configurable date limit to recipe discounts with an intuitive date picker, integrated verification logic, and updated the discount fragment status display.
 - **v9.3** - Added a new Quick Calculate button for shipping costs inside the Shipment fragment without needing to save a person record.
 - **v9.2** - Added baking details configuration (temperature and duration) to recipes with an intuitive time picker, integrated baking execution specifics seamlessly into Kitchen Orders, and fixed total sales aggregates inside Statistics charts.
 - **v9.1** - Enhance KitchenOrder calendar UI consistency and add profit per hour calculation in Timesheet statistics

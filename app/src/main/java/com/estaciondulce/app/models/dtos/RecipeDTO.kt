@@ -1,5 +1,7 @@
 package com.estaciondulce.app.models.dtos
 
+import java.util.Date
+
 /**
  * DTO for Recipe data in Firestore (without Parcelable to avoid stability field)
  */
@@ -22,7 +24,8 @@ data class RecipeDTO(
     val categories: List<String> = listOf(),
     val sections: List<RecipeSectionDTO> = listOf(),
     val recipes: List<RecipeNestedDTO> = listOf(),
-    val bakingDetails: BakingDetailsDTO? = null
+    val bakingDetails: BakingDetailsDTO? = null,
+    val discountEndDate: Date? = null
 )
 
 /**

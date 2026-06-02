@@ -4,6 +4,8 @@ import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 import kotlinx.parcelize.RawValue
 
+import java.util.Date
+
 /**
  * Product reference with quantity for recipe ingredients.
  */
@@ -66,7 +68,8 @@ data class Recipe(
     val categories: List<String> = listOf(),
     val sections: @RawValue List<RecipeSection> = listOf(),
     val recipes: @RawValue List<RecipeNested> = listOf(),
-    val bakingDetails: BakingDetails? = null
+    val bakingDetails: BakingDetails? = null,
+    val discountEndDate: Date? = null
 ) : Parcelable, com.estaciondulce.app.models.Identifiable {
 
     /**
@@ -80,5 +83,15 @@ data class Recipe(
         } else {
             0.0
         }
+    }
+
+    /**
+     * Checks if the discount is active and not expired.
+     * @return true if discount is active and end date has not passed
+     */
+    fun isDiscountActive(): Boolean {
+        if (!onDiscount) return false
+        val limit = discountEndDate ?: return true
+        return limit.after(Date())
     }
 }
