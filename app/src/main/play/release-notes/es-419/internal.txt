@@ -1,0 +1,1 @@
+Se movieron las claves de firma a un directorio relativo y se agregó soporte para configuración local, permitiendo compilar en Mac y Windows sin cambios de código.

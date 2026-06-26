@@ -1,0 +1,1 @@
+Relocated signing keys to a relative workspace directory and added local properties config fallback support to enable cross-platform Mac and Windows compilation.
