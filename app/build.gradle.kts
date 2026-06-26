@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -11,8 +13,8 @@ android {
         applicationId = "com.estaciondulce.app"
         minSdk = 30
         targetSdk = 35
-        versionCode = 47
-        versionName = "10.0"
+        versionCode = 48
+        versionName = "10.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -20,10 +22,15 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("F:\\Programacion\\Proyectos\\estacion-dulce-app-android\\my-release-key.jks")
-            storePassword = System.getenv("ESTACION_KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("ESTACION_KEY_ALIAS")
-            keyPassword = System.getenv("ESTACION_KEY_PASSWORD")
+            storeFile = file("../../estacion-dulce-keys/my-release-key.jks")
+            val localProperties = Properties()
+            val file = rootProject.file("local.properties")
+            if (file.exists()) {
+                file.inputStream().use { localProperties.load(it) }
+            }
+            storePassword = localProperties.getProperty("signing.storePassword") ?: System.getenv("ESTACION_KEYSTORE_PASSWORD")
+            keyAlias = localProperties.getProperty("signing.keyAlias") ?: System.getenv("ESTACION_KEY_ALIAS")
+            keyPassword = localProperties.getProperty("signing.keyPassword") ?: System.getenv("ESTACION_KEY_PASSWORD")
         }
     }
 

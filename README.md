@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v10.1** - Relocated signing keys to a relative workspace directory and added local properties config fallback support to enable cross-platform Mac and Windows compilation.
 - **v10.0** - Integrated Gemini-powered ticket OCR scanner for purchases, including provider search autocomplete, purchase date extraction with current/closest year fallback, receipt image upload/deletion in Firebase Storage, and interactive product replacement dialog.
 - **v9.4** - Added a configurable date limit to recipe discounts with an intuitive date picker, integrated verification logic, and updated the discount fragment status display.
 - **v9.3** - Added a new Quick Calculate button for shipping costs inside the Shipment fragment without needing to save a person record.
