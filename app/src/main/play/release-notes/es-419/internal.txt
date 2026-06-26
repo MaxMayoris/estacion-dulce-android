@@ -1,1 +1,1 @@
-Se movieron las claves de firma a un directorio relativo y se agregó soporte para configuración local, permitiendo compilar en Mac y Windows sin cambios de código.
+Agrega marca de validación para ítems coincidentes en la base de datos de productos y reubica el botón de escaneo OCR para evitar superposiciones.

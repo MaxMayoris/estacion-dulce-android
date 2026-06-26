@@ -24,7 +24,10 @@ class MovementItemsAdapter(
         
         fun bind(item: MovementItem, position: Int) {
             binding.itemNameTextView.text = getDisplayName(item.collection, item.collectionId)
-            
+
+            val isVerified = item.collection == "products" && item.collectionId.isNotEmpty()
+            binding.verifiedBadgeContainer.visibility = if (isVerified) android.view.View.VISIBLE else android.view.View.GONE
+
             quantityWatcher?.let { binding.quantityEditText.removeTextChangedListener(it) }
             costWatcher?.let { binding.costEditText.removeTextChangedListener(it) }
             

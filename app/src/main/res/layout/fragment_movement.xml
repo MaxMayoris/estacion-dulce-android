@@ -86,10 +86,10 @@
         android:contentDescription="Escanear Ticket"
         app:srcCompat="@android:drawable/ic_menu_camera"
         style="@style/CustomFloatingActionButtonStyle"
-        app:layout_constraintBottom_toTopOf="@id/addMovementButton"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginEnd="24dp"
-        android:layout_marginBottom="16dp" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/addMovementButton"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="24dp" />
 
     <!-- Add Movement Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton

@@ -8,18 +8,53 @@
     android:gravity="center_vertical"
     android:background="@drawable/table_row_background">
 
-    <!-- Item Name -->
-    <TextView
-        android:id="@+id/itemNameTextView"
+    <!-- Item Name + Verified Badge -->
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="2"
-        android:text="Producto"
-        android:textSize="16sp"
-        android:textColor="@color/text_primary"
-        android:layout_marginEnd="8dp"
-        android:maxLines="2"
-        android:ellipsize="end" />
+        android:orientation="vertical"
+        android:layout_marginEnd="8dp">
+
+        <TextView
+            android:id="@+id/itemNameTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Producto"
+            android:textSize="16sp"
+            android:textColor="@color/text_primary"
+            android:maxLines="2"
+            android:ellipsize="end" />
+
+        <LinearLayout
+            android:id="@+id/verifiedBadgeContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone"
+            android:layout_marginTop="2dp">
+
+            <ImageView
+                android:id="@+id/verifiedIcon"
+                android:layout_width="13dp"
+                android:layout_height="13dp"
+                android:src="@drawable/ic_check_circle"
+                android:contentDescription="Verificado"
+                app:tint="@color/purple_400" />
+
+            <TextView
+                android:id="@+id/verifiedLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Validado"
+                android:textSize="10sp"
+                android:textColor="@color/purple_400"
+                android:layout_marginStart="3dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
 
     <!-- Quantity Input -->
     <LinearLayout

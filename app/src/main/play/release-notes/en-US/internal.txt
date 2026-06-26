@@ -1,1 +1,1 @@
-Relocated signing keys to a relative workspace directory and added local properties config fallback support to enable cross-platform Mac and Windows compilation.
+Added validation checkmark badge for items matched in product database and relocated OCR scanner floating action button to avoid overlap.
