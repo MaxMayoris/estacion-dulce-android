@@ -8,3 +8,4 @@ export { onRecipeCostUpdate } from "./triggers/recipeCostTriggers";
 export { onMovementCreated, onMovementDeleted } from "./triggers/movementTriggers";
 export { aiGatewayMCP } from "./triggers/aiGatewayMCPFunction";
 export { onPendingOrdersDailyNotification } from "./triggers/pendingOrdersDailyNotification";
+export { processTicketOCR } from "./triggers/ticketOCRTrigger";

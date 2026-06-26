@@ -59,6 +59,7 @@ class MovementEditActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMovementEditBinding
     private lateinit var customLoader: CustomLoader
     private var currentMovement: Movement? = null
+    private var isEditMode: Boolean = false
     private var originalMovement: Movement? = null // Copy of the original movement for kitchen order preservation
     private val repository = FirestoreRepository
     private var selectedDate: Date = Date()
@@ -128,6 +129,7 @@ class MovementEditActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         @Suppress("DEPRECATION")
         currentMovement = intent.getParcelableExtra<Movement>("MOVEMENT")
+        isEditMode = currentMovement != null && currentMovement!!.id.isNotEmpty()
         originalMovement = currentMovement?.let { movement ->
             movement.copy(
                 items = movement.items.map { it.copy() }
@@ -135,7 +137,7 @@ class MovementEditActivity : AppCompatActivity() {
         }
         val personId = intent.getStringExtra("PERSON_ID")
         supportActionBar?.title =
-            if (currentMovement != null) "Editar Movimiento" else "Agregar Movimiento"
+            if (isEditMode) "Editar Movimiento" else "Agregar Movimiento"
         binding.dateInput.setOnClickListener { showMovementDateTimePickerDialog() }
         binding.deliveryDateTimeInput.setOnClickListener { showDateTimePickerDialog() }
         binding.discountInput.addTextChangedListener(createDiscountWatcher())
@@ -182,6 +184,9 @@ class MovementEditActivity : AppCompatActivity() {
 
                     else -> "Desconocido"
                 }
+            },
+            onNameClicked = { position ->
+                showReplaceItemDialog(position)
             }
         )
         binding.itemsRecyclerView.adapter = itemsAdapter
@@ -212,7 +217,7 @@ class MovementEditActivity : AppCompatActivity() {
                                 updatePersonSpinnerHint("Compra")
                                 binding.shippingRow.visibility = View.GONE
                                 binding.discountCard.visibility = View.GONE
-                                binding.referenceImagesCard.visibility = View.GONE
+                                binding.referenceImagesCard.visibility = View.VISIBLE
                             }
                             EPersonType.CLIENT.dbValue -> {
                                 binding.movementTypeSpinner.setText("Venta", false)
@@ -262,7 +267,7 @@ class MovementEditActivity : AppCompatActivity() {
                     binding.discountCard.visibility = View.GONE
                     binding.detailCard.visibility = View.GONE
                     binding.isStockContainer.visibility = View.GONE
-                    binding.referenceImagesCard.visibility = View.GONE
+                    binding.referenceImagesCard.visibility = View.VISIBLE
                     binding.shippingAddressInput.setText("")
                     selectDeliveryType("pickup")
                     recalcTotalAmount()
@@ -351,7 +356,7 @@ class MovementEditActivity : AppCompatActivity() {
                 binding.shippingRow.visibility = View.GONE
                 binding.discountCard.visibility = View.GONE
                 binding.detailCard.visibility = View.GONE
-                binding.referenceImagesCard.visibility = View.GONE
+                binding.referenceImagesCard.visibility = View.VISIBLE
             }
             movementItems.clear()
             val regularItems = movement.items.filter { it.collection != "custom" || it.collectionId != "discount" }
@@ -363,15 +368,19 @@ class MovementEditActivity : AppCompatActivity() {
             originalProductItems =
                 movement.items.filter { it.collection == "products" }.map { it.copy() }
             
-            if (movement.type == EMovementType.SALE) {
-                existingImageUrls.clear()
-                existingImageUrls.addAll(movement.referenceImages)
-                updateReferenceImageGallery()
-            }
+            existingImageUrls.clear()
+            existingImageUrls.addAll(movement.referenceImages)
+            updateReferenceImageGallery()
         } ?: run {
             binding.dateInput.setText(formatDateTime(selectedDate))
         }
         setupDeliveryTypeSelector()
+
+        val ticketImageUriStr = intent.getStringExtra("TICKET_IMAGE_URI")
+        if (!ticketImageUriStr.isNullOrEmpty()) {
+            val ticketUri = android.net.Uri.parse(ticketImageUriStr)
+            uploadImagesToTempStorage(listOf(ticketUri))
+        }
         
         
         FirestoreRepository.shipmentSettingsLiveData.observe(this) { _ ->
@@ -1030,6 +1039,93 @@ class MovementEditActivity : AppCompatActivity() {
     }
 
     /**
+     * Displays a dialog to replace/modify the selected product of an item in the movement.
+     */
+    private fun showReplaceItemDialog(position: Int) {
+        val dialogView = layoutInflater.inflate(com.estaciondulce.app.R.layout.dialog_add_item, null)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val searchEditText = dialogView.findViewById<android.widget.EditText>(com.estaciondulce.app.R.id.searchEditText)
+        val itemsRecyclerView = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(com.estaciondulce.app.R.id.itemsRecyclerView)
+        val emptyState = dialogView.findViewById<android.widget.LinearLayout>(com.estaciondulce.app.R.id.emptyState)
+        val closeButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.closeButton)
+
+        // Set layout title to modify
+        val titleTextView = dialogView.findViewById<android.widget.TextView>(com.estaciondulce.app.R.id.dialogTitle)
+        titleTextView?.text = "Modificar Ítem"
+
+        itemsRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        
+        val products = repository.productsLiveData.value ?: emptyList()
+        val recipes = repository.recipesLiveData.value ?: emptyList()
+        
+        val currentMovementType = currentMovement?.type
+        val isPurchase = when {
+            currentMovementType != null -> currentMovementType == EMovementType.PURCHASE
+            binding.movementTypeSpinner.text.toString().contains("Compra") -> true
+            binding.movementTypeSpinner.text.toString().contains("Venta") -> false
+            else -> true
+        }
+        
+        // Filter out the 'custom' option since we want to map to an actual DB item
+        val allItems = buildSearchResults(products, recipes, isPurchase).filter { it.collection != "custom" }
+
+        val dialogAdapter = com.estaciondulce.app.adapters.DialogAddItemAdapter(allItems) { selectedItem ->
+            val oldItem = movementItems[position]
+            val newItem = MovementItem(
+                collection = selectedItem.collection,
+                collectionId = selectedItem.collectionId,
+                customName = null,
+                cost = oldItem.cost,
+                quantity = oldItem.quantity
+            )
+            movementItems[position] = newItem
+            
+            // Keep original cost and quantity, just notify adapter
+            itemsAdapter.notifyItemChanged(position)
+            recalcTotalAmount()
+            dialog.dismiss()
+        }
+        
+        itemsRecyclerView.adapter = dialogAdapter
+
+        closeButton.setOnClickListener { dialog.dismiss() }
+
+        searchEditText.addTextChangedListener(object : android.text.TextWatcher {
+            override fun afterTextChanged(s: android.text.Editable?) {}
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s?.toString() ?: ""
+                
+                if (query.length < 3) {
+                    itemsRecyclerView.visibility = View.GONE
+                    emptyState.visibility = View.VISIBLE
+                    dialogAdapter.updateItems(emptyList())
+                } else {
+                    val filtered = allItems.filter { 
+                        it.name.contains(query, ignoreCase = true) 
+                    }.sortedBy { it.name }
+                    
+                    if (filtered.isEmpty()) {
+                        itemsRecyclerView.visibility = View.GONE
+                        emptyState.visibility = View.VISIBLE
+                        dialogAdapter.updateItems(emptyList())
+                    } else {
+                        itemsRecyclerView.visibility = View.VISIBLE
+                        emptyState.visibility = View.GONE
+                        dialogAdapter.updateItems(filtered)
+                    }
+                }
+            }
+        })
+
+        dialog.show()
+    }
+
+    /**
      * Validates the required input fields.
      */
     private fun validateInputs(): Boolean {
@@ -1211,7 +1307,7 @@ class MovementEditActivity : AppCompatActivity() {
         customLoader.show()
         val movementToSave = getMovementFromInputs()
         
-        if (currentMovement == null) {
+        if (!isEditMode) {
             handleNewMovement(movementToSave)
         } else {
             handleMovementEdit(movementToSave)
@@ -1230,7 +1326,7 @@ class MovementEditActivity : AppCompatActivity() {
                     checkAndUpdateFuelPrice(movement)
                 }
                 
-                if (movement.type == EMovementType.SALE && tempImageUrls.isNotEmpty()) {
+                if (tempImageUrls.isNotEmpty()) {
                     uploadTempImagesToFinalLocation(
                         tempImageUrls = tempImageUrls,
                         movementId = newMovement.id,
@@ -1308,7 +1404,7 @@ class MovementEditActivity : AppCompatActivity() {
             movement = movement,
             createKitchenOrders = false, // Don't create kitchen orders here - they will be handled by preserveKitchenOrdersForEditedMovement
             onSuccess = { newMovement ->
-                if (movement.type == EMovementType.SALE && hasImageChanges()) {
+                if (hasImageChanges()) {
                     handleImageOperationsForEdit(newMovement, originalMovementId)
                 } else {
                     updateMovementAndCleanup(newMovement, originalMovementId)

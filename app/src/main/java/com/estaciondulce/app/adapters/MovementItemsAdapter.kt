@@ -12,7 +12,8 @@ class MovementItemsAdapter(
     private var items: MutableList<MovementItem>,
     private val onItemChanged: () -> Unit,  // Callback when an item is updated
     private val onDeleteClicked: (Int) -> Unit,  // Callback with the item position to delete
-    private val getDisplayName: (collection: String, collectionId: String) -> String
+    private val getDisplayName: (collection: String, collectionId: String) -> String,
+    private val onNameClicked: ((Int) -> Unit)? = null
 ) : RecyclerView.Adapter<MovementItemsAdapter.ViewHolder>() {
 
     inner class ViewHolder(val binding: ItemMovementBinding) :
@@ -34,6 +35,10 @@ class MovementItemsAdapter(
 
             binding.deleteItemButton.setOnClickListener {
                 onDeleteClicked(position)
+            }
+
+            binding.itemNameTextView.setOnClickListener {
+                onNameClicked?.invoke(position)
             }
 
             quantityWatcher = object : TextWatcher {

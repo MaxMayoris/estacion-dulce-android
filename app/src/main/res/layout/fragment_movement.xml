@@ -78,6 +78,19 @@
         app:layout_constraintBottom_toBottomOf="parent"
         android:layout_margin="16dp" />
 
+    <!-- Scan Ticket Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/scanTicketButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="Escanear Ticket"
+        app:srcCompat="@android:drawable/ic_menu_camera"
+        style="@style/CustomFloatingActionButtonStyle"
+        app:layout_constraintBottom_toTopOf="@id/addMovementButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="16dp" />
+
     <!-- Add Movement Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/addMovementButton"

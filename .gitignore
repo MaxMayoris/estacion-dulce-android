@@ -29,3 +29,5 @@ release-rules.mdc
 # Build verification scripts and logs
 /run_compilation.bat
 /build_logs/
+/bundle_release_log.txt
+/compile_debug_log.txt

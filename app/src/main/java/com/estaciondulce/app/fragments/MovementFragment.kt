@@ -2,23 +2,44 @@ package com.estaciondulce.app.fragments
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Base64
+import android.util.Log
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.estaciondulce.app.activities.MovementEditActivity
 import com.estaciondulce.app.adapters.MovementAdapter
 import com.estaciondulce.app.databinding.FragmentMovementBinding
+import com.estaciondulce.app.helpers.FirebaseFunctionsHelper
 import com.estaciondulce.app.helpers.MovementsHelper
 import com.estaciondulce.app.models.enums.EMovementType
+import com.estaciondulce.app.models.enums.EPersonType
 import com.estaciondulce.app.models.parcelables.Movement
+import com.estaciondulce.app.models.parcelables.MovementItem
 import com.estaciondulce.app.repository.FirestoreRepository
+import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.utils.DeleteConfirmationDialog
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.models.toColumnConfigs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
+import com.estaciondulce.app.adapters.PersonSearchAdapter
+import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.LinearLayoutManager
+
 
 class MovementFragment : Fragment() {
 
@@ -28,6 +49,29 @@ class MovementFragment : Fragment() {
     
     // Tab state
     private var selectedTab: String = "sale" // Default to sale tab
+
+    private var tempImageFile: File? = null
+    private var selectedProviderId: String? = null
+    private lateinit var customLoader: CustomLoader
+
+    private val cameraLauncher = registerForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            tempImageFile?.let { file ->
+                val uri = Uri.fromFile(file)
+                processTicketImage(uri)
+            }
+        }
+    }
+
+    private val galleryLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            processTicketImage(it)
+        }
+    }
 
     /**
      * Formats a date to Spanish format: "dd mes hh:mm"
@@ -74,6 +118,12 @@ class MovementFragment : Fragment() {
             openMovementEditActivity(null)
         }
 
+        binding.scanTicketButton.setOnClickListener {
+            showProviderSelectionDialog()
+        }
+
+        customLoader = CustomLoader(requireContext())
+
         // Setup tab click listeners
         binding.saleTab.setOnClickListener {
             selectTab("sale")
@@ -96,10 +146,13 @@ class MovementFragment : Fragment() {
     /**
      * Launches MovementEditActivity. If a movement is passed, it is used for editing.
      */
-    private fun openMovementEditActivity(movement: Movement? = null) {
+    private fun openMovementEditActivity(movement: Movement? = null, ticketImageUri: Uri? = null) {
         val intent = Intent(requireContext(), MovementEditActivity::class.java)
         if (movement != null) {
             intent.putExtra("MOVEMENT", movement)
+        }
+        if (ticketImageUri != null) {
+            intent.putExtra("TICKET_IMAGE_URI", ticketImageUri.toString())
         }
         movementEditActivityLauncher.launch(intent)
     }
@@ -239,6 +292,222 @@ class MovementFragment : Fragment() {
                     }
                 )
             }
+        )
+    }
+
+    private fun showImageSelectionDialog() {
+        val options = listOf("Tomar Foto", "Seleccionar de Galería")
+        val actions = listOf(
+            { takePictureWithCamera() },
+            { galleryLauncher.launch("image/*") }
+        )
+        
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Escanear Ticket con IA")
+            .setItems(options.toTypedArray()) { _, which ->
+                actions[which]()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun takePictureWithCamera() {
+        try {
+            val tempFile = File.createTempFile("ticket_ocr_${System.currentTimeMillis()}", ".jpg", requireContext().cacheDir)
+            tempImageFile = tempFile
+            val uri = Uri.fromFile(tempFile)
+            cameraLauncher.launch(uri)
+        } catch (e: Exception) {
+            CustomToast.showError(requireContext(), "Error al crear archivo temporal: ${e.message}")
+        }
+    }
+
+    private fun processTicketImage(uri: Uri) {
+        customLoader.show()
+        lifecycleScope.launch(Dispatchers.IO) {
+            val imageData = getBase64ImageFromUri(uri)
+            if (imageData == null) {
+                withContext(Dispatchers.Main) {
+                    customLoader.hide()
+                    CustomToast.showError(requireContext(), "Error al procesar la imagen del ticket.")
+                }
+                return@launch
+            }
+
+            val (base64Str, mimeType) = imageData
+            val result = FirebaseFunctionsHelper.callProcessTicketOCR(base64Str, mimeType)
+
+            withContext(Dispatchers.Main) {
+                customLoader.hide()
+                if (result != null) {
+                    try {
+                        val parsedMovement = mapResponseToMovement(result)
+                        openMovementEditActivity(parsedMovement, uri)
+                    } catch (e: Exception) {
+                        Log.e("MovementFragment", "Error mapping movement response", e)
+                        CustomToast.showError(requireContext(), "Error al interpretar la respuesta de la IA.")
+                    }
+                } else {
+                    CustomToast.showError(requireContext(), "Error al extraer datos del ticket. Intenta de nuevo.")
+                }
+            }
+        }
+    }
+
+    private fun getBase64ImageFromUri(uri: Uri): Pair<String, String>? {
+        return try {
+            val context = requireContext()
+            // Re-use existing project ImageUtils to rotate and compress image to WebP
+            val compressedUri = com.estaciondulce.app.utils.ImageUtils.compressImage(context, uri)
+            val inputStream = context.contentResolver.openInputStream(compressedUri)
+            val bytes = inputStream?.readBytes()
+            inputStream?.close()
+
+            if (bytes == null) return null
+            val base64Str = Base64.encodeToString(bytes, Base64.NO_WRAP)
+            
+            // Clean up the temporary WebP file created by ImageUtils
+            if (compressedUri.scheme == "file") {
+                compressedUri.path?.let { File(it).delete() }
+            }
+
+            Pair(base64Str, "image/webp")
+        } catch (e: Exception) {
+            Log.e("MovementFragment", "Error converting image to Base64: ${e.message}", e)
+            null
+        }
+    }
+
+    private fun showProviderSelectionDialog() {
+        val providers = repository.personsLiveData.value?.filter { 
+            it.type == EPersonType.PROVIDER.dbValue 
+        } ?: emptyList()
+        
+        if (providers.isEmpty()) {
+            CustomToast.showWarning(requireContext(), "No hay proveedores registrados.")
+            return
+        }
+
+        val dialogView = layoutInflater.inflate(com.estaciondulce.app.R.layout.dialog_person_search, null)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val searchEditText = dialogView.findViewById<android.widget.EditText>(com.estaciondulce.app.R.id.searchEditText)
+        val personsRecyclerView = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(com.estaciondulce.app.R.id.personsRecyclerView)
+        val emptyState = dialogView.findViewById<android.widget.LinearLayout>(com.estaciondulce.app.R.id.emptyState)
+        val closeButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.closeButton)
+        val dialogTitle = dialogView.findViewById<android.widget.TextView>(com.estaciondulce.app.R.id.dialogTitle)
+        
+        dialogTitle.text = "Seleccionar Proveedor"
+        searchEditText.hint = "Buscar proveedor..."
+
+        // Limit RecyclerView height to wrap_content so it takes less space
+        personsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        val params = personsRecyclerView.layoutParams
+        params.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        personsRecyclerView.layoutParams = params
+
+        // Show initially up to 3 providers sorted alphabetically
+        val initialProviders = providers.sortedBy { "${it.name} ${it.lastName}" }.take(3)
+        
+        val dialogAdapter = PersonSearchAdapter(initialProviders) { selectedPerson ->
+            selectedProviderId = selectedPerson.id
+            dialog.dismiss()
+            showImageSelectionDialog()
+        }
+        
+        personsRecyclerView.adapter = dialogAdapter
+        
+        if (initialProviders.isEmpty()) {
+            personsRecyclerView.visibility = View.GONE
+            emptyState.visibility = View.VISIBLE
+        } else {
+            personsRecyclerView.visibility = View.VISIBLE
+            emptyState.visibility = View.GONE
+        }
+
+        closeButton.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        searchEditText.addTextChangedListener(object : android.text.TextWatcher {
+            override fun afterTextChanged(s: android.text.Editable?) {}
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s?.toString() ?: ""
+                
+                val filtered = if (query.isEmpty()) {
+                    providers.sortedBy { "${it.name} ${it.lastName}" }.take(3)
+                } else {
+                    providers.filter { 
+                        "${it.name} ${it.lastName}".contains(query, ignoreCase = true) 
+                    }.sortedBy { "${it.name} ${it.lastName}" }.take(3)
+                }
+                
+                dialogAdapter.updatePersons(filtered)
+                
+                if (filtered.isEmpty()) {
+                    personsRecyclerView.visibility = View.GONE
+                    emptyState.visibility = View.VISIBLE
+                } else {
+                    personsRecyclerView.visibility = View.VISIBLE
+                    emptyState.visibility = View.GONE
+                }
+            }
+        })
+
+        dialog.show()
+    }
+
+    private fun mapResponseToMovement(data: Map<*, *>) : Movement {
+        val totalAmount = (data["totalAmount"] as? Number)?.toDouble() ?: 0.0
+        val rawItems = data["items"] as? List<*> ?: emptyList<Any>()
+        val itemsList = mutableListOf<MovementItem>()
+        
+        // Parse date from response, fallback to current date
+        val dateStr = data["date"] as? String
+        val parsedDate = if (!dateStr.isNullOrEmpty()) {
+            try {
+                if (dateStr.contains(":")) {
+                    SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).parse(dateStr)
+                } else {
+                    SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(dateStr)
+                }
+            } catch (e: Exception) {
+                java.util.Date()
+            }
+        } else {
+            java.util.Date()
+        }
+        
+        for (rawItem in rawItems) {
+            val itemMap = rawItem as? Map<*, *> ?: continue
+            val collection = itemMap["collection"] as? String ?: "custom"
+            val collectionId = itemMap["collectionId"] as? String ?: ""
+            val customName = itemMap["customName"] as? String
+            val cost = (itemMap["cost"] as? Number)?.toDouble() ?: 0.0
+            val quantity = (itemMap["quantity"] as? Number)?.toDouble() ?: 0.0
+            
+            itemsList.add(
+                MovementItem(
+                    collection = collection,
+                    collectionId = collectionId,
+                    customName = customName,
+                    cost = cost,
+                    quantity = quantity
+                )
+            )
+        }
+        
+        return Movement(
+            type = EMovementType.PURCHASE,
+            personId = selectedProviderId ?: "",
+            movementDate = parsedDate ?: java.util.Date(),
+            totalAmount = totalAmount,
+            items = itemsList,
+            detail = "Ticket escaneado por IA"
         )
     }
 }

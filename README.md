@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v10.0** - Integrated Gemini-powered ticket OCR scanner for purchases, including provider search autocomplete, purchase date extraction with current/closest year fallback, receipt image upload/deletion in Firebase Storage, and interactive product replacement dialog.
 - **v9.4** - Added a configurable date limit to recipe discounts with an intuitive date picker, integrated verification logic, and updated the discount fragment status display.
 - **v9.3** - Added a new Quick Calculate button for shipping costs inside the Shipment fragment without needing to save a person record.
 - **v9.2** - Added baking details configuration (temperature and duration) to recipes with an intuitive time picker, integrated baking execution specifics seamlessly into Kitchen Orders, and fixed total sales aggregates inside Statistics charts.

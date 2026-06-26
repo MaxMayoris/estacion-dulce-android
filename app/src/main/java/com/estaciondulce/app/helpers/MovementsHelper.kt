@@ -100,7 +100,7 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
         kitchenOrdersHelper.deleteKitchenOrdersForMovement(
             movementId = movementId,
             onSuccess = {
-                        if (movement != null && movement.type == EMovementType.SALE && movement.referenceImages.isNotEmpty()) {
+                        if (movement != null && movement.referenceImages.isNotEmpty()) {
                             val storageHelper = StorageHelper()
                             storageHelper.deleteImagesFromStorage(
                                 imageUrls = movement.referenceImages,

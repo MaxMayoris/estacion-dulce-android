@@ -110,5 +110,30 @@ object FirebaseFunctionsHelper {
             null
         }
     }
+
+    /**
+     * Calls the processTicketOCR function to extract movement items from a receipt image
+     */
+    suspend fun callProcessTicketOCR(
+        imageBase64: String,
+        mimeType: String
+    ): Map<*, *>? {
+        return try {
+            val data = hashMapOf(
+                "imageBase64" to imageBase64,
+                "mimeType" to mimeType
+            )
+            
+            val result = functions
+                .getHttpsCallable("processTicketOCR")
+                .call(data)
+                .await()
+            
+            result.getData() as? Map<*, *>
+        } catch (e: Exception) {
+            Log.e(TAG, "Error calling processTicketOCR: ${e.message}", e)
+            null
+        }
+    }
 }
 
