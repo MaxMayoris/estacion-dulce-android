@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.play.publisher)
 }
 
 android {
@@ -158,3 +159,9 @@ dependencies {
 
 apply(plugin = "com.google.gms.google-services")
 apply(plugin = "kotlin-parcelize")
+
+play {
+    serviceAccountCredentials.set(file("../../estacion-dulce-keys/play-store-credentials.json"))
+    defaultToAppBundles.set(true)
+    track.set("internal")
+}
