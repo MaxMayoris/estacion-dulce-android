@@ -79,6 +79,18 @@
     </LinearLayout>
 
 
+    <!-- Add New Address Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/addAddressButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Agregar Nueva Dirección"
+        android:textAllCaps="false"
+        android:textSize="16sp"
+        app:backgroundTint="@color/button_gradient_start"
+        app:cornerRadius="8dp" />
+
     <!-- Close Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/closeButton"

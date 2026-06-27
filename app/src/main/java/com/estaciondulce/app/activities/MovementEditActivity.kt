@@ -417,6 +417,7 @@ class MovementEditActivity : AppCompatActivity() {
                             selectedAddress = savedAddress
                             val displayText = "${savedAddress.label}: ${savedAddress.formattedAddress}"
                             binding.shippingAddressInput.setText(displayText)
+                            calculateShippingCostForAddress(savedAddress)
                             customLoader.hide()
                             CustomToast.showSuccess(this, "Nueva dirección agregada y seleccionada: ${savedAddress.label}")
                         },
@@ -606,6 +607,18 @@ class MovementEditActivity : AppCompatActivity() {
             }
         )
 
+
+        val addAddressButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.addAddressButton)
+        addAddressButton.setOnClickListener {
+            dialog.dismiss()
+            customLoader.show()
+            val intent = Intent(this, AddressPickerActivity::class.java)
+            intent.putExtra(AddressPickerActivity.EXTRA_PERSON_ID, selectedPerson.id)
+            intent.putExtra(AddressPickerActivity.EXTRA_ADDRESS_LABEL, "Dirección")
+            intent.putExtra(AddressPickerActivity.EXTRA_DRAFT_MODE, true)
+            @Suppress("DEPRECATION")
+            startActivityForResult(intent, 2001)
+        }
 
         closeButton.setOnClickListener {
             dialog.dismiss()

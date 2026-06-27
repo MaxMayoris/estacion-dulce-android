@@ -78,18 +78,85 @@
         app:layout_constraintBottom_toBottomOf="parent"
         android:layout_margin="16dp" />
 
+    <!-- Scan Ticket Label Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/scanTicketLabelCard"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:cardCornerRadius="6dp"
+        app:cardElevation="4dp"
+        app:cardBackgroundColor="@color/white"
+        app:layout_constraintEnd_toStartOf="@id/scanTicketButton"
+        app:layout_constraintTop_toTopOf="@id/scanTicketButton"
+        app:layout_constraintBottom_toBottomOf="@id/scanTicketButton"
+        android:layout_marginEnd="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Scan ticket"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp" />
+    </com.google.android.material.card.MaterialCardView>
+
     <!-- Scan Ticket Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/scanTicketButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:contentDescription="Escanear Ticket"
+        android:visibility="gone"
         app:srcCompat="@android:drawable/ic_menu_camera"
         style="@style/CustomFloatingActionButtonStyle"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/addMovementButton"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="24dp" />
+        app:layout_constraintBottom_toTopOf="@id/addMovementManualButton"
+        app:layout_constraintEnd_toEndOf="@id/addMovementButton"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Add Movement Manual Label Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/addMovementManualLabelCard"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:cardCornerRadius="6dp"
+        app:cardElevation="4dp"
+        app:cardBackgroundColor="@color/white"
+        app:layout_constraintEnd_toStartOf="@id/addMovementManualButton"
+        app:layout_constraintTop_toTopOf="@id/addMovementManualButton"
+        app:layout_constraintBottom_toBottomOf="@id/addMovementManualButton"
+        android:layout_marginEnd="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Nuevo"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Add Movement Manual Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/addMovementManualButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="Crear Movimiento Manual"
+        android:visibility="gone"
+        app:srcCompat="@drawable/ic_edit"
+        style="@style/CustomFloatingActionButtonStyle"
+        app:layout_constraintBottom_toTopOf="@id/addMovementButton"
+        app:layout_constraintEnd_toEndOf="@id/addMovementButton"
+        android:layout_marginBottom="16dp" />
 
     <!-- Add Movement Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton

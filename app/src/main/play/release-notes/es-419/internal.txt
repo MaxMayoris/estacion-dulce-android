@@ -1,1 +1,1 @@
-Agrega marca de validación para ítems coincidentes en la base de datos de productos y reubica el botón de escaneo OCR para evitar superposiciones.
+Implementación de un menú FAB expandible (Speed Dial) para movimientos (escanear ticket y entrada manual) y agregado de la funcionalidad de crear una nueva dirección directamente desde el diálogo de selección de direcciones en el editor de movimientos.

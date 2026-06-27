@@ -54,6 +54,8 @@ class MovementFragment : Fragment() {
     private var selectedProviderId: String? = null
     private lateinit var customLoader: CustomLoader
 
+    private var isMenuExpanded = false
+
     private val cameraLauncher = registerForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
@@ -115,10 +117,16 @@ class MovementFragment : Fragment() {
         }
 
         binding.addMovementButton.setOnClickListener {
+            toggleMenu()
+        }
+
+        binding.addMovementManualButton.setOnClickListener {
+            collapseMenu()
             openMovementEditActivity(null)
         }
 
         binding.scanTicketButton.setOnClickListener {
+            collapseMenu()
             showProviderSelectionDialog()
         }
 
@@ -141,6 +149,45 @@ class MovementFragment : Fragment() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
+    }
+
+    private fun collapseMenu() {
+        if (!isMenuExpanded) return
+        isMenuExpanded = false
+        binding.addMovementButton.setImageResource(com.estaciondulce.app.R.drawable.ic_plus_modern)
+        binding.scanTicketButton.hide()
+        binding.addMovementManualButton.hide()
+        
+        binding.scanTicketLabelCard.animate().alpha(0f).setDuration(150).withEndAction {
+            binding.scanTicketLabelCard.visibility = View.GONE
+        }.start()
+        binding.addMovementManualLabelCard.animate().alpha(0f).setDuration(150).withEndAction {
+            binding.addMovementManualLabelCard.visibility = View.GONE
+        }.start()
+    }
+
+    private fun expandMenu() {
+        if (isMenuExpanded) return
+        isMenuExpanded = true
+        binding.addMovementButton.setImageResource(com.estaciondulce.app.R.drawable.ic_close)
+        binding.scanTicketButton.show()
+        binding.addMovementManualButton.show()
+        
+        binding.scanTicketLabelCard.visibility = View.VISIBLE
+        binding.scanTicketLabelCard.alpha = 0f
+        binding.scanTicketLabelCard.animate().alpha(1f).setDuration(200).start()
+        
+        binding.addMovementManualLabelCard.visibility = View.VISIBLE
+        binding.addMovementManualLabelCard.alpha = 0f
+        binding.addMovementManualLabelCard.animate().alpha(1f).setDuration(200).start()
+    }
+
+    private fun toggleMenu() {
+        if (isMenuExpanded) {
+            collapseMenu()
+        } else {
+            expandMenu()
+        }
     }
 
     /**

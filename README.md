@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v10.3** - Implemented an expandable FAB speed dial menu for movements (Scan ticket and manual entry) and added support for creating a new address directly from the shipping address selection dialog inside the movement editor.
 - **v10.2** - Added validation checkmark badge for items matched in product database and relocated OCR scanner floating action button to avoid overlap.
 - **v10.1** - Relocated signing keys to a relative workspace directory and added local properties config fallback support to enable cross-platform Mac and Windows compilation.
 - **v10.0** - Integrated Gemini-powered ticket OCR scanner for purchases, including provider search autocomplete, purchase date extraction with current/closest year fallback, receipt image upload/deletion in Firebase Storage, and interactive product replacement dialog.
