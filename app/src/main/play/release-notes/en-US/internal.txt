@@ -1,1 +1,1 @@
-Implemented an expandable FAB speed dial menu for movements (Scan ticket and manual entry) and added support for creating a new address directly from the shipping address selection dialog inside the movement editor.
+Implemented forced update checks via Firestore configuration and automated Firestore metadata updates during app release.

@@ -15,6 +15,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessaging
+import com.estaciondulce.app.utils.VersionChecker
 
 /**
  * Activity for user login.
@@ -55,6 +56,7 @@ class LoginActivity : AppCompatActivity() {
         }
 
         setContentView(R.layout.activity_login)
+        VersionChecker.checkForUpdates(this)
         auth = FirebaseAuth.getInstance()
         storageHelper = StorageHelper()
         customLoader = CustomLoader(this)

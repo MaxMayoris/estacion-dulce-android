@@ -26,6 +26,7 @@ import com.estaciondulce.app.fragments.TimesheetFragment
 import com.estaciondulce.app.repository.FirestoreRepository
 import com.estaciondulce.app.utils.CustomLoader
 import com.estaciondulce.app.utils.CustomToast
+import com.estaciondulce.app.utils.VersionChecker
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -164,6 +165,7 @@ class HomeActivity : AppCompatActivity() {
         
         setTheme(R.style.Theme_EstacionDulceApp_Home)
         setContentView(R.layout.activity_home)
+        VersionChecker.checkForUpdates(this)
         
         loader = CustomLoader(this)
         loader.show()

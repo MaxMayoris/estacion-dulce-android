@@ -1,1 +1,1 @@
-Implementación de un menú FAB expandible (Speed Dial) para movimientos (escanear ticket y entrada manual) y agregado de la funcionalidad de crear una nueva dirección directamente desde el diálogo de selección de direcciones en el editor de movimientos.
+Implementado control de versión obligatoria con Firestore y actualización automática de base de datos durante el release de la aplicación.

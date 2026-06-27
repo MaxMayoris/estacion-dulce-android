@@ -73,13 +73,19 @@ This single command compiles the release bundle, signs it, and uploads it direct
 4. If there are warnings or errors, fix them and re-run.
 (Note: This step can take 2-3 minutes. Be patient.)
 
-### Step 8: Commit and Push Changes
+### Step 7.5: Update Firestore config (Auto)
+Run the script to automatically update `minVersionCode` in Firestore to match the newly released `versionCode`:
+1. Run `node scripts/update_firestore_version.js`
+2. Check the output to ensure it prints `✅ Firestore actualizado con éxito.`
+
+### Step 8: Commit and Push Changes (Auto)
+Do NOT ask the user for permission. Execute the commands directly:
 1. Delete temporary log files: `rm -f bundle_release_log.txt compile_debug_log.txt publish_log.txt`
-2. After all verifications pass, list the changed files and request the user's explicit permission to commit.
-3. Upon user approval, execute:
+2. Commit and push:
 // turbo
-4. Run `git add . && git commit -m "feat: release v[VERSION] - [DESCRIPTION_IN_ENGLISH]" && git push`
+3. Run `git add . && git commit -m "feat: release v[VERSION] - [DESCRIPTION_IN_ENGLISH]" && git push`
    (Ensure the commit message strictly uses English).
+4. After pushing, output a summary of the changed files and a concise changelog of the release in your final response.
 
 ---
 
