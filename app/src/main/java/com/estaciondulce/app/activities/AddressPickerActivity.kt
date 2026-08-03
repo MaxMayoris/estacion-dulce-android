@@ -94,7 +94,7 @@ class AddressPickerActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap
         geocoder = Geocoder(this, Locale.getDefault())
 
         if (!Places.isInitialized()) {
-            Places.initialize(this, BuildConfig.GOOGLE_MAPS_API_KEY)
+            Places.initializeWithNewPlacesApiEnabled(this, BuildConfig.GOOGLE_MAPS_API_KEY)
         }
         placesClient = Places.createClient(this)
 
@@ -177,6 +177,7 @@ class AddressPickerActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap
             }
     }
     
+    @Suppress("DEPRECATION")
     private fun handlePredictionSelection(prediction: AutocompletePrediction) {
         val placeFields = listOf(
             Place.Field.ID,
@@ -201,6 +202,7 @@ class AddressPickerActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap
             }
     }
     
+    @Suppress("DEPRECATION")
     private fun handlePlaceSelection(place: Place) {
         val latLng = place.latLng
         if (latLng != null) {
@@ -399,6 +401,7 @@ class AddressPickerActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun createAddressFromPlace(place: Place): android.location.Address {
         val address = android.location.Address(Locale.getDefault())
         

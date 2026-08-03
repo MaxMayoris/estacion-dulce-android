@@ -14,8 +14,8 @@ android {
         applicationId = "com.estaciondulce.app"
         minSdk = 30
         targetSdk = 35
-        versionCode = 51
-        versionName = "10.4"
+        versionCode = 52
+        versionName = "10.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -81,7 +81,8 @@ android {
         jvmTarget = "11"
         freeCompilerArgs += listOf(
             "-Xjvm-default=all",
-            "-Xstring-concat=inline"
+            "-Xstring-concat=inline",
+            "-Xskip-metadata-version-check"
         )
     }
     
@@ -90,7 +91,8 @@ android {
             jvmTarget = "11"
             freeCompilerArgs += listOf(
                 "-Xjvm-default=all",
-                "-Xstring-concat=inline"
+                "-Xstring-concat=inline",
+                "-Xskip-metadata-version-check"
             )
         }
         compilerOptions {
@@ -124,7 +126,7 @@ dependencies {
     implementation("com.google.maps:google-maps-services:2.2.0")
     
     // New Places API (replaces legacy places library)
-    implementation("com.google.android.libraries.places:places:3.3.0")
+    implementation("com.google.android.libraries.places:places:4.4.1")
 
     // AndroidX / Material
     implementation(libs.androidx.core.ktx)

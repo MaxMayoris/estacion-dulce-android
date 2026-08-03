@@ -1,1 +1,1 @@
-Implementado control de versión obligatoria con Firestore y actualización automática de base de datos durante el release de la aplicación.
+Actualizar Places SDK a v4.4.1 y migrar a Places API (New)
