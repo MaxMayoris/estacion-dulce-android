@@ -38,6 +38,8 @@ class WorkBlockEditActivity : AppCompatActivity() {
     private var selectedEndMinute: Int = 0
     private var selectedCategoryId: String = ""
     private var selectedWorkerId: String = ""
+    private var selectedEventId: String? = null
+
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     private val displayDateFormat = SimpleDateFormat("EEEE d 'de' MMMM", Locale("es"))
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -153,6 +155,24 @@ class WorkBlockEditActivity : AppCompatActivity() {
         val workerOptions = workers.map { "${it.displayName}" }
         val workerAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, workerOptions)
         binding.workerSpinner.setAdapter(workerAdapter)
+
+        FirestoreRepository.eventsLiveData.observe(this) { events ->
+            val eventNames = events.map { if (it.description.isNotEmpty()) "${it.name} - ${it.description}" else it.name }
+            val eventAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, eventNames)
+            binding.eventDropdown.setAdapter(eventAdapter)
+            binding.eventDropdown.setOnItemClickListener { _, _, position, _ ->
+                selectedEventId = events[position].id
+            }
+            
+            // Pre-select if eventId exists
+            if (currentBlock != null && selectedEventId == null) {
+                val currentEvent = events.find { it.id == currentBlock?.eventId }
+                if (currentEvent != null) {
+                    selectedEventId = currentEvent.id
+                    binding.eventDropdown.setText(if (currentEvent.description.isNotEmpty()) "${currentEvent.name} - ${currentEvent.description}" else currentEvent.name, false)
+                }
+            }
+        }
 
         binding.workerSpinner.setOnItemClickListener { _, _, position, _ ->
             selectedWorkerId = workers[position].id
@@ -373,6 +393,8 @@ class WorkBlockEditActivity : AppCompatActivity() {
             createdBy = currentBlock?.createdBy ?: "",
             updatedBy = "",
             createdAt = currentBlock?.createdAt,
+            eventId = selectedEventId,
+
             updatedAt = null
         )
 

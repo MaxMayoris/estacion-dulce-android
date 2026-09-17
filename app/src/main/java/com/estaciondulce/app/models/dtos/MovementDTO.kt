@@ -18,5 +18,6 @@ data class MovementDTO(
     val detail: String = "",
     val kitchenOrderStatus: String? = null, // EKitchenOrderStatus.name
     val referenceImages: List<String> = listOf(),
-    val isStock: Boolean? = null
+    val isStock: Boolean? = null,
+    val eventId: String? = null
 )

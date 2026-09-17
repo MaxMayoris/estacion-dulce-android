@@ -31,7 +31,9 @@ data class WorkBlock(
     val createdBy: String = "",
     val updatedBy: String = "",
     val createdAt: com.google.firebase.Timestamp? = null,
-    val updatedAt: com.google.firebase.Timestamp? = null
+
+    val updatedAt: com.google.firebase.Timestamp? = null,
+    val eventId: String? = null
 ) : Parcelable, com.estaciondulce.app.models.Identifiable
 
 /**

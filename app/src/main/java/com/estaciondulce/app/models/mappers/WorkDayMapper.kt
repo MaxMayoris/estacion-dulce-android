@@ -47,7 +47,8 @@ fun WorkBlock.toDTO(): WorkBlockDTO {
         createdBy = createdBy,
         updatedBy = updatedBy,
         createdAt = createdAt,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        eventId = eventId
     )
 }
 
@@ -63,7 +64,8 @@ fun WorkBlockDTO.toParcelable(id: String = ""): WorkBlock {
         createdBy = createdBy,
         updatedBy = updatedBy,
         createdAt = createdAt,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        eventId = eventId
     )
 }
 
@@ -138,7 +140,8 @@ fun WorkBlockDTO.toMap(): Map<String, Any?> {
         "createdBy" to createdBy,
         "updatedBy" to updatedBy,
         "createdAt" to createdAt,
-        "updatedAt" to updatedAt
+        "updatedAt" to updatedAt,
+        "eventId" to eventId
     )
 }
 

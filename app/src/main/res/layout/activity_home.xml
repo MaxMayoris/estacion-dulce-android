@@ -81,20 +81,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent">
-
-        <LinearLayout
+        <GridLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="4dp">
-
-            <!-- Products Card -->
+            android:columnCount="2"
+            android:padding="8dp">
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/productsCard"
                 style="@style/DashboardCardStyle"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_margin="4dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="8dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?android:attr/selectableItemBackground">
@@ -102,9 +100,9 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="24dp">
 
                     <ImageView
                         android:layout_width="48dp"
@@ -114,34 +112,23 @@
                         android:contentDescription="Productos" />
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="20dp"
+                        android:layout_marginTop="12dp"
                         android:text="Productos"
-                        android:textSize="18sp"
+                        android:textSize="16sp"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold"
                         android:fontFamily="sans-serif-medium" />
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_media_play"
-                        android:tint="@color/button_gradient_start"
-                        android:contentDescription="Ir a productos" />
-
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- Recipes Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/recipesCard"
                 style="@style/DashboardCardStyle"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_margin="4dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="8dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?android:attr/selectableItemBackground">
@@ -149,9 +136,9 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="24dp">
 
                     <ImageView
                         android:layout_width="48dp"
@@ -161,34 +148,23 @@
                         android:contentDescription="Recetas" />
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="20dp"
+                        android:layout_marginTop="12dp"
                         android:text="Recetas"
-                        android:textSize="18sp"
+                        android:textSize="16sp"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold"
                         android:fontFamily="sans-serif-medium" />
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_media_play"
-                        android:tint="@color/button_gradient_start"
-                        android:contentDescription="Ir a recetas" />
-
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- Discounts Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/discountsCard"
                 style="@style/DashboardCardStyle"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_margin="4dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="8dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?android:attr/selectableItemBackground">
@@ -196,9 +172,9 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="24dp">
 
                     <ImageView
                         android:layout_width="48dp"
@@ -208,34 +184,23 @@
                         android:contentDescription="Descuentos" />
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="20dp"
+                        android:layout_marginTop="12dp"
                         android:text="Descuentos"
-                        android:textSize="18sp"
+                        android:textSize="16sp"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold"
                         android:fontFamily="sans-serif-medium" />
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_media_play"
-                        android:tint="@color/button_gradient_start"
-                        android:contentDescription="Ir a descuentos" />
-
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- Persons Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/personsCard"
                 style="@style/DashboardCardStyle"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_margin="4dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="8dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?android:attr/selectableItemBackground">
@@ -243,9 +208,9 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="24dp">
 
                     <ImageView
                         android:layout_width="48dp"
@@ -255,34 +220,23 @@
                         android:contentDescription="Personas" />
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="20dp"
+                        android:layout_marginTop="12dp"
                         android:text="Personas"
-                        android:textSize="18sp"
+                        android:textSize="16sp"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold"
                         android:fontFamily="sans-serif-medium" />
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_media_play"
-                        android:tint="@color/button_gradient_start"
-                        android:contentDescription="Ir a personas" />
-
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- Movements Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/movementsCard"
                 style="@style/DashboardCardStyle"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_margin="4dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="8dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?android:attr/selectableItemBackground">
@@ -290,9 +244,9 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="24dp">
 
                     <ImageView
                         android:layout_width="48dp"
@@ -302,34 +256,23 @@
                         android:contentDescription="Movimientos" />
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="20dp"
+                        android:layout_marginTop="12dp"
                         android:text="Movimientos"
-                        android:textSize="18sp"
+                        android:textSize="16sp"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold"
                         android:fontFamily="sans-serif-medium" />
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_media_play"
-                        android:tint="@color/button_gradient_start"
-                        android:contentDescription="Ir a movimientos" />
-
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- Kitchen Orders Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/kitchenOrdersCard"
                 style="@style/DashboardCardStyle"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_margin="4dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="8dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?android:attr/selectableItemBackground">
@@ -337,9 +280,9 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="24dp">
 
                     <ImageView
                         android:layout_width="48dp"
@@ -349,34 +292,23 @@
                         android:contentDescription="Pedidos" />
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="20dp"
+                        android:layout_marginTop="12dp"
                         android:text="Pedidos"
-                        android:textSize="18sp"
+                        android:textSize="16sp"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold"
                         android:fontFamily="sans-serif-medium" />
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_media_play"
-                        android:tint="@color/button_gradient_start"
-                        android:contentDescription="Ir a pedidos" />
-
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- Shipments Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/shipmentsCard"
                 style="@style/DashboardCardStyle"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_margin="4dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="8dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?android:attr/selectableItemBackground">
@@ -384,9 +316,9 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="24dp">
 
                     <ImageView
                         android:layout_width="48dp"
@@ -396,34 +328,23 @@
                         android:contentDescription="Envíos" />
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="20dp"
+                        android:layout_marginTop="12dp"
                         android:text="Envíos"
-                        android:textSize="18sp"
+                        android:textSize="16sp"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold"
                         android:fontFamily="sans-serif-medium" />
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_media_play"
-                        android:tint="@color/button_gradient_start"
-                        android:contentDescription="Ir a envíos" />
-
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- Timesheet Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/timesheetCard"
                 style="@style/DashboardCardStyle"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_margin="4dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="8dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?android:attr/selectableItemBackground">
@@ -431,9 +352,9 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="24dp">
 
                     <ImageView
                         android:layout_width="48dp"
@@ -443,34 +364,23 @@
                         android:contentDescription="Jornadas" />
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="20dp"
+                        android:layout_marginTop="12dp"
                         android:text="Jornadas"
-                        android:textSize="18sp"
+                        android:textSize="16sp"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold"
                         android:fontFamily="sans-serif-medium" />
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_media_play"
-                        android:tint="@color/button_gradient_start"
-                        android:contentDescription="Ir a jornada" />
-
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
-
-            <!-- Statistics Card -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/statisticsCard"
                 style="@style/DashboardCardStyle"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_margin="4dp"
+                android:layout_columnWeight="1"
+                android:layout_margin="8dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?android:attr/selectableItemBackground">
@@ -478,9 +388,9 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:padding="16dp">
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="24dp">
 
                     <ImageView
                         android:layout_width="48dp"
@@ -490,30 +400,57 @@
                         android:contentDescription="Estadísticas" />
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="20dp"
+                        android:layout_marginTop="12dp"
                         android:text="Estadísticas"
-                        android:textSize="18sp"
+                        android:textSize="16sp"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold"
                         android:fontFamily="sans-serif-medium" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/eventsCard"
+                style="@style/DashboardCardStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:layout_margin="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="24dp">
 
                     <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_media_play"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/ic_event"
                         android:tint="@color/button_gradient_start"
-                        android:contentDescription="Ir a estadísticas" />
+                        android:contentDescription="Eventos" />
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="Eventos"
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="bold"
+                        android:fontFamily="sans-serif-medium" />
                 </LinearLayout>
-
             </com.google.android.material.card.MaterialCardView>
-
-        </LinearLayout>
-
+        </GridLayout>
     </ScrollView>
+
+
+
 
     <!-- Chat with Cha Floating Action Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton

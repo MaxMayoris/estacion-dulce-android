@@ -19,6 +19,8 @@ import com.estaciondulce.app.models.dtos.RecipeDTO
 import com.estaciondulce.app.models.dtos.ShipmentSettingsDTO
 import com.estaciondulce.app.models.dtos.WorkCategoryDTO
 import com.estaciondulce.app.models.dtos.WorkerDTO
+import com.estaciondulce.app.models.parcelables.Event
+import com.estaciondulce.app.models.dtos.EventDTO
 import com.estaciondulce.app.models.mappers.*
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -40,6 +42,7 @@ object FirestoreRepository {
     val shipmentSettingsLiveData = MutableLiveData<ShipmentSettings?>()
     val workCategoriesLiveData = MutableLiveData<List<WorkCategory>>()
     val workersLiveData = MutableLiveData<List<Worker>>()
+    val eventsLiveData = MutableLiveData<List<Event>>()
 
     private var productsListener: ListenerRegistration? = null
     private var recipesListener: ListenerRegistration? = null
@@ -51,6 +54,7 @@ object FirestoreRepository {
     private var shipmentSettingsListener: ListenerRegistration? = null
     private var workCategoriesListener: ListenerRegistration? = null
     private var workersListener: ListenerRegistration? = null
+    private var eventsListener: ListenerRegistration? = null
 
     /**
      * Starts real-time snapshot listeners for all collections.
@@ -176,6 +180,17 @@ object FirestoreRepository {
                 workersLiveData.postValue(workers)
             }
 
+        eventsListener = firestore.collection("events")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    eventsLiveData.postValue(emptyList())
+                    return@addSnapshotListener
+                }
+                val events = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(EventDTO::class.java)?.toParcelable(doc.id)
+                } ?: emptyList()
+                eventsLiveData.postValue(events)
+            }
     }
 
     fun stopListeners() {
@@ -189,5 +204,6 @@ object FirestoreRepository {
         shipmentSettingsListener?.remove()
         workCategoriesListener?.remove()
         workersListener?.remove()
+        eventsListener?.remove()
     }
 }

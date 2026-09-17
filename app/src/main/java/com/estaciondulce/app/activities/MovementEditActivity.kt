@@ -240,6 +240,8 @@ class MovementEditActivity : AppCompatActivity() {
         
         binding.personSpinner.setOnClickListener { showPersonSearchDialog() }
         setupMovementTypeSpinner()
+        setupEventSpinner()
+
         
         if (currentMovement == null) {
             binding.movementTypeSpinner.setOnItemClickListener { _, _, position, _ ->
@@ -709,7 +711,31 @@ class MovementEditActivity : AppCompatActivity() {
     /**
      * Sets up the movement type spinner with "Compra" and "Venta" options.
      */
+    private var selectedEventId: String? = null
+
+    private fun setupEventSpinner() {
+        FirestoreRepository.eventsLiveData.observe(this) { events ->
+            val eventNames = events.map { if (it.description.isNotEmpty()) "${it.name} - ${it.description}" else it.name }
+            val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, eventNames)
+            binding.eventDropdown.setAdapter(adapter)
+            binding.eventDropdown.setOnItemClickListener { _, _, position, _ ->
+                selectedEventId = events[position].id
+            }
+            
+            // Pre-select if eventId exists
+            if (currentMovement?.id != null && selectedEventId == null) {
+                val currentEvent = events.find { it.id == currentMovement?.eventId }
+                if (currentEvent != null) {
+                    selectedEventId = currentEvent.id
+                    binding.eventDropdown.setText(if (currentEvent.description.isNotEmpty()) "${currentEvent.name} - ${currentEvent.description}" else currentEvent.name, false)
+                }
+            }
+        }
+    }
+
     private fun setupMovementTypeSpinner() {
+        setupEventSpinner()
+
         val movementTypes = listOf("Compra", "Venta")
         val adapter =
             ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, movementTypes)
@@ -1305,6 +1331,8 @@ class MovementEditActivity : AppCompatActivity() {
             detail = detail,
             appliedAt = null,
             createdAt = null,
+            eventId = selectedEventId,
+
             isStock = isStock
         )
     }

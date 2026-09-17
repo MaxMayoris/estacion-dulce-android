@@ -48,6 +48,7 @@ class HomeActivity : AppCompatActivity() {
     private val statisticsFragment = StatisticsFragment()
     private val chatFragment = ChatFragment()
     private val timesheetFragment = TimesheetFragment()
+    private val eventFragment = com.estaciondulce.app.fragments.EventFragment()
     
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -185,6 +186,7 @@ class HomeActivity : AppCompatActivity() {
         FirestoreRepository.shipmentSettingsLiveData.observe(this) { checkDataLoaded() }
         FirestoreRepository.workCategoriesLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.workersLiveData.observe(this, dataLoadedObserver)
+        FirestoreRepository.eventsLiveData.observe(this, dataLoadedObserver)
 
         setupDashboardCards()
         setupLogoutButton()
@@ -292,6 +294,11 @@ class HomeActivity : AppCompatActivity() {
             loadFragment(statisticsFragment, "Estadísticas")
             showFragmentContainer()
         }
+
+        findViewById<MaterialCardView>(R.id.eventsCard).setOnClickListener {
+            loadFragment(eventFragment, "Eventos")
+            showFragmentContainer()
+        }
     }
 
     /**
@@ -382,8 +389,9 @@ class HomeActivity : AppCompatActivity() {
         val shipmentSettingsLoaded = FirestoreRepository.shipmentSettingsLiveData.value != null
         val workCategoriesLoaded = FirestoreRepository.workCategoriesLiveData.value != null
         val workersLoaded = FirestoreRepository.workersLiveData.value != null
+        val eventsLoaded = FirestoreRepository.eventsLiveData.value != null
 
-        if (recipesLoaded && productsLoaded && measuresLoaded && categoriesLoaded && sectionsLoaded && personsLoaded && movementsLoaded && shipmentSettingsLoaded && workCategoriesLoaded && workersLoaded) {
+        if (recipesLoaded && productsLoaded && measuresLoaded && categoriesLoaded && sectionsLoaded && personsLoaded && movementsLoaded && shipmentSettingsLoaded && workCategoriesLoaded && workersLoaded && eventsLoaded) {
             loader.hide()
             if (!hasNavigatedFromNotification) {
                 handleNotificationNavigation()

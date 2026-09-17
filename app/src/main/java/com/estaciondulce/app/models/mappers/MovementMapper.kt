@@ -23,7 +23,8 @@ fun Movement.toDTO(): MovementDTO {
         detail = detail,
         kitchenOrderStatus = kitchenOrderStatus?.name,
         referenceImages = referenceImages,
-        isStock = isStock
+        isStock = isStock,
+        eventId = eventId
     )
 }
 
@@ -42,7 +43,8 @@ fun MovementDTO.toParcelable(id: String = ""): Movement {
         detail = detail,
         kitchenOrderStatus = kitchenOrderStatus?.let { EKitchenOrderStatus.valueOf(it) },
         referenceImages = referenceImages,
-        isStock = isStock ?: false
+        isStock = isStock ?: false,
+        eventId = eventId
     )
 }
 
@@ -62,7 +64,8 @@ fun MovementDTO.toMap(): Map<String, Any?> {
         "createdAt" to createdAt,
         "detail" to detail,
         "kitchenOrderStatus" to kitchenOrderStatus,
-        "referenceImages" to referenceImages
+        "referenceImages" to referenceImages,
+        "eventId" to eventId
     ).toMutableMap().apply {
         isStock?.let { put("isStock", it) }
     }

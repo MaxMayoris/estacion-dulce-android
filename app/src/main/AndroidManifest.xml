@@ -57,6 +57,7 @@
         <activity android:name=".activities.AddressPickerActivity" />
         <activity android:name=".activities.ShipmentEditActivity" />
         <activity android:name=".activities.KitchenOrderEditActivity" />
+        <activity android:name=".activities.EventEditActivity" android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".activities.DayDetailActivity" />
         <activity android:name=".activities.WorkBlockEditActivity" />
         <activity android:name=".activities.TimesheetStatisticsActivity" />
