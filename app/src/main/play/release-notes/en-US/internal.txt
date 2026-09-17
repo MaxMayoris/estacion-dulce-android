@@ -1,1 +1,1 @@
-Update Places SDK to v4.4.1 and migrate to Places API (New)
+Automatic test execution on build, improved event creation UI and sorting

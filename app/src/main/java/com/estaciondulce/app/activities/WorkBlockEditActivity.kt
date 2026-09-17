@@ -41,7 +41,7 @@ class WorkBlockEditActivity : AppCompatActivity() {
     private var selectedEventId: String? = null
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    private val displayDateFormat = SimpleDateFormat("EEEE d 'de' MMMM", Locale("es"))
+    private val displayDateFormat = SimpleDateFormat("EEEE d 'de' MMMM", Locale.forLanguageTag("es"))
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,7 +53,7 @@ class WorkBlockEditActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         date = intent.getStringExtra("DATE") ?: ""
-        @Suppress("DEPRECATION")
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
         currentBlock = intent.getParcelableExtra<WorkBlock>("BLOCK")
 
         if (date.isEmpty()) {

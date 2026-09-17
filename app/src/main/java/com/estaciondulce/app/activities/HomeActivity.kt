@@ -411,7 +411,7 @@ class HomeActivity : AppCompatActivity() {
     /**
      * Handles back button press to return to dashboard.
      */
-    @Suppress("DEPRECATION")
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if (findViewById<View>(R.id.homeFragmentContainer).visibility == View.VISIBLE) {

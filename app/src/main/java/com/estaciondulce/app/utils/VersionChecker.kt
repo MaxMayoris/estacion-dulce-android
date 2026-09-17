@@ -26,7 +26,7 @@ object VersionChecker {
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                         packageInfo.longVersionCode
                     } else {
-                        @Suppress("DEPRECATION")
+                        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
                         packageInfo.versionCode.toLong()
                     }
                 } catch (e: Exception) {

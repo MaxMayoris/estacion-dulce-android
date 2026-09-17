@@ -203,7 +203,6 @@ class FullScreenImageActivity : AppCompatActivity() {
     private fun loadCurrentImage() {
         if (currentImageIndex >= 0 && currentImageIndex < allImages.size) {
             val imageUrl = allImages[currentImageIndex]
-            android.util.Log.d("FullScreenImageActivity", "Loading image $currentImageIndex: $imageUrl")
             
             // Reset zoom and center the image when loading new image
             matrix.reset()
@@ -277,7 +276,7 @@ class FullScreenImageActivity : AppCompatActivity() {
         }
     }
     
-    @Suppress("DEPRECATION")
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
         super.onBackPressed()
         finish()

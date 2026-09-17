@@ -46,7 +46,7 @@ class ProductEditActivity : AppCompatActivity() {
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         
-        @Suppress("DEPRECATION")
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
         currentProduct = intent.getParcelableExtra<Product>("PRODUCT")
         
         val productIdFromNotification = intent.getStringExtra("PRODUCT_ID")

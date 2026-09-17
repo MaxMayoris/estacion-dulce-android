@@ -127,7 +127,7 @@ class MovementEditActivity : AppCompatActivity() {
         setContentView(binding.root)
         customLoader = CustomLoader(this)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        @Suppress("DEPRECATION")
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
         currentMovement = intent.getParcelableExtra<Movement>("MOVEMENT")
         isEditMode = currentMovement != null && currentMovement!!.id.isNotEmpty()
         originalMovement = currentMovement?.let { movement ->
@@ -403,7 +403,7 @@ class MovementEditActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         
         if (requestCode == 2001 && resultCode == RESULT_OK) {
-        @Suppress("DEPRECATION")
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
         val address = data?.getParcelableExtra<Address>("result_address")
             
             if (address != null) {
@@ -618,7 +618,7 @@ class MovementEditActivity : AppCompatActivity() {
             intent.putExtra(AddressPickerActivity.EXTRA_PERSON_ID, selectedPerson.id)
             intent.putExtra(AddressPickerActivity.EXTRA_ADDRESS_LABEL, "Dirección")
             intent.putExtra(AddressPickerActivity.EXTRA_DRAFT_MODE, true)
-            @Suppress("DEPRECATION")
+            @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
             startActivityForResult(intent, 2001)
         }
 
@@ -874,7 +874,7 @@ class MovementEditActivity : AppCompatActivity() {
     }
 
     private fun formatDateTime(date: Date): String {
-        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale("es"))
+        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.forLanguageTag("es"))
         val formatted = sdf.format(date)
         return formatted.replace("sept.", "sep")
     }
@@ -1405,7 +1405,6 @@ class MovementEditActivity : AppCompatActivity() {
                     settingsHelper.updateFuelPrice(
                         fuelPrice = fuelPrice,
                         onSuccess = {
-                            android.util.Log.d("MovementEditActivity", "Fuel price updated to: $fuelPrice")
                         },
                         onError = { exception ->
                             android.util.Log.e("MovementEditActivity", "Error updating fuel price: ${exception.message}", exception)

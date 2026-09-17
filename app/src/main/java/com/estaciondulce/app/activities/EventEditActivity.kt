@@ -18,6 +18,8 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 
 class EventEditActivity : AppCompatActivity() {
 
@@ -41,6 +43,7 @@ class EventEditActivity : AppCompatActivity() {
         
         setupHeader()
         setupDatePickers()
+        setupEventNameAutocomplete()
         
         if (eventId != null) {
             loadEvent(eventId!!)
@@ -48,6 +51,30 @@ class EventEditActivity : AppCompatActivity() {
         
         binding.saveButton.setOnClickListener {
             saveEvent()
+        }
+    }
+
+        private fun setupEventNameAutocomplete() {
+        FirestoreRepository.categoriesLiveData.observe(this) { categories ->
+            // In case old data has 'event: true' we'd have to migrate it manually or assume the new ones use 'isEvent'
+            // We just filter by isEvent == true (or we can just show all names from eventsLiveData)
+            val events = FirestoreRepository.eventsLiveData.value ?: emptyList()
+            val namesFromEvents = events.map { it.name }
+            val namesFromCategories = categories.filter { it.isEvent }.map { it.name }
+            
+            val eventNames = (namesFromEvents + namesFromCategories).distinct().sorted()
+            
+            val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, eventNames)
+            val actv = binding.nameInput as AutoCompleteTextView
+            actv.setAdapter(adapter)
+            
+            actv.setOnClickListener {
+                actv.showDropDown()
+            }
+            
+            actv.setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) actv.showDropDown()
+            }
         }
     }
 
@@ -103,19 +130,13 @@ class EventEditActivity : AppCompatActivity() {
             startDate?.let { binding.btnStartDate.text = dateFormat.format(it) }
             endDate?.let { binding.btnEndDate.text = dateFormat.format(it) }
             
-            // Check show status of the associated category
-            val cat = FirestoreRepository.categoriesLiveData.value?.find { it.id == event.categoryId }
-            if (cat != null) {
-                binding.showTagSwitch.isChecked = cat.show
-            }
+
         }
     }
 
     private fun saveEvent() {
         val name = binding.nameInput.text.toString().trim()
         val description = binding.descriptionInput.text.toString().trim()
-        val showTag = binding.showTagSwitch.isChecked
-
         if (name.isEmpty()) {
             binding.nameInput.error = "Requerido"
             return
@@ -137,7 +158,7 @@ class EventEditActivity : AppCompatActivity() {
         lifecycleScope.launch {
             EventsHelper().saveEvent(
                 event = currentEvent,
-                showInCategories = showTag,
+                showInCategories = true,
                 onSuccess = {
                     loader.hide()
                     CustomToast.showSuccess(this@EventEditActivity, "Evento guardado")

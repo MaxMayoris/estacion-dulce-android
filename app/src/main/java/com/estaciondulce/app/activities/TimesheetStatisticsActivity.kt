@@ -30,7 +30,7 @@ class TimesheetStatisticsActivity : AppCompatActivity() {
     private val timesheetHelper = TimesheetHelper()
     private var currentMonth: Calendar = Calendar.getInstance()
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    private val monthYearFormat = SimpleDateFormat("MMMM yyyy", Locale("es"))
+    private val monthYearFormat = SimpleDateFormat("MMMM yyyy", Locale.forLanguageTag("es"))
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

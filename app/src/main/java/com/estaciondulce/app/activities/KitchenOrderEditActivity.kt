@@ -390,7 +390,7 @@ class KitchenOrderEditActivity : AppCompatActivity() {
     }
 
     private fun formatDateToSpanish(date: Date): String {
-        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale("es"))
+        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.forLanguageTag("es"))
         val formatted = sdf.format(date)
         return formatted.replace("sept.", "sep")
             .replace("enero", "ene")

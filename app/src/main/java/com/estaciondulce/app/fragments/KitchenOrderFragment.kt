@@ -39,7 +39,7 @@ class KitchenOrderFragment : Fragment() {
     private var movementsWithKitchenOrders: List<Movement> = emptyList()
 
     private var currentMonth: Calendar = Calendar.getInstance()
-    private val monthYearFormat = SimpleDateFormat("MMMM yyyy", Locale("es"))
+    private val monthYearFormat = SimpleDateFormat("MMMM yyyy", Locale.forLanguageTag("es"))
     private lateinit var calendarAdapter: KitchenCalendarAdapter
     private var selectedDate: Date = Calendar.getInstance().time
 
@@ -107,7 +107,7 @@ class KitchenOrderFragment : Fragment() {
         // Only update if fragment is attached
         if (!isAdded) return
 
-        val capitalizedText = monthYearFormat.format(currentMonth.time).replaceFirstChar { it.titlecase(Locale("es")) }
+        val capitalizedText = monthYearFormat.format(currentMonth.time).replaceFirstChar { it.titlecase(Locale.forLanguageTag("es")) }
         binding.monthYearText.text = capitalizedText
 
         val calendar = Calendar.getInstance()
@@ -174,7 +174,7 @@ class KitchenOrderFragment : Fragment() {
 
     private fun showDayOrders(day: CalendarDay) {
         if (!isAdded) return
-        val dateFormat = SimpleDateFormat("d 'de' MMMM", Locale("es"))
+        val dateFormat = SimpleDateFormat("d 'de' MMMM", Locale.forLanguageTag("es"))
         binding.dayDetailTitleText.text = "Pedidos del ${dateFormat.format(day.date)}"
 
         if (day.orders.isEmpty()) {
@@ -306,7 +306,7 @@ class KitchenOrderFragment : Fragment() {
     }
 
     private fun formatDateToSpanish(date: Date): String {
-        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale("es"))
+        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.forLanguageTag("es"))
         val formatted = sdf.format(date)
         return formatted.replace("sept.", "sep")
             .replace("enero", "ene")

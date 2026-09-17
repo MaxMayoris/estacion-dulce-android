@@ -60,7 +60,7 @@ class PersonEditActivity : AppCompatActivity() {
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        @Suppress("DEPRECATION")
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
         currentPerson = intent.getParcelableExtra<Person>("PERSON")
         supportActionBar?.title = if (currentPerson != null) "Editar Persona" else "Agregar Persona"
 
@@ -205,7 +205,7 @@ class PersonEditActivity : AppCompatActivity() {
      * Formats date to Spanish format: "dd mes hh:mm"
      */
     private fun formatDateToSpanish(date: java.util.Date): String {
-        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale("es"))
+        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.forLanguageTag("es"))
         val formatted = sdf.format(date)
         return formatted.replace("sept.", "sep")
             .replace("enero", "ene")
@@ -731,7 +731,7 @@ class PersonEditActivity : AppCompatActivity() {
         val intent = Intent(this, AddressPickerActivity::class.java)
         intent.putExtra(AddressPickerActivity.EXTRA_ADDRESS_LABEL, label)
         intent.putExtra(AddressPickerActivity.EXTRA_DRAFT_MODE, true)
-        @Suppress("DEPRECATION")
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
         startActivityForResult(intent, 1003) // Different request code for draft mode
     }
 
@@ -749,7 +749,7 @@ class PersonEditActivity : AppCompatActivity() {
             val intent = Intent(this, AddressPickerActivity::class.java)
             intent.putExtra(AddressPickerActivity.EXTRA_PERSON_ID, person.id)
             intent.putExtra(AddressPickerActivity.EXTRA_ADDRESS_LABEL, label)
-            @Suppress("DEPRECATION")
+            @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
             startActivityForResult(intent, 1001)
         } ?: run {
             CustomToast.showError(this, "Debe guardar la persona primero antes de agregar direcciones.")
@@ -763,7 +763,7 @@ class PersonEditActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         
         if (requestCode == 1001 && resultCode == RESULT_OK) {
-            @Suppress("DEPRECATION")
+            @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
             val address = data?.getParcelableExtra(AddressPickerActivity.RESULT_ADDRESS) as? Address
             address?.let {
                 saveAddress(it)
@@ -772,7 +772,7 @@ class PersonEditActivity : AppCompatActivity() {
                 CustomToast.showError(this, "Error al obtener la nueva dirección.")
             }
         } else if (requestCode == 1002 && resultCode == RESULT_OK) {
-            @Suppress("DEPRECATION")
+            @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
             val address = data?.getParcelableExtra(AddressPickerActivity.RESULT_ADDRESS) as? Address
             address?.let {
                 updateAddress(it)
@@ -781,7 +781,7 @@ class PersonEditActivity : AppCompatActivity() {
                 CustomToast.showError(this, "Error al obtener la dirección editada.")
             }
         } else if (requestCode == 1003 && resultCode == RESULT_OK) {
-            @Suppress("DEPRECATION")
+            @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
             val address = data?.getParcelableExtra(AddressPickerActivity.RESULT_ADDRESS) as? Address
             address?.let {
                 addDraftAddress(it)
@@ -911,7 +911,7 @@ class PersonEditActivity : AppCompatActivity() {
             intent.putExtra(AddressPickerActivity.EXTRA_ADDRESS_LABEL, address.label)
             intent.putExtra(AddressPickerActivity.EXTRA_EDIT_MODE, true)
             intent.putExtra(AddressPickerActivity.EXTRA_ADDRESS_TO_EDIT, address)
-            @Suppress("DEPRECATION")
+            @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
             startActivityForResult(intent, 1002) // Different request code for editing
         }
     }

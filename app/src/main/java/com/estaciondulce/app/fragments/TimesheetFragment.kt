@@ -30,9 +30,9 @@ class TimesheetFragment : Fragment() {
     private var currentMonth: Calendar = Calendar.getInstance()
     private var selectedDate: String = ""
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    private val monthYearFormat = SimpleDateFormat("MMMM yyyy", Locale("es"))
+    private val monthYearFormat = SimpleDateFormat("MMMM yyyy", Locale.forLanguageTag("es"))
     private val dayFormat = SimpleDateFormat("d", Locale.getDefault())
-    private val displayDateFormat = SimpleDateFormat("EEEE d 'de' MMMM", Locale("es"))
+    private val displayDateFormat = SimpleDateFormat("EEEE d 'de' MMMM", Locale.forLanguageTag("es"))
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
     init {

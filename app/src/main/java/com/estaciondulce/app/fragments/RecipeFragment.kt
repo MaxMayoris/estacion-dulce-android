@@ -58,7 +58,7 @@ class RecipeFragment : Fragment() {
         }
         binding.addRecipeButton.setOnClickListener {
             val intent = Intent(requireContext(), RecipeEditActivity::class.java)
-            @Suppress("DEPRECATION")
+            @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
             startActivityForResult(intent, EDIT_RECIPE_REQUEST_CODE)
         }
         binding.searchBar.addTextChangedListener(object : TextWatcher {
@@ -116,7 +116,7 @@ class RecipeFragment : Fragment() {
         val intent = Intent(requireContext(), RecipeEditActivity::class.java).apply {
             putExtra("recipe", recipe)
         }
-        @Suppress("DEPRECATION")
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
         startActivityForResult(intent, EDIT_RECIPE_REQUEST_CODE)
     }
 
@@ -162,7 +162,7 @@ class RecipeFragment : Fragment() {
     /**
      * Handles the result from RecipeEditActivity.
      */
-    @Suppress("DEPRECATION")
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == EDIT_RECIPE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {

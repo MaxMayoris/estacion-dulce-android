@@ -119,7 +119,7 @@ class ShipmentTableAdapter(
      * Formats a date to Spanish format: "dd mes hh:mm"
      */
     private fun formatDateToSpanish(date: java.util.Date): String {
-        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale("es"))
+        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.forLanguageTag("es"))
         val formatted = sdf.format(date)
         return formatted.replace("sept.", "sep")
             .replace("enero", "ene")

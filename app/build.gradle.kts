@@ -8,14 +8,14 @@ plugins {
 
 android {
     namespace = "com.estaciondulce.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.estaciondulce.app"
         minSdk = 30
-        targetSdk = 35
-        versionCode = 52
-        versionName = "10.5"
+        targetSdk = 36
+        versionCode = 54
+        versionName = "10.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -77,26 +77,15 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions { 
-        jvmTarget = "11"
-        freeCompilerArgs += listOf(
-            "-Xjvm-default=all",
-            "-Xstring-concat=inline",
-            "-Xskip-metadata-version-check"
-        )
-    }
-    
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-        kotlinOptions {
-            jvmTarget = "11"
-            freeCompilerArgs += listOf(
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+            freeCompilerArgs.addAll(
                 "-Xjvm-default=all",
                 "-Xstring-concat=inline",
-                "-Xskip-metadata-version-check"
+                "-Xskip-metadata-version-check",
+                "-Xno-param-assertions"
             )
-        }
-        compilerOptions {
-            freeCompilerArgs.add("-Xno-param-assertions")
         }
     }
 }
@@ -167,4 +156,17 @@ play {
     serviceAccountCredentials.set(file("../../estacion-dulce-keys/play-store-credentials.json"))
     defaultToAppBundles.set(true)
     track.set("internal")
+}
+
+// Auto-run tests when building
+tasks.configureEach {
+    if (name == "assembleDebug") {
+        dependsOn("testDevDebugUnitTest", "testProdDebugUnitTest")
+    } else if (name == "assembleDevDebug") {
+        dependsOn("testDevDebugUnitTest")
+    } else if (name == "assembleProdDebug") {
+        dependsOn("testProdDebugUnitTest")
+    } else if (name == "bundleProdRelease") {
+        dependsOn("testProdReleaseUnitTest")
+    }
 }

@@ -138,7 +138,7 @@ class RecipeEditActivity : AppCompatActivity() {
         loader = CustomLoader(this)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = if (intent.hasExtra("recipe")) "Editar Receta" else "Agregar Receta"
-        @Suppress("DEPRECATION")
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
         recipe = intent.getParcelableExtra<Recipe>("recipe")
 
         repository.categoriesLiveData.observe(this, Observer { categoriesList ->

@@ -64,7 +64,7 @@ class EventFragment : Fragment() {
     }
 
     private fun setupTableView(events: List<Event>) {
-        val sortedList = events.sortedBy { it.name }
+        val sortedList = events.sortedByDescending { it.startDate?.time ?: 0L }
         
         val headers = listOf("Nombre", "Fechas")
         val getter: (Any, Int) -> String? = { item, columnIndex ->

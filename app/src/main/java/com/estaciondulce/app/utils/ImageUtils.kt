@@ -57,7 +57,7 @@ object ImageUtils {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
                 resizedBitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 75, out)
             } else {
-                @Suppress("DEPRECATION")
+                @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
                 resizedBitmap.compress(Bitmap.CompressFormat.WEBP, 75, out)
             }
             out.flush()

@@ -31,7 +31,7 @@ class DayDetailActivity : AppCompatActivity() {
     private lateinit var customLoader: CustomLoader
     private var date: String = ""
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    private val displayDateFormat = SimpleDateFormat("EEEE d 'de' MMMM", Locale("es"))
+    private val displayDateFormat = SimpleDateFormat("EEEE d 'de' MMMM", Locale.forLanguageTag("es"))
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

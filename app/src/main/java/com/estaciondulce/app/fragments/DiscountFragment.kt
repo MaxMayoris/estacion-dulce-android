@@ -94,11 +94,11 @@ class DiscountFragment : Fragment() {
         val intent = Intent(requireContext(), DiscountEditActivity::class.java).apply {
             putExtra("recipe", recipe)
         }
-        @Suppress("DEPRECATION")
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
         startActivityForResult(intent, EDIT_DISCOUNT_REQUEST_CODE)
     }
 
-    @Suppress("DEPRECATION")
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == EDIT_DISCOUNT_REQUEST_CODE && resultCode == Activity.RESULT_OK) {

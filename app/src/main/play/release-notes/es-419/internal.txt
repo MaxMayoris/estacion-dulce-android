@@ -1,1 +1,1 @@
-Actualizar Places SDK a v4.4.1 y migrar a Places API (New)
+Ejecución automática de tests al compilar, mejoras en la UI de creación de eventos y ordenamiento

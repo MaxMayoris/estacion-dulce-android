@@ -68,6 +68,7 @@ If you have questions or need help, you can:
 
 ## 🔄 Version History
 
+- **v10.6** - Automatic test execution on build, improved event creation UI and sorting
 - **v10.5** - Update Places SDK to v4.4.1 and migrate to Places API (New)
 - **v10.4** - Implemented forced update checks via Firestore configuration and automated Firestore metadata updates during app release.
 - **v10.3** - Implemented an expandable FAB speed dial menu for movements (Scan ticket and manual entry) and added support for creating a new address directly from the shipping address selection dialog inside the movement editor.

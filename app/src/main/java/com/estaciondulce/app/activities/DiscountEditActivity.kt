@@ -37,7 +37,7 @@ class DiscountEditActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Configurar Descuento"
 
-        @Suppress("DEPRECATION")
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
         recipe = intent.getParcelableExtra<Recipe>("recipe")
 
         if (recipe == null) {

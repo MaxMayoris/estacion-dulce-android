@@ -105,7 +105,7 @@ class AddressPickerActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap
         val isDraftMode = intent.getBooleanExtra(EXTRA_DRAFT_MODE, false)
         
         if (isEditMode) {
-            @Suppress("DEPRECATION")
+            @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
             addressToEdit = intent.getParcelableExtra(EXTRA_ADDRESS_TO_EDIT)
         } else if (isDraftMode) {
         }
@@ -177,7 +177,7 @@ class AddressPickerActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap
             }
     }
     
-    @Suppress("DEPRECATION")
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     private fun handlePredictionSelection(prediction: AutocompletePrediction) {
         val placeFields = listOf(
             Place.Field.ID,
@@ -202,7 +202,7 @@ class AddressPickerActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap
             }
     }
     
-    @Suppress("DEPRECATION")
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     private fun handlePlaceSelection(place: Place) {
         val latLng = place.latLng
         if (latLng != null) {
@@ -354,7 +354,7 @@ class AddressPickerActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap
                 }
             } else {
                 timeoutHandler.removeCallbacks(timeoutRunnable)
-                @Suppress("DEPRECATION")
+                @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
                 val addresses = geocoder!!.getFromLocation(latLng.latitude, latLng.longitude, 1)
                 if (addresses != null && addresses.isNotEmpty()) {
                     val address = addresses[0]
@@ -401,7 +401,7 @@ class AddressPickerActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap
         }
     }
 
-    @Suppress("DEPRECATION")
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     private fun createAddressFromPlace(place: Place): android.location.Address {
         val address = android.location.Address(Locale.getDefault())
         

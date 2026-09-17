@@ -92,7 +92,7 @@ class CustomToast private constructor(
         }
         
         // Set the custom view
-        @Suppress("DEPRECATION")
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
         toast.view = customView
         
         toast.show()
