@@ -275,6 +275,7 @@ class StatisticsFragment : Fragment() {
                 updateAnnualSalesByMonthChart(movements)
                 updateAnnualClientSalesChart(movements)
                 updateAnnualShipmentProfitChart(movements)
+                updateAnnualProviderPurchasesChart(movements)
             }
         }
     }
@@ -312,11 +313,9 @@ class StatisticsFragment : Fragment() {
 
     private fun updateMonthlySalesTotal(sales: List<Movement>) {
         val totalSales = sales.size
-        android.util.Log.d("StatisticsFragment", "updateMonthlySalesTotal: $totalSales")
         
         if (binding.monthlySalesTabContent.childCount > 0) {
             val materialCardView = binding.monthlySalesTabContent.getChildAt(0) as android.view.ViewGroup
-            android.util.Log.d("StatisticsFragment", "MaterialCardView children count: ${materialCardView.childCount}")
             findAndUpdateTitleText(materialCardView, totalSales)
         }
     }
@@ -326,10 +325,8 @@ class StatisticsFragment : Fragment() {
             val child = parent.getChildAt(i)
             if (child is android.widget.TextView) {
                 val currentText = child.text.toString()
-                android.util.Log.d("StatisticsFragment", "Found TextView with text: '$currentText'")
                 if (currentText.contains("Ventas acumuladas")) {
                     child.text = "Ventas acumuladas: $totalSales"
-                    android.util.Log.d("StatisticsFragment", "Updating TextView '${child.javaClass.simpleName}' with total: $totalSales")
                     return
                 }
             } else if (child is android.view.ViewGroup) {
@@ -606,21 +603,22 @@ class StatisticsFragment : Fragment() {
      */
     private fun createRecipeSalesChartData(sales: List<Movement>): Pair<BarData, List<String>> {
         val recipeCounts = mutableMapOf<String, Int>()
+        val recipeNames = mutableMapOf<String, String>()
         val recipes = repository.recipesLiveData.value ?: emptyList()
         
         sales.forEach { movement ->
             val recipesInMovement = mutableSetOf<String>()
             
             movement.items.forEach { item ->
-                if (item.collection == "recipes") {
-                    val recipe = recipes.find { it.id == item.collectionId }
-                    val recipeName = recipe?.name ?: "Receta desconocida"
-                    recipesInMovement.add(recipeName)
+                if (item.collection == "recipes" && item.collectionId.isNotEmpty()) {
+                    recipesInMovement.add(item.collectionId)
                 }
             }
             
-            recipesInMovement.forEach { recipeName ->
-                recipeCounts[recipeName] = (recipeCounts[recipeName] ?: 0) + 1
+            recipesInMovement.forEach { recipeId ->
+                recipeCounts[recipeId] = (recipeCounts[recipeId] ?: 0) + 1
+                val recipe = recipes.find { it.id == recipeId }
+                recipeNames[recipeId] = recipe?.name ?: "Receta desconocida"
             }
         }
         
@@ -628,9 +626,9 @@ class StatisticsFragment : Fragment() {
         val entries = mutableListOf<BarEntry>()
         val labels = mutableListOf<String>()
         
-        sortedRecipes.forEachIndexed { index, (recipeName, count) ->
-            entries.add(BarEntry(index.toFloat(), count.toFloat()))
-            labels.add(recipeName)
+        sortedRecipes.forEachIndexed { index, (recipeId, count) ->
+            entries.add(BarEntry(index.toFloat(), count.toFloat(), recipeId))
+            labels.add(recipeNames[recipeId] ?: "")
         }
         
         val dataSet = BarDataSet(entries, "").apply {
@@ -905,31 +903,29 @@ class StatisticsFragment : Fragment() {
      */
     private fun createClientSalesChartData(sales: List<Movement>): Pair<BarData, List<String>>? {
         val clientTotals = mutableMapOf<String, Double>()
+        val clientIds = mutableMapOf<String, String>()
         val persons = repository.personsLiveData.value ?: emptyList()
         
         sales.forEach { movement ->
-            val person = persons.find { it.id == movement.personId }
-            val clientName = if (person != null) {
-                "${person.name} ${person.lastName}".trim()
-            } else {
-                "Cliente desconocido"
+            val personId = movement.personId
+            if (personId.isNotEmpty()) {
+                val person = persons.find { it.id == personId }
+                val clientName = if (person != null) "${person.name} ${person.lastName}".trim() else "Cliente desconocido"
+                clientTotals[clientName] = (clientTotals[clientName] ?: 0.0) + movement.totalAmount
+                clientIds[clientName] = personId
             }
-            clientTotals[clientName] = (clientTotals[clientName] ?: 0.0) + movement.totalAmount
         }
         
-        if (clientTotals.isEmpty()) {
-            return null
-        }
+        if (clientTotals.isEmpty()) return null
         
-        val topClients = clientTotals.toList()
-            .sortedByDescending { it.second }
-            .take(10)
+        val topClients = clientTotals.toList().sortedByDescending { it.second }.take(10)
         
         val entries = mutableListOf<BarEntry>()
         val labels = mutableListOf<String>()
         
         topClients.forEachIndexed { index, (clientName, totalSpent) ->
-            entries.add(BarEntry(index.toFloat(), totalSpent.toFloat()))
+            val pId = clientIds[clientName]
+            entries.add(BarEntry(index.toFloat(), totalSpent.toFloat(), pId))
             labels.add(clientName)
         }
         
@@ -950,10 +946,7 @@ class StatisticsFragment : Fragment() {
             }
         }
         
-        val barData = BarData(dataSet).apply {
-            barWidth = 0.5f
-        }
-        
+        val barData = BarData(dataSet).apply { barWidth = 0.5f }
         return Pair(barData, labels)
     }
 
@@ -985,6 +978,19 @@ class StatisticsFragment : Fragment() {
         }
         xAxis.setLabelRotationAngle(-45f)
         
+        chart.setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
+            override fun onValueSelected(e: Entry?, h: Highlight?) {
+                if (e?.data is String) {
+                    val personId = e.data as String
+                    val index = e.x.toInt()
+                    val clientName = if (index >= 0 && index < labels.size) labels[index] else "Detalle"
+                    val bottomSheet = ItemStatsBottomSheet.newInstance(personId, "CLIENT", clientName, selectedYear)
+                    bottomSheet.show(requireActivity().supportFragmentManager, "ItemStatsBottomSheet")
+                }
+            }
+            override fun onNothingSelected() {}
+        })
+
         val leftAxis = chart.axisLeft
         leftAxis.setDrawGridLines(true)
         leftAxis.axisMinimum = 0f
@@ -1034,6 +1040,19 @@ class StatisticsFragment : Fragment() {
             }
         }
         xAxis.setLabelRotationAngle(-45f)
+        
+        chart.setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
+            override fun onValueSelected(e: Entry?, h: Highlight?) {
+                if (e?.data is String) {
+                    val recipeId = e.data as String
+                    val index = e.x.toInt()
+                    val recipeName = if (index >= 0 && index < labels.size) labels[index] else "Detalle"
+                    val bottomSheet = ItemStatsBottomSheet.newInstance(recipeId, "RECIPE", recipeName, selectedYear)
+                    bottomSheet.show(requireActivity().supportFragmentManager, "ItemStatsBottomSheet")
+                }
+            }
+            override fun onNothingSelected() {}
+        })
         
         val leftAxis = chart.axisLeft
         leftAxis.setDrawGridLines(true)
@@ -1383,7 +1402,7 @@ class StatisticsFragment : Fragment() {
         monthNames.forEachIndexed { index, monthName ->
             val monthNumber = index
             val balance = monthBalances[monthNumber] ?: 0.0
-            entries.add(BarEntry(index.toFloat(), balance.toFloat()))
+            entries.add(BarEntry(index.toFloat(), balance.toFloat(), monthNumber))
             labels.add(monthName)
         }
 
@@ -1450,6 +1469,17 @@ class StatisticsFragment : Fragment() {
         chart.axisRight.isEnabled = false
         chart.legend.isEnabled = false
 
+        chart.setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
+            override fun onValueSelected(e: Entry?, h: Highlight?) {
+                if (e?.data is Int) {
+                    val monthNumber = e.data as Int
+                    val bottomSheet = MonthBalanceBottomSheet.newInstance(monthNumber, selectedYear)
+                    bottomSheet.show(requireActivity().supportFragmentManager, "MonthBalanceBottomSheet")
+                }
+            }
+            override fun onNothingSelected() {}
+        })
+
         chart.invalidate()
     }
 
@@ -1502,16 +1532,17 @@ class StatisticsFragment : Fragment() {
      */
     private fun createAnnualClientSalesChartData(sales: List<Movement>): Pair<BarData, List<String>>? {
         val clientTotals = mutableMapOf<String, Double>()
+        val clientIds = mutableMapOf<String, String>()
         val persons = repository.personsLiveData.value ?: emptyList()
 
         sales.forEach { movement ->
-            val person = persons.find { it.id == movement.personId }
-            val clientName = if (person != null) {
-                "${person.name} ${person.lastName}".trim()
-            } else {
-                "Cliente desconocido"
+            val personId = movement.personId
+            if (personId.isNotEmpty()) {
+                val person = persons.find { it.id == personId }
+                val clientName = if (person != null) "${person.name} ${person.lastName}".trim() else "Cliente desconocido"
+                clientTotals[clientName] = (clientTotals[clientName] ?: 0.0) + movement.totalAmount
+                clientIds[clientName] = personId
             }
-            clientTotals[clientName] = (clientTotals[clientName] ?: 0.0) + movement.totalAmount
         }
 
         if (clientTotals.isEmpty()) {
@@ -1526,7 +1557,8 @@ class StatisticsFragment : Fragment() {
         val labels = mutableListOf<String>()
 
         topClients.forEachIndexed { index, (clientName, totalSpent) ->
-            entries.add(BarEntry(index.toFloat(), totalSpent.toFloat()))
+            val pId = clientIds[clientName]
+            entries.add(BarEntry(index.toFloat(), totalSpent.toFloat(), pId))
             labels.add(clientName)
         }
 
@@ -1581,6 +1613,19 @@ class StatisticsFragment : Fragment() {
             }
         }
         xAxis.setLabelRotationAngle(-45f)
+        
+        chart.setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
+            override fun onValueSelected(e: Entry?, h: Highlight?) {
+                if (e?.data is String) {
+                    val personId = e.data as String
+                    val index = e.x.toInt()
+                    val clientName = if (index >= 0 && index < labels.size) labels[index] else "Detalle"
+                    val bottomSheet = ItemStatsBottomSheet.newInstance(personId, "CLIENT", clientName, selectedYear)
+                    bottomSheet.show(requireActivity().supportFragmentManager, "ItemStatsBottomSheet")
+                }
+            }
+            override fun onNothingSelected() {}
+        })
 
         val leftAxis = chart.axisLeft
         leftAxis.setDrawGridLines(true)
@@ -1652,21 +1697,22 @@ class StatisticsFragment : Fragment() {
      */
     private fun createAnnualShipmentProfitChartData(sales: List<Movement>): Pair<BarData, List<String>> {
         val recipeCounts = mutableMapOf<String, Int>()
+        val recipeNames = mutableMapOf<String, String>()
         val recipes = repository.recipesLiveData.value ?: emptyList()
         
         sales.forEach { movement ->
             val recipesInMovement = mutableSetOf<String>()
             
             movement.items.forEach { item ->
-                if (item.collection == "recipes") {
-                    val recipe = recipes.find { it.id == item.collectionId }
-                    val recipeName = recipe?.name ?: "Receta desconocida"
-                    recipesInMovement.add(recipeName)
+                if (item.collection == "recipes" && item.collectionId.isNotEmpty()) {
+                    recipesInMovement.add(item.collectionId)
                 }
             }
             
-            recipesInMovement.forEach { recipeName ->
-                recipeCounts[recipeName] = (recipeCounts[recipeName] ?: 0) + 1
+            recipesInMovement.forEach { recipeId ->
+                recipeCounts[recipeId] = (recipeCounts[recipeId] ?: 0) + 1
+                val recipe = recipes.find { it.id == recipeId }
+                recipeNames[recipeId] = recipe?.name ?: "Receta desconocida"
             }
         }
         
@@ -1674,9 +1720,9 @@ class StatisticsFragment : Fragment() {
         val entries = mutableListOf<BarEntry>()
         val labels = mutableListOf<String>()
         
-        sortedRecipes.forEachIndexed { index, (recipeName, count) ->
-            entries.add(BarEntry(index.toFloat(), count.toFloat()))
-            labels.add(recipeName)
+        sortedRecipes.forEachIndexed { index, (recipeId, count) ->
+            entries.add(BarEntry(index.toFloat(), count.toFloat(), recipeId))
+            labels.add(recipeNames[recipeId] ?: "")
         }
         
         val dataSet = BarDataSet(entries, "").apply {
@@ -1730,6 +1776,171 @@ class StatisticsFragment : Fragment() {
             }
         }
         xAxis.setLabelRotationAngle(-45f)
+        
+        chart.setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
+            override fun onValueSelected(e: Entry?, h: Highlight?) {
+                if (e?.data is String) {
+                    val recipeId = e.data as String
+                    val index = e.x.toInt()
+                    val recipeName = if (index >= 0 && index < labels.size) labels[index] else "Detalle"
+                    val bottomSheet = ItemStatsBottomSheet.newInstance(recipeId, "RECIPE", recipeName, selectedYear)
+                    bottomSheet.show(requireActivity().supportFragmentManager, "ItemStatsBottomSheet")
+                }
+            }
+            override fun onNothingSelected() {}
+        })
+
+        val leftAxis = chart.axisLeft
+        leftAxis.setDrawGridLines(true)
+        leftAxis.axisMinimum = 0f
+        leftAxis.textColor = Color.BLACK
+        leftAxis.textSize = 10f
+        leftAxis.valueFormatter = object : ValueFormatter() {
+            override fun getFormattedValue(value: Float): String {
+                val symbols = DecimalFormatSymbols().apply {
+                    groupingSeparator = '.'
+                    decimalSeparator = ','
+                }
+                val decimalFormat = DecimalFormat("#,##0", symbols)
+                return decimalFormat.format(value.toInt().toDouble())
+            }
+        }
+
+        chart.axisRight.isEnabled = false
+        chart.legend.isEnabled = false
+
+        chart.invalidate()
+    }
+    /**
+     * Updates the annual provider purchases chart for the selected year.
+     */
+    private fun updateAnnualProviderPurchasesChart(movements: List<Movement>) {
+        val startOfYear = Calendar.getInstance().apply {
+            set(Calendar.YEAR, selectedYear)
+            set(Calendar.MONTH, Calendar.JANUARY)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+
+        val endOfYear = Calendar.getInstance().apply {
+            set(Calendar.YEAR, selectedYear)
+            set(Calendar.MONTH, Calendar.DECEMBER)
+            set(Calendar.DAY_OF_MONTH, 31)
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+        }.time
+
+        val annualPurchases = movements.filter { movement ->
+            movement.type == EMovementType.PURCHASE &&
+            movement.movementDate >= startOfYear &&
+            movement.movementDate <= endOfYear
+        }
+
+        val providerData = createAnnualProviderPurchasesChartData(annualPurchases)
+
+        if (providerData == null) {
+            showEmptyMessage(binding.annualProviderPurchasesChart!!, binding.annualProviderPurchasesEmptyMessage!!)
+            return
+        }
+
+        binding.annualProviderPurchasesChart!!.visibility = View.VISIBLE
+        binding.annualProviderPurchasesEmptyMessage!!.visibility = View.GONE
+
+        val (chartData, labels) = providerData
+        setupAnnualProviderPurchasesChart(binding.annualProviderPurchasesChart!!, chartData, labels)
+    }
+
+    private fun createAnnualProviderPurchasesChartData(purchases: List<Movement>): Pair<BarData, List<String>>? {
+        val providerTotals = mutableMapOf<String, Double>()
+        val providerIds = mutableMapOf<String, String>()
+        val persons = repository.personsLiveData.value ?: emptyList()
+
+        purchases.forEach { movement ->
+            val personId = movement.personId
+            if (personId.isNotEmpty()) {
+                val person = persons.find { it.id == personId }
+                val providerName = if (person != null) "${person.name} ${person.lastName}".trim() else "Proveedor desconocido"
+                providerTotals[providerName] = (providerTotals[providerName] ?: 0.0) + movement.totalAmount
+                providerIds[providerName] = personId
+            }
+        }
+
+        if (providerTotals.isEmpty()) return null
+
+        val topProviders = providerTotals.toList().sortedByDescending { it.second }.take(10)
+        
+        val entries = mutableListOf<BarEntry>()
+        val labels = mutableListOf<String>()
+
+        topProviders.forEachIndexed { index, (providerName, totalSpent) ->
+            val pId = providerIds[providerName]
+            entries.add(BarEntry(index.toFloat(), totalSpent.toFloat(), pId))
+            labels.add(providerName)
+        }
+
+        val dataSet = BarDataSet(entries, "").apply {
+            color = Color.parseColor("#FF5722")
+            valueTextColor = Color.BLACK
+            valueTextSize = 10f
+            setDrawValues(true)
+            valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val symbols = DecimalFormatSymbols().apply {
+                        groupingSeparator = '.'
+                        decimalSeparator = ','
+                    }
+                    val decimalFormat = DecimalFormat("#,##0", symbols)
+                    return decimalFormat.format(value.toDouble())
+                }
+            }
+        }
+
+        val barData = BarData(dataSet).apply { barWidth = 0.5f }
+        return Pair(barData, labels)
+    }
+
+    private fun setupAnnualProviderPurchasesChart(chart: BarChart, data: BarData, labels: List<String>) {
+        chart.data = data
+        chart.description.isEnabled = false
+        chart.setFitBars(true)
+        chart.animateY(1000)
+
+        val xAxis = chart.xAxis
+        xAxis.position = XAxis.XAxisPosition.BOTTOM
+        xAxis.setDrawGridLines(false)
+        xAxis.granularity = 1f
+        xAxis.isGranularityEnabled = true
+        xAxis.textColor = Color.BLACK
+        xAxis.textSize = 10f
+        xAxis.setLabelCount(labels.size, false)
+        xAxis.valueFormatter = object : ValueFormatter() {
+            override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+                val index = value.toInt()
+                return if (index >= 0 && index < labels.size) {
+                    val label = labels[index]
+                    if (label.length > 15) label.substring(0, 15) + "..." else label
+                } else ""
+            }
+        }
+        xAxis.setLabelRotationAngle(-45f)
+        
+        chart.setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
+            override fun onValueSelected(e: Entry?, h: Highlight?) {
+                if (e?.data is String) {
+                    val personId = e.data as String
+                    val index = e.x.toInt()
+                    val providerName = if (index >= 0 && index < labels.size) labels[index] else "Detalle"
+                    val bottomSheet = ItemStatsBottomSheet.newInstance(personId, "PROVIDER", providerName, selectedYear)
+                    bottomSheet.show(requireActivity().supportFragmentManager, "ItemStatsBottomSheet")
+                }
+            }
+            override fun onNothingSelected() {}
+        })
 
         val leftAxis = chart.axisLeft
         leftAxis.setDrawGridLines(true)

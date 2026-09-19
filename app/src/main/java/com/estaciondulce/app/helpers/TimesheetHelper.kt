@@ -415,6 +415,26 @@ class TimesheetHelper(private val genericHelper: GenericHelper = GenericHelper()
                 }
                 onSuccess(workDays)
             }
+    }
+
+    /**
+     * Gets all work blocks for a specific event
+     */
+    fun getWorkBlocksForEvent(
+        eventId: String,
+        onSuccess: (List<WorkBlock>) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        firestore.collectionGroup("blocks")
+            .whereEqualTo("eventId", eventId)
+            .get()
+            .addOnSuccessListener { querySnapshot ->
+                val blocks = querySnapshot.documents.mapNotNull { doc ->
+                    val blockDTO = doc.toObject(WorkBlockDTO::class.java)
+                    blockDTO?.toParcelable(doc.id)
+                }
+                onSuccess(blocks)
+            }
             .addOnFailureListener { e ->
                 onError(e)
             }

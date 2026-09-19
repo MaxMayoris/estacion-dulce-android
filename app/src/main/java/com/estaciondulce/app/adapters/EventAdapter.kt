@@ -7,6 +7,7 @@ class EventAdapter(
     eventList: List<Event>,
     onRowClick: (Event) -> Unit,
     onDeleteClick: (Event) -> Unit,
+    private val onEditClick: (Event) -> Unit,
     private val attributeGetter: (Event) -> List<Any>
 ) : TableAdapter<Event>(eventList, onRowClick, onDeleteClick) {
 

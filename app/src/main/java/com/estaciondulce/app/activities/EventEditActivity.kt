@@ -79,8 +79,18 @@ class EventEditActivity : AppCompatActivity() {
     }
 
     private fun setupHeader() {
-        findViewById<TextView>(R.id.fragmentTitle).text = if (eventId != null) "Editar Evento" else "Nuevo Evento"
-        findViewById<MaterialButton>(R.id.backButton).setOnClickListener { finish() }
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = if (eventId != null) "Editar Evento" else "Nuevo Evento"
+    }
+
+    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
+        return when (item.itemId) {
+            android.R.id.home -> {
+                finish()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     private fun setupDatePickers() {

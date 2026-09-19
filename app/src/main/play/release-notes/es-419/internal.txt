@@ -1,1 +1,1 @@
-Ejecución automática de tests al compilar, mejoras en la UI de creación de eventos y ordenamiento
+Nuevos gráficos de Compras por Proveedor y Balance Mensual en estadísticas, y corrección en el botón de retroceso para versiones recientes de Android.

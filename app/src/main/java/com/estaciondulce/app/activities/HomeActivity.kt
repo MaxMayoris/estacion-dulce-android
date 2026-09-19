@@ -10,6 +10,7 @@ import android.view.View
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.estaciondulce.app.R
@@ -64,6 +65,22 @@ class HomeActivity : AppCompatActivity() {
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (findViewById<View>(R.id.homeFragmentContainer).visibility == View.VISIBLE) {
+                    if (supportFragmentManager.backStackEntryCount > 0) {
+                        supportFragmentManager.popBackStack()
+                    } else {
+                        showDashboard()
+                    }
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                    isEnabled = true
+                }
+            }
+        })
         
         auth = FirebaseAuth.getInstance()
         
@@ -408,21 +425,6 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Handles back button press to return to dashboard.
-     */
-    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        if (findViewById<View>(R.id.homeFragmentContainer).visibility == View.VISIBLE) {
-            if (supportFragmentManager.backStackEntryCount > 0) {
-                supportFragmentManager.popBackStack()
-            } else {
-                showDashboard()
-            }
-        } else {
-            super.onBackPressed()
-        }
-    }
+
     
 }

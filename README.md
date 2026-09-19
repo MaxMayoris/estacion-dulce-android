@@ -67,6 +67,8 @@ If you have questions or need help, you can:
 - Contact the developer by email
 
 ## 🔄 Version History
+- **v10.6.2** - Added Provider Purchases chart, Month Balance chart with drill-down logic, fixed predictive back button navigation on newer Androids.
+
 
 - **v10.6** - Automatic test execution on build, improved event creation UI and sorting
 - **v10.5** - Update Places SDK to v4.4.1 and migrate to Places API (New)

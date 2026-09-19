@@ -88,8 +88,9 @@ class EventFragment : Fragment() {
             data = sortedList,
             adapter = EventAdapter(
                 eventList = sortedList,
-                onRowClick = { editEvent(it) },
-                onDeleteClick = { deleteEvent(it) }
+                onRowClick = { openEventDetailActivity(it) },
+                onDeleteClick = { deleteEvent(it) },
+                onEditClick = { }
             ) { event ->
                 listOf(
                     if (event.description.isNotEmpty()) "${event.name} - ${event.description}" else event.name,
@@ -99,6 +100,12 @@ class EventFragment : Fragment() {
             pageSize = 10,
             columnValueGetter = getter
         )
+    }
+
+    private fun openEventDetailActivity(event: Event) {
+        val intent = Intent(requireContext(), com.estaciondulce.app.activities.EventDetailActivity::class.java)
+        intent.putExtra("EVENT_ID", event.id)
+        startActivity(intent)
     }
 
     private fun filterEvents(query: String) {
@@ -120,13 +127,28 @@ class EventFragment : Fragment() {
 
     private fun deleteEvent(event: Event) {
         val associatedMovements = repository.movementsLiveData.value?.filter { it.eventId == event.id } ?: emptyList()
-        // Here we could also check workBlocks by finding all WorkDays and iterating, but for simplicity let's rely on EventsHelper to do the backend check or just basic checks.
         
         if (associatedMovements.isNotEmpty()) {
             CustomToast.showError(requireContext(), "No se puede eliminar. Tiene movimientos asociados.")
             return
         }
         
+        com.estaciondulce.app.helpers.TimesheetHelper().getWorkBlocksForEvent(
+            eventId = event.id,
+            onSuccess = { blocks ->
+                if (blocks.isNotEmpty()) {
+                    CustomToast.showError(requireContext(), "No se puede eliminar. Tiene horas de trabajo asociadas.")
+                } else {
+                    showDeleteDialog(event)
+                }
+            },
+            onError = {
+                CustomToast.showError(requireContext(), "Error al verificar horas: ${it.message}")
+            }
+        )
+    }
+
+    private fun showDeleteDialog(event: Event) {
         DeleteConfirmationDialog.show(
             context = requireContext(),
             itemName = event.name,
