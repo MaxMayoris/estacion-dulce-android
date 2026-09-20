@@ -60,7 +60,7 @@ class MovementEditActivity : AppCompatActivity() {
     private lateinit var customLoader: CustomLoader
     private var currentMovement: Movement? = null
     private var isEditMode: Boolean = false
-    private var originalMovement: Movement? = null // Copy of the original movement for kitchen order preservation
+    private var originalMovement: Movement? = null
     private val repository = FirestoreRepository
     private var selectedDate: Date = Date()
     private var selectedDeliveryDate: Date? = null
@@ -69,13 +69,13 @@ class MovementEditActivity : AppCompatActivity() {
     private lateinit var itemsAdapter: MovementItemsAdapter
     private var originalProductItems: List<MovementItem> = listOf()
     private var discountAmount: Double = 0.0
-    private var itemsSubtotal: Double = 0.0 // Suma de todos los ítems (cantidad * precio)
+    private var itemsSubtotal: Double = 0.0
     private var selectedAddress: Address? = null
     private val addressesHelper = AddressesHelper()
     private val distanceMatrixHelper = DistanceMatrixHelper()
     private val settingsHelper = SettingsHelper()
     private var calculatedShippingCost: Double = 0.0
-    private var selectedDeliveryType: String = EDeliveryType.PICKUP.name // Track selected delivery type
+    private var selectedDeliveryType: String = EDeliveryType.PICKUP.name
     
     companion object {
         private const val MAX_MOVEMENT_IMAGES = 3
@@ -150,7 +150,7 @@ class MovementEditActivity : AppCompatActivity() {
                 val itemName = when (item.collection) {
                     "products" -> repository.productsLiveData.value?.find { it.id == item.collectionId }?.name ?: "Item"
                     "recipes" -> repository.recipesLiveData.value?.find { it.id == item.collectionId }?.name ?: "Item"
-                    "custom" -> item.collectionId
+                    "custom" -> if (item.collectionId == "discount") "Descuento" else item.customName ?: "Personalizado"
                     else -> "Item"
                 }
                 
@@ -162,23 +162,22 @@ class MovementEditActivity : AppCompatActivity() {
                         movementItems.removeAt(position)
                         itemsAdapter.notifyItemRemoved(position)
                         itemsAdapter.notifyItemRangeChanged(position, movementItems.size - position)
-                        recalcTotalAmount() // Need to recalculate after deletion
+                        recalcTotalAmount()
                     }
                 )
             },
-            getDisplayName = { collection, collectionId ->
-                when (collection) {
-                    "products" -> repository.productsLiveData.value?.find { it.id == collectionId }?.name
+            getDisplayName = { item ->
+                when (item.collection) {
+                    "products" -> repository.productsLiveData.value?.find { it.id == item.collectionId }?.name
                         ?: "Desconocido"
 
-                    "recipes" -> repository.recipesLiveData.value?.find { it.id == collectionId }?.name
+                    "recipes" -> repository.recipesLiveData.value?.find { it.id == item.collectionId }?.name
                         ?: "Desconocido"
 
                     "custom" -> {
-                        val customItem = movementItems.find { it.collection == "custom" && it.collectionId == collectionId }
-                        when (customItem?.collectionId) {
+                        when (item.collectionId) {
                             "discount" -> "Descuento"
-                            else -> customItem?.customName ?: "Personalizado"
+                            else -> item.customName ?: "Personalizado"
                         }
                     }
 
@@ -252,7 +251,7 @@ class MovementEditActivity : AppCompatActivity() {
                 binding.totalAmountCard.visibility = View.VISIBLE
                 binding.saveMovementButton.visibility = View.VISIBLE
                 
-                binding.personSpinner.setText("") // Clear current selection
+                binding.personSpinner.setText("")
                 updatePersonSpinnerHint(selectedType ?: "")
                 
                 if (selectedType == "Venta") {
@@ -722,7 +721,6 @@ class MovementEditActivity : AppCompatActivity() {
                 selectedEventId = events[position].id
             }
             
-            // Pre-select if eventId exists
             if (currentMovement?.id != null && selectedEventId == null) {
                 val currentEvent = events.find { it.id == currentMovement?.eventId }
                 if (currentEvent != null) {
@@ -994,7 +992,7 @@ class MovementEditActivity : AppCompatActivity() {
             currentMovementType != null -> currentMovementType == EMovementType.PURCHASE
             binding.movementTypeSpinner.text.toString().contains("Compra") -> true
             binding.movementTypeSpinner.text.toString().contains("Venta") -> false
-            else -> true // Default to purchase
+            else -> true
         }
         
         val allItems = buildSearchResults(products, recipes, isPurchase)
@@ -1092,7 +1090,6 @@ class MovementEditActivity : AppCompatActivity() {
         val emptyState = dialogView.findViewById<android.widget.LinearLayout>(com.estaciondulce.app.R.id.emptyState)
         val closeButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(com.estaciondulce.app.R.id.closeButton)
 
-        // Set layout title to modify
         val titleTextView = dialogView.findViewById<android.widget.TextView>(com.estaciondulce.app.R.id.dialogTitle)
         titleTextView?.text = "Modificar Ítem"
 
@@ -1109,7 +1106,6 @@ class MovementEditActivity : AppCompatActivity() {
             else -> true
         }
         
-        // Filter out the 'custom' option since we want to map to an actual DB item
         val allItems = buildSearchResults(products, recipes, isPurchase).filter { it.collection != "custom" }
 
         val dialogAdapter = com.estaciondulce.app.adapters.DialogAddItemAdapter(allItems) { selectedItem ->
@@ -1123,7 +1119,6 @@ class MovementEditActivity : AppCompatActivity() {
             )
             movementItems[position] = newItem
             
-            // Keep original cost and quantity, just notify adapter
             itemsAdapter.notifyItemChanged(position)
             recalcTotalAmount()
             dialog.dismiss()
@@ -1442,7 +1437,7 @@ class MovementEditActivity : AppCompatActivity() {
         
         MovementsHelper().addMovement(
             movement = movement,
-            createKitchenOrders = false, // Don't create kitchen orders here - they will be handled by preserveKitchenOrdersForEditedMovement
+            createKitchenOrders = false,
             onSuccess = { newMovement ->
                 if (hasImageChanges()) {
                     handleImageOperationsForEdit(newMovement, originalMovementId)
@@ -1566,7 +1561,7 @@ class MovementEditActivity : AppCompatActivity() {
         MovementsHelper().updateMovement(
             movementId = newMovement.id,
             movement = newMovement,
-            updateKitchenOrders = false, // Don't update kitchen orders here - they are handled by preserveKitchenOrdersForEditedMovement
+            updateKitchenOrders = false,
             onSuccess = {
                 if (shouldPreserveKitchenOrders && originalMovement != null) {
                     MovementsHelper().preserveKitchenOrdersForEditedMovement(

@@ -67,6 +67,7 @@ If you have questions or need help, you can:
 - Contact the developer by email
 
 ## 🔄 Version History
+- **v10.6.3** - Bug fix: MovementEditActivity custom items get the correct custom name instead of matching the first one.
 - **v10.6.2** - Added Provider Purchases chart, Month Balance chart with drill-down logic, fixed predictive back button navigation on newer Androids.
 
 

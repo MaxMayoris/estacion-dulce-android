@@ -10,9 +10,9 @@ import com.estaciondulce.app.models.parcelables.MovementItem
 
 class MovementItemsAdapter(
     private var items: MutableList<MovementItem>,
-    private val onItemChanged: () -> Unit,  // Callback when an item is updated
-    private val onDeleteClicked: (Int) -> Unit,  // Callback with the item position to delete
-    private val getDisplayName: (collection: String, collectionId: String) -> String,
+    private val onItemChanged: () -> Unit,
+    private val onDeleteClicked: (Int) -> Unit,
+    private val getDisplayName: (item: MovementItem) -> String,
     private val onNameClicked: ((Int) -> Unit)? = null
 ) : RecyclerView.Adapter<MovementItemsAdapter.ViewHolder>() {
 
@@ -23,7 +23,7 @@ class MovementItemsAdapter(
         private var costWatcher: TextWatcher? = null
         
         fun bind(item: MovementItem, position: Int) {
-            binding.itemNameTextView.text = getDisplayName(item.collection, item.collectionId)
+            binding.itemNameTextView.text = getDisplayName(item)
 
             val isVerified = item.collection == "products" && item.collectionId.isNotEmpty()
             binding.verifiedBadgeContainer.visibility = if (isVerified) android.view.View.VISIBLE else android.view.View.GONE

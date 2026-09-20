@@ -1,1 +1,1 @@
-Nuevos gráficos de Compras por Proveedor y Balance Mensual en estadísticas, y corrección en el botón de retroceso para versiones recientes de Android.
+Corrección de error: Los ítems personalizados en MovementEditActivity obtienen el nombre personalizado correcto en lugar de coincidir con el primero.
