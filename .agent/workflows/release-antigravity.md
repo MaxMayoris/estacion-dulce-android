@@ -62,6 +62,12 @@ When the user asks you to perform a release using this workflow, execute the fol
 2. Run `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" && ./gradlew compileDevDebugKotlin > compile_debug_log.txt 2>&1`
 3. Wait for the command to finish. Then use `view_file` on `compile_debug_log.txt` to ensure compilation passed. Fix any warnings/errors that appear.
 
+### Step 6.5: Run Unit and UI Tests
+1. Before publishing, run the local unit and UI tests (Robolectric) to ensure no regressions or crashes.
+// turbo
+2. Run `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" && ./gradlew testDevDebugUnitTest > test_log.txt 2>&1`
+3. Wait for the command to finish. Use `view_file` on `test_log.txt` to verify all tests passed. Fix any failures before proceeding.
+
 ### Step 7: Publish to Play Store (Build + Upload in one step)
 This single command compiles the release bundle, signs it, and uploads it directly to the **internal testing** track on Google Play:
 // turbo
@@ -80,7 +86,7 @@ Run the script to automatically update `minVersionCode` in Firestore to match th
 
 ### Step 8: Commit and Push Changes (Auto)
 Do NOT ask the user for permission. Execute the commands directly:
-1. Delete temporary log files: `rm -f bundle_release_log.txt compile_debug_log.txt publish_log.txt`
+1. Delete temporary log files: `rm -f bundle_release_log.txt compile_debug_log.txt publish_log.txt test_log.txt`
 2. Commit and push:
 // turbo
 3. Run `git add . && git commit -m "feat: release v[VERSION] - [DESCRIPTION_IN_ENGLISH]" && git push`
