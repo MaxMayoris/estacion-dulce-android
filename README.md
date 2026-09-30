@@ -67,6 +67,7 @@ If you have questions or need help, you can:
 - Contact the developer by email
 
 ## 🔄 Version History
+- **v10.6.6** - Security hotfix: ensure skipLoginForDebug is disabled in production.
 - **v10.6.5** - Hotfix: Changed MaterialSwitch to SwitchMaterial to fix inflation crash in EventEditActivity.
 - **v10.6.4** - Added switch to control category visibility in web page from event edit screen.
 - **v10.6.3** - Bug fix: MovementEditActivity custom items get the correct custom name instead of matching the first one.

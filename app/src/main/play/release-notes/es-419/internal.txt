@@ -1,1 +1,1 @@
-Hotfix: Se corrigió un error que cerraba la aplicación en la pantalla de edición de evento.
+Hotfix de seguridad: se asegura que el login no sea saltado en producción.

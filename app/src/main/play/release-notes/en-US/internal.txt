@@ -1,1 +1,1 @@
-Hotfix: Crash fixed in event edit screen.
+Security hotfix: ensure skipLoginForDebug is disabled in production.
