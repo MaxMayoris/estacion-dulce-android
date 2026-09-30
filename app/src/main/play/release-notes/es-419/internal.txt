@@ -1,1 +1,1 @@
-Se agregó un switch para controlar la visibilidad de la categoría en la página web desde la pantalla de edición de evento.
+Hotfix: Se corrigió un error que cerraba la aplicación en la pantalla de edición de evento.

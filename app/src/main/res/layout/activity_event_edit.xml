@@ -82,7 +82,7 @@
                     app:icon="@drawable/ic_clock_blue_small" />
             </LinearLayout>
 
-            <com.google.android.material.materialswitch.MaterialSwitch
+            <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/switchShowCategory"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

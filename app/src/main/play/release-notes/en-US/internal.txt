@@ -1,1 +1,1 @@
-Added switch to control category visibility in web page from event edit screen.
+Hotfix: Crash fixed in event edit screen.
