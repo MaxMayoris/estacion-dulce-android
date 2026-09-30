@@ -82,6 +82,14 @@
                     app:icon="@drawable/ic_clock_blue_small" />
             </LinearLayout>
 
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchShowCategory"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="Mostrar en página web"
+                android:checked="true" />
+
             
 
             <com.google.android.material.button.MaterialButton

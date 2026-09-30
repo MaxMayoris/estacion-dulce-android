@@ -140,7 +140,11 @@ class EventEditActivity : AppCompatActivity() {
             startDate?.let { binding.btnStartDate.text = dateFormat.format(it) }
             endDate?.let { binding.btnEndDate.text = dateFormat.format(it) }
             
-
+            val categories = FirestoreRepository.categoriesLiveData.value ?: emptyList()
+            val category = categories.find { it.id == event.categoryId }
+            if (category != null) {
+                binding.switchShowCategory.isChecked = category.show
+            }
         }
     }
 
@@ -164,11 +168,13 @@ class EventEditActivity : AppCompatActivity() {
             endDate = endDate
         )
 
+        val showInCategories = binding.switchShowCategory.isChecked
+
         loader.show()
         lifecycleScope.launch {
             EventsHelper().saveEvent(
                 event = currentEvent,
-                showInCategories = true,
+                showInCategories = showInCategories,
                 onSuccess = {
                     loader.hide()
                     CustomToast.showSuccess(this@EventEditActivity, "Evento guardado")

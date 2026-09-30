@@ -1,1 +1,1 @@
-Corrección de error: Los ítems personalizados en MovementEditActivity obtienen el nombre personalizado correcto en lugar de coincidir con el primero.
+Se agregó un switch para controlar la visibilidad de la categoría en la página web desde la pantalla de edición de evento.
