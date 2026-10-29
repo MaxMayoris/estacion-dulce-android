@@ -1,5 +1,6 @@
 package com.estaciondulce.app.activities
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
@@ -102,9 +103,9 @@ class ShipmentEditActivity : AppCompatActivity() {
             binding.detailValue.visibility = android.view.View.GONE
         }
 
-        binding.costValue.text = "$${String.format("%.2f", delivery.shipment?.cost ?: 0.0)}"
+        binding.costValue.text = FormatUtils.formatCurrency(delivery.shipment?.cost ?: 0.0)
         
-        binding.totalValue.text = "$${String.format("%.2f", movement.totalAmount)}"
+        binding.totalValue.text = FormatUtils.formatCurrency(movement.totalAmount)
 
         val personPhone = person?.phones?.firstOrNull()
         if (personPhone != null) {
@@ -167,22 +168,7 @@ class ShipmentEditActivity : AppCompatActivity() {
     /**
      * Formats a date to Spanish format: "dd mes hh:mm"
      */
-    private fun formatDateToSpanish(date: java.util.Date): String {
-        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.forLanguageTag("es"))
-        val formatted = sdf.format(date)
-        return formatted.replace("sept.", "sep")
-            .replace("enero", "ene")
-            .replace("febrero", "feb")
-            .replace("marzo", "mar")
-            .replace("abril", "abr")
-            .replace("mayo", "may")
-            .replace("junio", "jun")
-            .replace("julio", "jul")
-            .replace("agosto", "ago")
-            .replace("octubre", "oct")
-            .replace("noviembre", "nov")
-            .replace("diciembre", "dic")
-    }
+    private fun formatDateToSpanish(date: java.util.Date): String = FormatUtils.formatShortDateTime(date)
 
     private fun loadAddressDetail(personId: String, addressId: String) {
         addressesHelper.getAddressesForPerson(

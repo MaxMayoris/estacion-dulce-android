@@ -103,7 +103,7 @@ class TableView<T> @JvmOverloads constructor(
         }
 
         val headers = columnConfigs.map { it.header }
-        generateHeaders(headers, enableColumnSorting)
+        generateHeaders(headers, enableColumnSorting, columnConfigs.map { it.weight })
         recyclerView.adapter = paginatedAdapter
         showPage(0)
         forceFillSpace()
@@ -162,7 +162,11 @@ class TableView<T> @JvmOverloads constructor(
     /**
      * Generates header views.
      */
-    private fun generateHeaders(columnHeaders: List<String>, enableColumnSorting: Boolean = true) {
+    private fun generateHeaders(
+        columnHeaders: List<String>,
+        enableColumnSorting: Boolean = true,
+        columnWeights: List<Float> = emptyList()
+    ) {
         storedHeaders = columnHeaders
         
         if (headerContainer.childCount != columnHeaders.size + 1) {
@@ -172,10 +176,7 @@ class TableView<T> @JvmOverloads constructor(
         if (headerContainer.childCount == 0) {
             columnHeaders.forEachIndexed { index, _ ->
                 val textView = TextView(context).apply {
-                    layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply {
-                        weight = 1f
-                        minimumWidth = 100
-                    }
+                    layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, columnWeights.getOrElse(index) { 1f })
                     setPadding(16, 16, 16, 16)
                     setTextColor(context.getColor(R.color.table_header_text))
                     textAlignment = TEXT_ALIGNMENT_CENTER
@@ -188,10 +189,7 @@ class TableView<T> @JvmOverloads constructor(
                 headerContainer.addView(textView)
             }
             val deleteHeader = TextView(context).apply {
-                layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply {
-                    weight = 0.5f
-                    minimumWidth = 60
-                }
+                layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT)
                 setPadding(16, 16, 16, 16)
                 textAlignment = TEXT_ALIGNMENT_CENTER
                 setTypeface(null, Typeface.BOLD)
@@ -216,6 +214,11 @@ class TableView<T> @JvmOverloads constructor(
         }
         val deleteHeader = headerContainer.getChildAt(columnHeaders.size) as? TextView
         deleteHeader?.text = ""
+        val iconSlots = (paginatedAdapter as? TableAdapter<*>)?.rowIconSlots ?: 1
+        deleteHeader?.layoutParams = deleteHeader?.layoutParams?.apply {
+            width = TableAdapter.iconColumnWidth(context, iconSlots)
+        }
+        deleteHeader?.visibility = if (iconSlots > 0) VISIBLE else GONE
     }
 
     /**

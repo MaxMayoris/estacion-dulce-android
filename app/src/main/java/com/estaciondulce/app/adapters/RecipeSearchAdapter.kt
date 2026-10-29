@@ -1,5 +1,6 @@
 package com.estaciondulce.app.adapters
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,7 +29,7 @@ class RecipeSearchAdapter(
         val recipe = recipes[position]
         
         holder.binding.recipeName.text = recipe.name
-        holder.binding.recipeCost.text = "$${String.format("%.2f", recipe.cost)}"
+        holder.binding.recipeCost.text = FormatUtils.formatCurrency(recipe.cost)
         
         holder.itemView.setOnClickListener {
             onRecipeClick(recipe)

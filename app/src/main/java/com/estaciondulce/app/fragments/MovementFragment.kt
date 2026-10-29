@@ -1,5 +1,6 @@
 package com.estaciondulce.app.fragments
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
@@ -47,8 +48,7 @@ class MovementFragment : Fragment() {
     private val binding get() = _binding!!
     private val repository = FirestoreRepository
     
-    // Tab state
-    private var selectedTab: String = "sale" // Default to sale tab
+    private var selectedTab: String = "sale"
 
     private var tempImageFile: File? = null
     private var selectedProviderId: String? = null
@@ -78,22 +78,7 @@ class MovementFragment : Fragment() {
     /**
      * Formats a date to Spanish format: "dd mes hh:mm"
      */
-    private fun formatDateToSpanish(date: java.util.Date): String {
-        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.forLanguageTag("es"))
-        val formatted = sdf.format(date)
-        return formatted.replace("sept.", "sep")
-            .replace("enero", "ene")
-            .replace("febrero", "feb")
-            .replace("marzo", "mar")
-            .replace("abril", "abr")
-            .replace("mayo", "may")
-            .replace("junio", "jun")
-            .replace("julio", "jul")
-            .replace("agosto", "ago")
-            .replace("octubre", "oct")
-            .replace("noviembre", "nov")
-            .replace("diciembre", "dic")
-    }
+    private fun formatDateToSpanish(date: java.util.Date): String = FormatUtils.formatShortDateTime(date)
 
     override fun onCreateView(
         inflater: android.view.LayoutInflater,
@@ -108,11 +93,9 @@ class MovementFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         repository.movementsLiveData.observe(viewLifecycleOwner) { _ ->
-            // Apply current filter (selected tab + search)
             filterMovements(binding.searchBar.text.toString())
         }
         repository.personsLiveData.observe(viewLifecycleOwner) {
-            // Apply current filter (selected tab + search)
             filterMovements(binding.searchBar.text.toString())
         }
 
@@ -132,7 +115,6 @@ class MovementFragment : Fragment() {
 
         customLoader = CustomLoader(requireContext())
 
-        // Setup tab click listeners
         binding.saleTab.setOnClickListener {
             selectTab("sale")
         }
@@ -220,7 +202,6 @@ class MovementFragment : Fragment() {
     private fun selectTab(tabType: String) {
         selectedTab = tabType
         
-        // Update tab visual states
         when (tabType) {
             "sale" -> {
                 binding.saleTab.setBackgroundResource(com.estaciondulce.app.R.drawable.tab_selected_background)
@@ -236,7 +217,6 @@ class MovementFragment : Fragment() {
             }
         }
         
-        // Refresh table with tab filter + search
         filterMovements(binding.searchBar.text.toString())
     }
 
@@ -246,7 +226,6 @@ class MovementFragment : Fragment() {
      * Movements are automatically sorted by date in descending order (newest first).
      */
     private fun setupTableView(movements: List<Movement>) {
-        // Movements are already filtered by tab type in filterMovements
         val sortedList = movements.sortedByDescending { it.movementDate }
         val columnConfigs = listOf("Fecha", "Nombre", "Monto").toColumnConfigs(currencyColumns = setOf(2))
         binding.movementTable.setupTableWithConfigs(
@@ -293,14 +272,12 @@ class MovementFragment : Fragment() {
     private fun filterMovements(searchQuery: String = "") {
         val movements = repository.movementsLiveData.value ?: emptyList()
         
-        // First filter by selected tab type
         val tabFilteredMovements = when (selectedTab) {
             "sale" -> movements.filter { it.type == EMovementType.SALE }
             "purchase" -> movements.filter { it.type == EMovementType.PURCHASE }
             else -> movements
         }
         
-        // Then filter by name search if provided
         val filteredList = if (searchQuery.isEmpty()) {
             tabFilteredMovements
         } else {
@@ -322,11 +299,11 @@ class MovementFragment : Fragment() {
         val movementType = if (movement.type == EMovementType.PURCHASE) "Compra" else "Venta"
         val person = repository.personsLiveData.value?.find { it.id == movement.personId }
         val personName = person?.let { "${it.name} ${it.lastName}" } ?: "Persona desconocida"
-        val formattedAmount = String.format("%.2f", movement.totalAmount)
+        val formattedAmount = FormatUtils.formatCurrency(movement.totalAmount)
         
         DeleteConfirmationDialog.show(
             context = requireContext(),
-            itemName = "$movementType a $personName por $${formattedAmount}",
+            itemName = "$movementType a $personName por $formattedAmount",
             itemType = "movimiento",
             onConfirm = {
                 MovementsHelper().deleteMovement(
@@ -404,7 +381,6 @@ class MovementFragment : Fragment() {
     private fun getBase64ImageFromUri(uri: Uri): Pair<String, String>? {
         return try {
             val context = requireContext()
-            // Re-use existing project ImageUtils to rotate and compress image to WebP
             val compressedUri = com.estaciondulce.app.utils.ImageUtils.compressImage(context, uri)
             val inputStream = context.contentResolver.openInputStream(compressedUri)
             val bytes = inputStream?.readBytes()
@@ -413,7 +389,6 @@ class MovementFragment : Fragment() {
             if (bytes == null) return null
             val base64Str = Base64.encodeToString(bytes, Base64.NO_WRAP)
             
-            // Clean up the temporary WebP file created by ImageUtils
             if (compressedUri.scheme == "file") {
                 compressedUri.path?.let { File(it).delete() }
             }
@@ -450,13 +425,11 @@ class MovementFragment : Fragment() {
         dialogTitle.text = "Seleccionar Proveedor"
         searchEditText.hint = "Buscar proveedor..."
 
-        // Limit RecyclerView height to wrap_content so it takes less space
         personsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         val params = personsRecyclerView.layoutParams
         params.height = ViewGroup.LayoutParams.WRAP_CONTENT
         personsRecyclerView.layoutParams = params
 
-        // Show initially up to 3 providers sorted alphabetically
         val initialProviders = providers.sortedBy { "${it.name} ${it.lastName}" }.take(3)
         
         val dialogAdapter = PersonSearchAdapter(initialProviders) { selectedPerson ->
@@ -513,7 +486,6 @@ class MovementFragment : Fragment() {
         val rawItems = data["items"] as? List<*> ?: emptyList<Any>()
         val itemsList = mutableListOf<MovementItem>()
         
-        // Parse date from response, fallback to current date
         val dateStr = data["date"] as? String
         val parsedDate = if (!dateStr.isNullOrEmpty()) {
             try {

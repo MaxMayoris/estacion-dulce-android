@@ -1,1 +1,1 @@
-Security hotfix: ensure skipLoginForDebug is disabled in production.
+UI/UX refresh: flat headers, consistent brand colors and light theme; amounts without unnecessary decimals; centered table headers; reset all stocks to 0; low-stock badge and filter replace the low-stock push notification; event detail now has a Movements tab.

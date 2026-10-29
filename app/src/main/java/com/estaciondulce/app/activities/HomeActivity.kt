@@ -12,6 +12,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import com.estaciondulce.app.R
 import com.estaciondulce.app.fragments.MovementFragment
@@ -32,6 +34,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
 
 class HomeActivity : AppCompatActivity() {
 
@@ -204,12 +207,17 @@ class HomeActivity : AppCompatActivity() {
         FirestoreRepository.workCategoriesLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.workersLiveData.observe(this, dataLoadedObserver)
         FirestoreRepository.eventsLiveData.observe(this, dataLoadedObserver)
+        FirestoreRepository.productsLiveData.observe(this) { products ->
+            updateLowStockBadge(products.count { it.quantity < it.minimumQuantity })
+        }
 
         setupDashboardCards()
         setupLogoutButton()
         setupFragmentHeader()
+        applyStatusBarInsetsToHeaders()
         setupChatFab()
         requestNotificationPermission()
+        unsubscribeFromLowStockTopic()
         showDashboard()
     }
     
@@ -264,6 +272,23 @@ class HomeActivity : AppCompatActivity() {
     }
 
     /**
+     * Shows on the Productos card how many products are below their minimum stock, hiding it when there are none.
+     */
+    private fun updateLowStockBadge(lowStockCount: Int) {
+        val badge = findViewById<TextView>(R.id.lowStockBadge)
+        badge.visibility = if (lowStockCount > 0) View.VISIBLE else View.GONE
+        badge.text = if (lowStockCount > 99) "99+" else lowStockCount.toString()
+        badge.contentDescription = "$lowStockCount productos bajo el stock mínimo"
+    }
+
+    /**
+     * Removes devices subscribed by older versions from the discontinued low_stock push topic.
+     */
+    private fun unsubscribeFromLowStockTopic() {
+        FirebaseMessaging.getInstance().unsubscribeFromTopic("low_stock")
+    }
+
+    /**
      * Sets up click listeners for all dashboard cards.
      */
     private fun setupDashboardCards() {
@@ -315,6 +340,18 @@ class HomeActivity : AppCompatActivity() {
         findViewById<MaterialCardView>(R.id.eventsCard).setOnClickListener {
             loadFragment(eventFragment, "Eventos")
             showFragmentContainer()
+        }
+    }
+
+    /**
+     * Pads the top headers by the status bar height so their content is not drawn behind it.
+     */
+    private fun applyStatusBarInsetsToHeaders() {
+        val headers = listOf(findViewById<View>(R.id.headerLayout), findViewById<View>(R.id.fragmentHeader))
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { _, insets ->
+            val statusBarTop = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            headers.forEach { it.setPadding(it.paddingLeft, statusBarTop, it.paddingRight, it.paddingBottom) }
+            insets
         }
     }
 

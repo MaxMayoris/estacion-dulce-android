@@ -1,5 +1,6 @@
 package com.estaciondulce.app.fragments
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
@@ -162,12 +163,12 @@ class ShipmentFragment : Fragment() {
                     distance, settings.fuelPrice, settings.litersPerKm
                 )
 
-                val formattedCost = String.format("%.2f", cost)
-                val formattedDistance = String.format("%.2f", distance)
+                val formattedCost = FormatUtils.formatCurrency(cost)
+                val formattedDistance = FormatUtils.formatNumber(distance)
 
                 AlertDialog.Builder(requireContext())
                     .setTitle("Costo de Envío")
-                    .setMessage("Distancia: $formattedDistance km\nCosto calculado: $$formattedCost")
+                    .setMessage("Distancia: $formattedDistance km\nCosto calculado: $formattedCost")
                     .setPositiveButton("Aceptar", null)
                     .show()
                 
@@ -191,7 +192,7 @@ class ShipmentFragment : Fragment() {
                         startActivity(intent)
                     }
                 },
-                onActionClick = { _ -> }, // No longer used
+                onActionClick = { _ -> },
                 onMapsClick = { movement ->
                     if (!isSelectionMode) {
                         openGoogleMaps(movement)
@@ -367,22 +368,7 @@ class ShipmentFragment : Fragment() {
     /**
      * Formats a date to Spanish format: "dd mes hh:mm"
      */
-    private fun formatDateToSpanish(date: java.util.Date): String {
-        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.forLanguageTag("es"))
-        val formatted = sdf.format(date)
-        return formatted.replace("sept.", "sep")
-            .replace("enero", "ene")
-            .replace("febrero", "feb")
-            .replace("marzo", "mar")
-            .replace("abril", "abr")
-            .replace("mayo", "may")
-            .replace("junio", "jun")
-            .replace("julio", "jul")
-            .replace("agosto", "ago")
-            .replace("octubre", "oct")
-            .replace("noviembre", "nov")
-            .replace("diciembre", "dic")
-    }
+    private fun formatDateToSpanish(date: java.util.Date): String = FormatUtils.formatShortDateTime(date)
 
     /**
      * Sets up the selection mode controls and their click listeners.

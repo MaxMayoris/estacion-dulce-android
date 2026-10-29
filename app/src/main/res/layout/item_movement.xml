@@ -107,7 +107,7 @@
         android:layout_height="40dp"
         android:contentDescription="Eliminar item"
         app:cornerRadius="20dp"
-        app:backgroundTint="@color/purple_700"
+        app:backgroundTint="@color/brand_primary"
         app:icon="@drawable/ic_delete"
         app:iconTint="@color/white"
         app:iconSize="20dp"

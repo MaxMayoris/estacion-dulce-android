@@ -35,14 +35,16 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:padding="2dp"
+        android:padding="@dimen/table_row_icons_padding"
         android:orientation="horizontal"
         android:minWidth="0dp">
 
         <ImageView
             android:id="@+id/deleteIcon"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="@dimen/table_row_icon_size"
+            android:layout_height="@dimen/table_row_icon_size"
+            android:padding="10dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_remove_modern"
             android:contentDescription="Eliminar"
             android:scaleType="fitCenter"
@@ -51,8 +53,10 @@
 
         <ImageView
             android:id="@+id/actionIcon"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="@dimen/table_row_icon_size"
+            android:layout_height="@dimen/table_row_icon_size"
+            android:padding="10dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_progress"
             android:contentDescription="Acción"
             android:scaleType="fitCenter"
@@ -61,8 +65,10 @@
 
         <ImageView
             android:id="@+id/mapsIcon"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="@dimen/table_row_icon_size"
+            android:layout_height="@dimen/table_row_icon_size"
+            android:padding="10dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_mylocation"
             android:contentDescription="Ver en Google Maps"
             android:scaleType="fitCenter"
@@ -71,8 +77,10 @@
 
         <ImageView
             android:id="@+id/viewIcon"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="@dimen/table_row_icon_size"
+            android:layout_height="@dimen/table_row_icon_size"
+            android:padding="10dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_view"
             android:contentDescription="Ver"
             android:scaleType="fitCenter"

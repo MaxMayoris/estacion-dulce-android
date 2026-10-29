@@ -11,6 +11,8 @@
     <dimen name="login_footer_margin_bottom">24dp</dimen>
     
     <!-- Component dimensions -->
+    <dimen name="table_row_icon_size">44dp</dimen>
+    <dimen name="table_row_icons_padding">2dp</dimen>
     <dimen name="logo_size">150dp</dimen>
     <dimen name="logo_image_size">100dp</dimen>
     <dimen name="logo_margin_top">40dp</dimen>

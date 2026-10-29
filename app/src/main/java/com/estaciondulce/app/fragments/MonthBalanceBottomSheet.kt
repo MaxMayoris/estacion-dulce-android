@@ -1,5 +1,6 @@
 package com.estaciondulce.app.fragments
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -61,11 +62,9 @@ class MonthBalanceBottomSheet : BottomSheetDialogFragment() {
         val balance = totalIncome - totalPurchases
 
         val symbols = DecimalFormatSymbols().apply { groupingSeparator = '.'; decimalSeparator = ',' }
-        val df = DecimalFormat("#,##0.00", symbols)
-        
-        binding.incomeText.text = "Ingresos:\n$${df.format(totalIncome)}"
-        binding.purchasesText.text = "Compras:\n$${df.format(totalPurchases)}"
-        binding.balanceText.text = "Balance Neto: $${df.format(balance)}"
+        binding.incomeText.text = "Ingresos:\n${FormatUtils.formatCurrency(totalIncome)}"
+        binding.purchasesText.text = "Compras:\n${FormatUtils.formatCurrency(totalPurchases)}"
+        binding.balanceText.text = "Balance Neto: ${FormatUtils.formatCurrency(balance)}"
         
         val entries = mutableListOf<BarEntry>()
         entries.add(BarEntry(0f, totalIncome.toFloat()))

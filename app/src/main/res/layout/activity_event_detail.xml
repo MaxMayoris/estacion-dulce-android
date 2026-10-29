@@ -7,9 +7,53 @@
     android:orientation="vertical"
     android:background="@color/white">
 
-    <ScrollView
+    <!-- Tabs: event summary / related movements -->
+    <LinearLayout
+        android:id="@+id/tabsContainer"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="16dp"
+        android:orientation="horizontal"
+        android:background="@drawable/tabs_background"
+        android:padding="4dp">
+
+        <TextView
+            android:id="@+id/summaryTab"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Resumen"
+            android:textAlignment="center"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:padding="8dp"
+            android:background="@drawable/tab_selected_background"
+            android:textColor="@color/white"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/movementsTab"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Movimientos"
+            android:textAlignment="center"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:padding="8dp"
+            android:background="@drawable/tab_unselected_background"
+            android:textColor="@color/text_secondary"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
+
+    <ScrollView
+        android:id="@+id/summaryContent"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:padding="16dp">
 
         <LinearLayout
@@ -57,7 +101,7 @@
                             android:id="@+id/tvTotalSales"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="$0.00"
+                            android:text="$0"
                             android:textSize="18sp"
                             android:textStyle="bold"
                             android:textColor="@color/success_green" />
@@ -81,7 +125,7 @@
                             android:id="@+id/tvTotalPurchases"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="$0.00"
+                            android:text="$0"
                             android:textSize="18sp"
                             android:textStyle="bold"
                             android:textColor="@color/error_red" />
@@ -110,7 +154,7 @@
                             android:id="@+id/tvBalance"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="$0.00"
+                            android:text="$0"
                             android:textSize="22sp"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -186,4 +230,29 @@
 
         </LinearLayout>
     </ScrollView>
+
+    <!-- Movements related to the event -->
+    <FrameLayout
+        android:id="@+id/movementsContent"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="16dp"
+        android:visibility="gone">
+
+        <com.estaciondulce.app.customviews.TableView
+            android:id="@+id/eventMovementsTable"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/emptyMovementsText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Este evento todavía no tiene movimientos."
+            android:textColor="@color/text_secondary"
+            android:textSize="16sp"
+            android:visibility="gone" />
+    </FrameLayout>
 </LinearLayout>

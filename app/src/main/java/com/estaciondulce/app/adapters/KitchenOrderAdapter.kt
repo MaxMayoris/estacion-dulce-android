@@ -1,7 +1,9 @@
 package com.estaciondulce.app.adapters
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.graphics.Color
 import android.text.TextUtils
+import android.util.TypedValue
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.estaciondulce.app.R
@@ -13,6 +15,8 @@ class KitchenOrderAdapter(
     onRowClick: (Movement) -> Unit,
     private val attributeGetter: (Movement) -> List<Any>
 ) : TableAdapter<Movement>(movementList, onRowClick, { /* No delete for kitchen orders */ }) {
+
+    override val rowIconSlots: Int = 0
 
     override fun getCellValues(item: Movement, position: Int): List<Any> {
         return attributeGetter(item)
@@ -35,22 +39,24 @@ class KitchenOrderAdapter(
         for ((index, value) in cellValues.withIndex()) {
             val textView = TextView(context).apply {
                 text = when (value) {
-                    is Double -> String.format("%.2f", value)
+                    is Double -> FormatUtils.formatNumber(value)
                     is Boolean -> if (value) context.getString(R.string.yes_text) else context.getString(R.string.no_text)
                     else -> value.toString()
                 }
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, columnWeight(index))
                 setPadding(8, 6, 8, 6)
                 textAlignment = TextView.TEXT_ALIGNMENT_CENTER
                 gravity = android.view.Gravity.CENTER
                 setTextColor(context.getColor(R.color.table_cell_text))
                 maxLines = 2
                 ellipsize = TextUtils.TruncateAt.END
-                textSize = 13f
+                textSize = 14f
                 setTypeface(null, android.graphics.Typeface.NORMAL)
                 
                 if (index == 2) {
                     setTextColor(getStatusColor(value.toString(), context))
+                    maxLines = 1
+                    setAutoSizeTextTypeUniformWithConfiguration(10, 14, 1, TypedValue.COMPLEX_UNIT_SP)
                 }
             }
             binding.rowContainer.addView(textView)

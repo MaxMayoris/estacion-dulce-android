@@ -1,5 +1,6 @@
 package com.estaciondulce.app.adapters
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -40,13 +41,13 @@ class DialogAddItemAdapter(
                 holder.binding.itemIcon.setImageResource(R.drawable.ic_product)
                 holder.binding.itemType.visibility = View.GONE
                 holder.binding.itemCost.visibility = View.VISIBLE
-                holder.binding.itemCost.text = "$${String.format("%.2f", item.price)}"
+                holder.binding.itemCost.text = FormatUtils.formatCurrency(item.price)
             }
             item.type == EItemType.RECIPE -> {
                 holder.binding.itemIcon.setImageResource(R.drawable.ic_recipe)
                 holder.binding.itemType.visibility = View.GONE
                 holder.binding.itemCost.visibility = View.VISIBLE
-                holder.binding.itemCost.text = "$${String.format("%.2f", item.price)}"
+                holder.binding.itemCost.text = FormatUtils.formatCurrency(item.price)
             }
         }
         

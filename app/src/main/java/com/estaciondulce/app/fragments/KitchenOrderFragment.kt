@@ -1,5 +1,6 @@
 package com.estaciondulce.app.fragments
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
@@ -22,7 +23,7 @@ import com.estaciondulce.app.helpers.KitchenOrdersHelper
 import com.estaciondulce.app.models.enums.EDeliveryType
 import com.estaciondulce.app.models.parcelables.Movement
 import com.estaciondulce.app.models.enums.EKitchenOrderStatus
-import com.estaciondulce.app.models.toColumnConfigs
+import com.estaciondulce.app.models.TableColumnConfig
 import com.estaciondulce.app.repository.FirestoreRepository
 import java.text.SimpleDateFormat
 import java.util.*
@@ -104,7 +105,6 @@ class KitchenOrderFragment : Fragment() {
     }
 
     private fun updateCalendar() {
-        // Only update if fragment is attached
         if (!isAdded) return
 
         val capitalizedText = monthYearFormat.format(currentMonth.time).replaceFirstChar { it.titlecase(Locale.forLanguageTag("es")) }
@@ -118,10 +118,8 @@ class KitchenOrderFragment : Fragment() {
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
 
-        // Ensure Monday is first day of week
         val firstDayOfWeek = Calendar.MONDAY
         val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-        // Adjust to our week starting on Monday
         val offset = if (dayOfWeek >= firstDayOfWeek) dayOfWeek - firstDayOfWeek else 7 - (firstDayOfWeek - dayOfWeek)
         
         calendar.add(Calendar.DAY_OF_MONTH, -offset)
@@ -129,13 +127,11 @@ class KitchenOrderFragment : Fragment() {
         val days = mutableListOf<CalendarDay>()
         val currentMonthVal = currentMonth.get(Calendar.MONTH)
 
-        // Load up to 42 days (6 weeks)
         for (i in 0 until 42) {
             val date = calendar.time
             val isCurrentMonth = calendar.get(Calendar.MONTH) == currentMonthVal
             val dayNumber = calendar.get(Calendar.DAY_OF_MONTH)
             
-            // Find orders for this day
             val dayStart = calendar.timeInMillis
             val dayEnd = dayStart + 24 * 60 * 60 * 1000L - 1
             
@@ -154,7 +150,6 @@ class KitchenOrderFragment : Fragment() {
         calendarAdapter.updateDays(days)
         calendarAdapter.setSelectedDate(selectedDate)
         
-        // Show selected date's details
         val startCal = Calendar.getInstance()
         startCal.time = selectedDate
         startCal.set(Calendar.HOUR_OF_DAY, 0)
@@ -229,7 +224,11 @@ class KitchenOrderFragment : Fragment() {
     }
 
     private fun setupTableView(movements: List<Movement>) {
-        val columnConfigs = listOf("Fecha", "Cliente", "Estado").toColumnConfigs()
+        val columnConfigs = listOf(
+            TableColumnConfig("Fecha"),
+            TableColumnConfig("Cliente"),
+            TableColumnConfig("Estado", weight = 1.6f)
+        )
         
         binding.kitchenOrdersTable.setupTableWithConfigs(
             columnConfigs = columnConfigs,
@@ -289,12 +288,12 @@ class KitchenOrderFragment : Fragment() {
 
     private fun getMovementKitchenOrderStatusColor(movement: Movement): String {
         return when (movement.kitchenOrderStatus) {
-            EKitchenOrderStatus.PENDING -> "#FF9800" // Orange
-            EKitchenOrderStatus.PREPARING -> "#2196F3" // Blue
-            EKitchenOrderStatus.READY -> "#4CAF50" // Green
-            EKitchenOrderStatus.CANCELED -> "#F44336" // Red
-            EKitchenOrderStatus.DONE -> "#9E9E9E" // Gray
-            null -> "#757575" // Dark Gray
+            EKitchenOrderStatus.PENDING -> "#FF9800"
+            EKitchenOrderStatus.PREPARING -> "#2196F3"
+            EKitchenOrderStatus.READY -> "#4CAF50"
+            EKitchenOrderStatus.CANCELED -> "#F44336"
+            EKitchenOrderStatus.DONE -> "#9E9E9E"
+            null -> "#757575"
         }
     }
 
@@ -305,22 +304,7 @@ class KitchenOrderFragment : Fragment() {
         startActivity(intent)
     }
 
-    private fun formatDateToSpanish(date: Date): String {
-        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.forLanguageTag("es"))
-        val formatted = sdf.format(date)
-        return formatted.replace("sept.", "sep")
-            .replace("enero", "ene")
-            .replace("febrero", "feb")
-            .replace("marzo", "mar")
-            .replace("abril", "abr")
-            .replace("mayo", "may")
-            .replace("junio", "jun")
-            .replace("julio", "jul")
-            .replace("agosto", "ago")
-            .replace("octubre", "oct")
-            .replace("noviembre", "nov")
-            .replace("diciembre", "dic")
-    }
+    private fun formatDateToSpanish(date: Date): String = FormatUtils.formatShortDateTime(date)
     
     override fun onDestroyView() {
         super.onDestroyView()

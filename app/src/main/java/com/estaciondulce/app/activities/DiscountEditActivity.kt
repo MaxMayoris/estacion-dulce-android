@@ -1,5 +1,6 @@
 package com.estaciondulce.app.activities
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.DatePickerDialog
@@ -59,17 +60,17 @@ class DiscountEditActivity : AppCompatActivity() {
     private fun setupUI() {
         recipe?.let { r ->
             binding.recipeNameInput.setText(r.name)
-            binding.recipeCostInput.setText(String.format("%.2f", r.cost))
-            binding.recipeSuggestedPriceInput.setText(String.format("%.2f", r.suggestedPrice))
-            binding.recipeSalePriceInput.setText(String.format("%.2f", r.salePrice))
+            binding.recipeCostInput.setText(FormatUtils.formatEditable(r.cost, twoDecimals = true))
+            binding.recipeSuggestedPriceInput.setText(FormatUtils.formatEditable(r.suggestedPrice, twoDecimals = true))
+            binding.recipeSalePriceInput.setText(FormatUtils.formatEditable(r.salePrice, twoDecimals = true))
             binding.recipeUnitInput.setText(r.unit.toString())
             binding.recipeOnSaleCheckbox.isChecked = r.onSale
 
             binding.recipeOnDiscountCheckbox.isChecked = r.onDiscount
             if (r.discountPrice > 0.0) {
-                binding.recipeDiscountPriceInput.setText(String.format("%.2f", r.discountPrice))
+                binding.recipeDiscountPriceInput.setText(FormatUtils.formatEditable(r.discountPrice, twoDecimals = true))
             } else {
-                binding.recipeDiscountPriceInput.setText(String.format("%.2f", r.salePrice))
+                binding.recipeDiscountPriceInput.setText(FormatUtils.formatEditable(r.salePrice, twoDecimals = true))
             }
 
             selectedEndDate = r.discountEndDate

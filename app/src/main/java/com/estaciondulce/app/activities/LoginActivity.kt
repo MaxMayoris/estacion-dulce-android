@@ -93,7 +93,6 @@ class LoginActivity : AppCompatActivity() {
                     if (task.isSuccessful) {
                         CustomToast.showSuccess(this, getString(R.string.login_success))
                         
-                        subscribeToLowStockTopic()
                         subscribeToPendingOrdersTopic()
                         
                         rootLayout.postDelayed({
@@ -122,24 +121,6 @@ class LoginActivity : AppCompatActivity() {
                         CustomToast.showError(this, errorMessage)
                     }
                 }
-        }
-    }
-    
-    /**
-     * Subscribes to the low_stock topic to receive push notifications for low stock alerts.
-     */
-    private fun subscribeToLowStockTopic() {
-        FirebaseMessaging.getInstance().subscribeToTopic("low_stock")
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                } else {
-                }
-            }
-        
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-            } else {
-            }
         }
     }
     

@@ -3,7 +3,7 @@
     <style name="BottomNavigationViewStyle" parent="Widget.MaterialComponents.BottomNavigationView.Colored">
         <item name="itemIconTint">@color/nav_item_colors</item>
         <item name="itemTextColor">@color/nav_item_colors</item>
-        <item name="backgroundTint">@color/purple_700</item> <!-- Background color -->
+        <item name="backgroundTint">@color/brand_primary</item> <!-- Background color -->
     </style>
 
     <!-- Dashboard card style -->
@@ -61,50 +61,30 @@
         <item name="android:padding">16dp</item>
     </style>
 
-    <!-- Logout Button Style - HomeActivity specific -->
-    <style name="LogoutButtonStyle" parent="Widget.MaterialComponents.Button">
-        <item name="android:background">@drawable/button_rounded_white</item>
-        <item name="android:drawableTint">@color/purple_700</item>
-        <item name="android:minWidth">56dp</item>
-        <item name="android:minHeight">56dp</item>
-        <item name="android:padding">10dp</item>
-        <item name="android:paddingTop">10dp</item>
-        <item name="android:paddingBottom">10dp</item>
-        <item name="android:paddingStart">10dp</item>
-        <item name="android:paddingEnd">10dp</item>
-        <item name="android:gravity">center</item>
-        <item name="android:elevation">6dp</item>
-        <item name="android:stateListAnimator">@null</item>
-        <item name="backgroundTint">@null</item>
-        <item name="rippleColor">@color/purple_700</item>
-        <item name="android:focusable">true</item>
-        <item name="android:clickable">true</item>
+    <!-- Flat white icon button used in the top headers (logout / back) -->
+    <style name="HeaderIconButtonStyle" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="iconTint">@color/white</item>
+        <item name="iconSize">24dp</item>
+        <item name="iconPadding">0dp</item>
+        <item name="iconGravity">textStart</item>
+        <item name="android:minWidth">48dp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:padding">12dp</item>
+        <item name="rippleColor">#40FFFFFF</item>
     </style>
 
+    <!-- Logout Button Style - HomeActivity specific -->
+    <style name="LogoutButtonStyle" parent="HeaderIconButtonStyle" />
+
     <!-- Back Button Style - Fragment specific -->
-    <style name="BackButtonStyle" parent="Widget.MaterialComponents.Button">
-        <item name="android:background">@drawable/button_rounded_white</item>
-        <item name="android:drawableTint">@color/purple_700</item>
-        <item name="android:minWidth">56dp</item>
-        <item name="android:minHeight">56dp</item>
-        <item name="android:padding">10dp</item>
-        <item name="android:paddingTop">10dp</item>
-        <item name="android:paddingBottom">10dp</item>
-        <item name="android:paddingStart">10dp</item>
-        <item name="android:paddingEnd">10dp</item>
-        <item name="android:gravity">center</item>
-        <item name="android:elevation">6dp</item>
-        <item name="android:stateListAnimator">@null</item>
-        <item name="backgroundTint">@null</item>
-        <item name="rippleColor">@color/purple_700</item>
-        <item name="android:focusable">true</item>
-        <item name="android:clickable">true</item>
-    </style>
+    <style name="BackButtonStyle" parent="HeaderIconButtonStyle" />
 
     <!-- Pagination Button Style -->
     <style name="PaginationButtonStyle" parent="Widget.MaterialComponents.Button">
         <item name="android:background">@drawable/pagination_button_modern</item>
-        <item name="android:textColor">@color/purple_700</item>
+        <item name="android:textColor">@color/brand_primary</item>
         <item name="android:textSize">16sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:minWidth">36dp</item>
@@ -113,7 +93,7 @@
         <item name="android:elevation">1dp</item>
         <item name="android:stateListAnimator">@null</item>
         <item name="backgroundTint">@null</item>
-        <item name="rippleColor">@color/purple_700</item>
+        <item name="rippleColor">@color/brand_primary</item>
         <item name="android:focusable">true</item>
         <item name="android:clickable">true</item>
     </style>

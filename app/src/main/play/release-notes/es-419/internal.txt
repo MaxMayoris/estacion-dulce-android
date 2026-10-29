@@ -1,1 +1,1 @@
-Hotfix de seguridad: se asegura que el login no sea saltado en producción.
+Renovación visual: encabezados planos, colores de la marca unificados y tema claro; montos sin decimales innecesarios; encabezados de tablas centrados; botón para poner todo el stock en 0; contador y filtro de stock bajo mínimo reemplazan la notificación de stock bajo; el detalle del evento ahora tiene una pestaña de Movimientos.

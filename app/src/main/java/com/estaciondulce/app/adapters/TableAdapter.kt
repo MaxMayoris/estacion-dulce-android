@@ -1,5 +1,6 @@
 package com.estaciondulce.app.adapters
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.text.TextUtils
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -30,12 +31,23 @@ abstract class TableAdapter<T>(
         columnConfigs = configs
     }
 
+    /**
+     * Number of action icons shown per row. Rows and header reserve the same fixed width for them
+     * so the column titles stay centered over their values.
+     */
+    open val rowIconSlots: Int = 1
+
+    protected fun columnWeight(index: Int): Float = columnConfigs.getOrNull(index)?.weight ?: 1f
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DynamicViewHolder<T> {
         val binding = TableRowDynamicBinding.inflate(
             LayoutInflater.from(parent.context),
             parent,
             false
         )
+        binding.iconsContainer.layoutParams = binding.iconsContainer.layoutParams.apply {
+            width = iconColumnWidth(parent.context, rowIconSlots)
+        }
         return DynamicViewHolder(binding, onRowClick, onDeleteClick)
     }
 
@@ -53,21 +65,18 @@ abstract class TableAdapter<T>(
             val textView = TextView(binding.root.context).apply {
                 val isCurrency = index < columnConfigs.size && columnConfigs[index].isCurrency
                 text = when (value) {
-                    is Double -> {
-                        val formattedValue = String.format("%.2f", value)
-                        if (isCurrency) "$$formattedValue" else formattedValue
-                    }
+                    is Double -> if (isCurrency) FormatUtils.formatCurrency(value) else FormatUtils.formatNumber(value)
                     is Boolean -> if (value) "Sí" else "No"
                     else -> value.toString()
                 }
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, columnWeight(index))
                 setPadding(8, 6, 8, 6)
                 textAlignment = TextView.TEXT_ALIGNMENT_CENTER
                 gravity = android.view.Gravity.CENTER
                 setTextColor(binding.root.context.getColor(R.color.table_cell_text))
-                maxLines = 2 // Permitir hasta 2 líneas
+                maxLines = 2
                 ellipsize = TextUtils.TruncateAt.END
-                textSize = 13f
+                textSize = 14f
                 setTypeface(null, android.graphics.Typeface.NORMAL)
             }
             binding.rowContainer.addView(textView)
@@ -95,11 +104,22 @@ abstract class TableAdapter<T>(
             visibleIcons.add(binding.viewIcon)
         }
         
-        // Add margins between visible icons
         for (i in 1 until visibleIcons.size) {
             val layoutParams = visibleIcons[i].layoutParams as android.widget.LinearLayout.LayoutParams
             layoutParams.marginStart = 4
             visibleIcons[i].layoutParams = layoutParams
+        }
+    }
+
+    companion object {
+        /**
+         * Fixed width in pixels of the row action-icon column for the given number of icons.
+         */
+        fun iconColumnWidth(context: android.content.Context, iconSlots: Int): Int {
+            if (iconSlots <= 0) return 0
+            val res = context.resources
+            return iconSlots * res.getDimensionPixelSize(R.dimen.table_row_icon_size) +
+                2 * res.getDimensionPixelSize(R.dimen.table_row_icons_padding)
         }
     }
 
@@ -110,13 +130,11 @@ abstract class TableAdapter<T>(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: T, bindRowCallback: (TableRowDynamicBinding, T, Int) -> Unit, position: Int) {
-            // Reset all icons to gone initially
             binding.deleteIcon.visibility = android.view.View.GONE
             binding.actionIcon.visibility = android.view.View.GONE
             binding.mapsIcon.visibility = android.view.View.GONE
             binding.viewIcon.visibility = android.view.View.GONE
             
-            // Remove margins from all icons
             val layoutParams = binding.actionIcon.layoutParams as android.widget.LinearLayout.LayoutParams
             layoutParams.marginStart = 0
             binding.actionIcon.layoutParams = layoutParams

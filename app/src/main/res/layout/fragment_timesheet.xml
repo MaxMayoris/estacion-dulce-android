@@ -15,7 +15,7 @@
         android:gravity="center_vertical"
         android:paddingVertical="8dp"
         android:paddingHorizontal="16dp"
-        android:background="@color/purple_700"
+        android:background="@color/brand_primary"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">

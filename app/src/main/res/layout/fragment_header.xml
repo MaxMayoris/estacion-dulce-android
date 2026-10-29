@@ -1,36 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/purple_700"
-    android:padding="16dp"
-    android:minHeight="48dp"
+    android:background="@color/brand_primary"
+    android:elevation="4dp"
+    android:paddingStart="4dp"
+    android:paddingEnd="16dp"
+    android:minHeight="56dp"
     android:orientation="horizontal"
     android:gravity="center_vertical">
 
     <!-- Back Button - Left side -->
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/backButton"
         style="@style/BackButtonStyle"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:drawableTop="@drawable/ic_arrow_back"
-        android:drawablePadding="0dp"
-        android:gravity="center"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        app:icon="@drawable/ic_arrow_back"
         android:contentDescription="Volver atrás" />
 
-    <!-- Fragment Title - Centered horizontally -->
+    <!-- Fragment Title -->
     <TextView
         android:id="@+id/fragmentTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:layout_marginStart="16dp"
         android:text="Título del Fragmento"
-        android:textSize="22sp"
+        android:textSize="20sp"
         android:textColor="@color/white"
-        android:textStyle="bold"
         android:fontFamily="sans-serif-medium"
-        android:gravity="center" />
+        android:maxLines="1"
+        android:ellipsize="end" />
 
 </LinearLayout>

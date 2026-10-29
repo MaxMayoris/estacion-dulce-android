@@ -5,7 +5,8 @@ package com.estaciondulce.app.models
  */
 data class TableColumnConfig(
     val header: String,
-    val isCurrency: Boolean = false
+    val isCurrency: Boolean = false,
+    val weight: Float = 1f
 )
 
 /**

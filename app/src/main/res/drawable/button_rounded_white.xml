@@ -11,6 +11,6 @@
     <!-- Borde más visible para destacar del header violeta -->
     <stroke 
         android:width="2dp" 
-        android:color="@color/purple_700" />
+        android:color="@color/brand_primary" />
     
 </shape>

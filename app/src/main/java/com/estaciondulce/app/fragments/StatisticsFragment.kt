@@ -1,5 +1,6 @@
 package com.estaciondulce.app.fragments
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
@@ -56,9 +57,9 @@ class UniqueValueFormatter : ValueFormatter() {
     
     override fun getFormattedValue(value: Float): String {
         return if (value == 0f) {
-            "" // Don't show zero values
+            ""
         } else if (shownValues.contains(value)) {
-            "" // Don't show repeated values
+            ""
         } else {
             shownValues.add(value)
             value.toInt().toString()
@@ -431,7 +432,7 @@ class StatisticsFragment : Fragment() {
                     return if (value == 0f) {
                         ""
                     } else if (value == lastValue) {
-                        "" // Don't show repeated values
+                        ""
                     } else {
                         lastValue = value
                         value.toInt().toString()
@@ -460,7 +461,7 @@ class StatisticsFragment : Fragment() {
         sales.forEach { movement ->
             calendar.time = movement.movementDate
             val day = calendar.get(Calendar.DAY_OF_MONTH)
-            dailyCounts[day] = dailyCounts[day]!! + 1.0 // Count sales, not amount
+            dailyCounts[day] = dailyCounts[day]!! + 1.0
         }
         
         return dailyCounts.toList().sortedBy { it.first }
@@ -1080,12 +1081,7 @@ class StatisticsFragment : Fragment() {
         
         val totalSales = sales.sumOf { it.totalAmount }
         
-        val symbols = DecimalFormatSymbols().apply {
-            groupingSeparator = '.'
-            decimalSeparator = ','
-        }
-        val decimalFormat = DecimalFormat("#,##0.00", symbols)
-        val formattedSales = String.format("$%s", decimalFormat.format(totalSales))
+        val formattedSales = FormatUtils.formatCurrency(totalSales)
         
         binding.monthlyBalanceTotalText.text = "Total de ingresos: $formattedSales"
         binding.monthlyBalanceTotalText.setTextColor(ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_primary))
@@ -1104,12 +1100,7 @@ class StatisticsFragment : Fragment() {
         
         val totalPurchases = purchases.sumOf { it.totalAmount }
         
-        val symbols = DecimalFormatSymbols().apply {
-            groupingSeparator = '.'
-            decimalSeparator = ','
-        }
-        val decimalFormat = DecimalFormat("#,##0.00", symbols)
-        val formattedPurchases = String.format("$%s", decimalFormat.format(totalPurchases))
+        val formattedPurchases = FormatUtils.formatCurrency(totalPurchases)
         
         binding.balanceMonthlyBalanceTotalText.text = "Total de compras: $formattedPurchases"
         binding.balanceMonthlyBalanceTotalText.setTextColor(ContextCompat.getColor(requireContext(), com.estaciondulce.app.R.color.text_primary))
@@ -1135,7 +1126,7 @@ class StatisticsFragment : Fragment() {
         val maxAxisValue = if (totalSalesCount > 0) {
             (totalSalesCount * 1.2).toInt() + 1
         } else {
-            10 // Default maximum if no sales
+            10
         }
         
         val xAxis = chart.xAxis
@@ -1154,12 +1145,12 @@ class StatisticsFragment : Fragment() {
         leftAxis.textSize = 10f
         leftAxis.granularity = 1f
         leftAxis.isGranularityEnabled = true
-        leftAxis.setAxisMinimum(0f) // Force minimum to 0
-        leftAxis.setAxisMaximum(maxAxisValue.toFloat()) // Dynamic maximum based on total sales
-        leftAxis.setLabelCount(maxAxisValue + 1, true) // Show all integer values from 0 to maxAxisValue
+        leftAxis.setAxisMinimum(0f)
+        leftAxis.setAxisMaximum(maxAxisValue.toFloat())
+        leftAxis.setLabelCount(maxAxisValue + 1, true)
         leftAxis.valueFormatter = object : ValueFormatter() {
             override fun getFormattedValue(value: Float): String {
-                return value.toInt().toString() // Force integer values
+                return value.toInt().toString()
             }
         }
         

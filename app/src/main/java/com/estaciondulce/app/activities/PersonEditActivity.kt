@@ -1,5 +1,6 @@
 package com.estaciondulce.app.activities
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -36,7 +37,7 @@ import java.util.Locale
 class PersonEditActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPersonEditBinding
-    private val personsHelper = PersonsHelper() // Usamos el helper para personas
+    private val personsHelper = PersonsHelper()
     private val addressesHelper = AddressesHelper()
     private lateinit var customLoader: CustomLoader
     private var currentPerson: Person? = null
@@ -115,7 +116,7 @@ class PersonEditActivity : AppCompatActivity() {
             tabsVisible = true
             binding.informationTab.visibility = View.VISIBLE
             binding.movementsTab.visibility = View.VISIBLE
-            selectTab("information") // Default to information tab
+            selectTab("information")
         }
     }
 
@@ -204,22 +205,7 @@ class PersonEditActivity : AppCompatActivity() {
     /**
      * Formats date to Spanish format: "dd mes hh:mm"
      */
-    private fun formatDateToSpanish(date: java.util.Date): String {
-        val sdf = SimpleDateFormat("dd MMM HH:mm", Locale.forLanguageTag("es"))
-        val formatted = sdf.format(date)
-        return formatted.replace("sept.", "sep")
-            .replace("enero", "ene")
-            .replace("febrero", "feb")
-            .replace("marzo", "mar")
-            .replace("abril", "abr")
-            .replace("mayo", "may")
-            .replace("junio", "jun")
-            .replace("julio", "jul")
-            .replace("agosto", "ago")
-            .replace("octubre", "oct")
-            .replace("noviembre", "nov")
-            .replace("diciembre", "dic")
-    }
+    private fun formatDateToSpanish(date: java.util.Date): String = FormatUtils.formatShortDateTime(date)
 
     /**
      * Shows the empty movements message.
@@ -239,7 +225,7 @@ class PersonEditActivity : AppCompatActivity() {
                     topMargin = 64.dpToPx()
                 }
             }
-            binding.movementsTabContent.addView(emptyMessageView, 0) // Add at the beginning
+            binding.movementsTabContent.addView(emptyMessageView, 0)
         }
     }
 
@@ -290,11 +276,11 @@ class PersonEditActivity : AppCompatActivity() {
         val movementType = if (movement.type == com.estaciondulce.app.models.enums.EMovementType.PURCHASE) "Compra" else "Venta"
         val person = repository.personsLiveData.value?.find { it.id == movement.personId }
         val personName = person?.let { "${it.name} ${it.lastName}" } ?: "Persona desconocida"
-        val formattedAmount = String.format("%.2f", movement.totalAmount)
+        val formattedAmount = FormatUtils.formatCurrency(movement.totalAmount)
         
         DeleteConfirmationDialog.show(
             context = this,
-            itemName = "$movementType a $personName por $${formattedAmount}",
+            itemName = "$movementType a $personName por $formattedAmount",
             itemType = "movimiento",
             onConfirm = {
                 customLoader.show()
@@ -364,7 +350,7 @@ class PersonEditActivity : AppCompatActivity() {
             cleaned = cleaned.substring(selectedAreaCode.length)
             foundAreaCode = selectedAreaCode
         } else {
-            for (i in 3..4) { // Area codes are 3-4 digits
+            for (i in 3..4) {
                 if (cleaned.length > i) {
                     val potentialAreaCode = cleaned.substring(0, i)
                     if (potentialAreaCode.matches(Regex("\\d{3,4}"))) {
@@ -732,7 +718,7 @@ class PersonEditActivity : AppCompatActivity() {
         intent.putExtra(AddressPickerActivity.EXTRA_ADDRESS_LABEL, label)
         intent.putExtra(AddressPickerActivity.EXTRA_DRAFT_MODE, true)
         @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
-        startActivityForResult(intent, 1003) // Different request code for draft mode
+        startActivityForResult(intent, 1003)
     }
 
     /**
@@ -912,7 +898,7 @@ class PersonEditActivity : AppCompatActivity() {
             intent.putExtra(AddressPickerActivity.EXTRA_EDIT_MODE, true)
             intent.putExtra(AddressPickerActivity.EXTRA_ADDRESS_TO_EDIT, address)
             @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
-            startActivityForResult(intent, 1002) // Different request code for editing
+            startActivityForResult(intent, 1002)
         }
     }
 

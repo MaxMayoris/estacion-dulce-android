@@ -1,5 +1,6 @@
 package com.estaciondulce.app.activities
 
+import com.estaciondulce.app.utils.FormatUtils
 import com.estaciondulce.app.models.parcelables.RecipeSection
 import android.annotation.SuppressLint
 import android.app.AlertDialog
@@ -159,9 +160,9 @@ class RecipeEditActivity : AppCompatActivity() {
 
         recipe?.let { r ->
             binding.recipeNameInput.setText(r.name)
-            binding.recipeCostInput.setText(String.format("%.2f", r.cost))
-            binding.recipeSuggestedPriceInput.setText(String.format("%.2f", r.suggestedPrice))
-            binding.recipeSalePriceInput.setText(String.format("%.2f", r.salePrice))
+            binding.recipeCostInput.setText(FormatUtils.formatEditable(r.cost, twoDecimals = true))
+            binding.recipeSuggestedPriceInput.setText(FormatUtils.formatEditable(r.suggestedPrice, twoDecimals = true))
+            binding.recipeSalePriceInput.setText(FormatUtils.formatEditable(r.salePrice, twoDecimals = true))
             binding.recipeOnSaleCheckbox.isChecked = r.onSale
             binding.recipeOnSaleQueryCheckbox.isChecked = r.onSaleQuery
             binding.recipeCustomizableCheckbox.isChecked = r.customizable
@@ -311,7 +312,7 @@ class RecipeEditActivity : AppCompatActivity() {
             val selectedId = categoriesMap.entries.find { it.value == selectedName }?.key ?: return@setOnItemClickListener
             selectedCategories.add(selectedId)
             updateCategoryTags()
-            updateCategorySelectorAdapter(categoriesMap) // Update adapter to remove selected category
+            updateCategorySelectorAdapter(categoriesMap)
             binding.categorySelector.setText("")
         }
     }
@@ -349,7 +350,7 @@ class RecipeEditActivity : AppCompatActivity() {
             )
             selectedSections.add(newSection)
             updateSectionsUI()
-            updateSectionSelectorAdapter(sectionsMap) // Update adapter to remove selected section
+            updateSectionSelectorAdapter(sectionsMap)
             binding.sectionSelector.setText("")
         }
     }
@@ -613,8 +614,8 @@ class RecipeEditActivity : AppCompatActivity() {
         val removeButton = productView.findViewById<com.google.android.material.button.MaterialButton>(R.id.removeProductButton)
         
         productNameView.text = productName
-        productCostView.text = String.format("$%.2f", productCost)
-        quantityInput.setText(recipeProduct.quantity.toString())
+        productCostView.text = FormatUtils.formatCurrency(productCost)
+        quantityInput.setText(FormatUtils.formatEditable(recipeProduct.quantity))
         
         val unit = getProductUnit(recipeProduct.productId)
         quantityLabel.text = "Cantidad en $unit"
@@ -654,17 +655,17 @@ class RecipeEditActivity : AppCompatActivity() {
             text = "−"
             textSize = 18f
             setTypeface(null, android.graphics.Typeface.BOLD)
-            setTextColor(ContextCompat.getColor(context, R.color.purple_700))
+            setTextColor(ContextCompat.getColor(context, R.color.brand_primary))
             layoutParams = LinearLayout.LayoutParams(40.dp, 40.dp)
             cornerRadius = 20.dp
             backgroundTintList = ContextCompat.getColorStateList(context, R.color.white)
-            strokeColor = ContextCompat.getColorStateList(context, R.color.purple_700)
+            strokeColor = ContextCompat.getColorStateList(context, R.color.brand_primary)
             strokeWidth = 2.dp
             contentDescription = "Decrementar cantidad"
         }
         
         val quantityEditText = EditText(this).apply {
-            setText(String.format("%.2f", initialValue))
+            setText(FormatUtils.formatEditable(initialValue, twoDecimals = true))
             textSize = 14f
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
             gravity = android.view.Gravity.CENTER
@@ -679,11 +680,11 @@ class RecipeEditActivity : AppCompatActivity() {
             text = "+"
             textSize = 18f
             setTypeface(null, android.graphics.Typeface.BOLD)
-            setTextColor(ContextCompat.getColor(context, R.color.purple_700))
+            setTextColor(ContextCompat.getColor(context, R.color.brand_primary))
             layoutParams = LinearLayout.LayoutParams(40.dp, 40.dp)
             cornerRadius = 20.dp
             backgroundTintList = ContextCompat.getColorStateList(context, R.color.white)
-            strokeColor = ContextCompat.getColorStateList(context, R.color.purple_700)
+            strokeColor = ContextCompat.getColorStateList(context, R.color.brand_primary)
             strokeWidth = 2.dp
             contentDescription = "Incrementar cantidad"
         }
@@ -695,13 +696,13 @@ class RecipeEditActivity : AppCompatActivity() {
         decrementButton.setOnClickListener {
             val current = quantityEditText.text.toString().toDoubleOrNull() ?: 0.0
             val newVal = (current - 1.0).coerceAtLeast(0.0)
-            quantityEditText.setText(String.format("%.2f", newVal))
+            quantityEditText.setText(FormatUtils.formatEditable(newVal, twoDecimals = true))
             onQuantityChanged(newVal)
         }
         incrementButton.setOnClickListener {
             val current = quantityEditText.text.toString().toDoubleOrNull() ?: 0.0
             val newVal = current + 1.0
-            quantityEditText.setText(String.format("%.2f", newVal))
+            quantityEditText.setText(FormatUtils.formatEditable(newVal, twoDecimals = true))
             onQuantityChanged(newVal)
         }
         quantityEditText.addTextChangedListener(object : TextWatcher {
@@ -733,11 +734,11 @@ class RecipeEditActivity : AppCompatActivity() {
             text = "−"
             textSize = 18f
             setTypeface(null, android.graphics.Typeface.BOLD)
-            setTextColor(ContextCompat.getColor(context, R.color.purple_700))
+            setTextColor(ContextCompat.getColor(context, R.color.brand_primary))
             layoutParams = LinearLayout.LayoutParams(40.dp, 40.dp)
             cornerRadius = 20.dp
             backgroundTintList = ContextCompat.getColorStateList(context, R.color.white)
-            strokeColor = ContextCompat.getColorStateList(context, R.color.purple_700)
+            strokeColor = ContextCompat.getColorStateList(context, R.color.brand_primary)
             strokeWidth = 2.dp
             contentDescription = "Decrementar cantidad"
         }
@@ -761,11 +762,11 @@ class RecipeEditActivity : AppCompatActivity() {
             text = "+"
             textSize = 18f
             setTypeface(null, android.graphics.Typeface.BOLD)
-            setTextColor(ContextCompat.getColor(context, R.color.purple_700))
+            setTextColor(ContextCompat.getColor(context, R.color.brand_primary))
             layoutParams = LinearLayout.LayoutParams(40.dp, 40.dp)
             cornerRadius = 20.dp
             backgroundTintList = ContextCompat.getColorStateList(context, R.color.white)
-            strokeColor = ContextCompat.getColorStateList(context, R.color.purple_700)
+            strokeColor = ContextCompat.getColorStateList(context, R.color.brand_primary)
             strokeWidth = 2.dp
             contentDescription = "Incrementar cantidad"
         }
@@ -834,8 +835,8 @@ class RecipeEditActivity : AppCompatActivity() {
             )
         )
         val (costPerUnit, suggestedPrice) = recipesHelper.calculateCostAndSuggestedPrice(updatedRecipe, productsMap, recipesMap)
-        binding.recipeCostInput.setText(String.format("%.2f", costPerUnit))
-        binding.recipeSuggestedPriceInput.setText(String.format("%.2f", suggestedPrice))
+        binding.recipeCostInput.setText(FormatUtils.formatEditable(costPerUnit, twoDecimals = true))
+        binding.recipeSuggestedPriceInput.setText(FormatUtils.formatEditable(suggestedPrice, twoDecimals = true))
         updateProfitPercentage()
     }
 
@@ -1013,7 +1014,7 @@ class RecipeEditActivity : AppCompatActivity() {
         val removeButton = recipeView.findViewById<com.google.android.material.button.MaterialButton>(R.id.removeRecipeButton)
         
         recipeNameView.text = recipeData.name
-        recipeCostView.text = String.format("$%.2f", recipeData.cost)
+        recipeCostView.text = FormatUtils.formatCurrency(recipeData.cost)
         quantityInput.setText(recipeNested.quantity.toInt().toString())
         
         quantityInput.addTextChangedListener(object : TextWatcher {
@@ -1515,7 +1516,7 @@ class RecipeEditActivity : AppCompatActivity() {
             .format(java.util.Date())
         
         val validUris = mutableListOf<Uri>()
-        val maxFileSize = 4 * 1024 * 1024L // 4MB
+        val maxFileSize = 4 * 1024 * 1024L
         
         uris.forEach { uri ->
             val size = ImageUtils.getImageSize(this, uri)
@@ -1550,7 +1551,7 @@ class RecipeEditActivity : AppCompatActivity() {
                 fileName = fileName,
                 onSuccess = { downloadUrl ->
                     tempImageUrls.add(downloadUrl)
-                    tempUrlToOriginalUriMap[downloadUrl] = compressedUri // Store compressed URI for final upload
+                    tempUrlToOriginalUriMap[downloadUrl] = compressedUri
                     completedUploads++
                     
                     if (completedUploads == totalUploads) {

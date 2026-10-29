@@ -1,5 +1,6 @@
 package com.estaciondulce.app.activities
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
@@ -86,10 +87,10 @@ class ProductEditActivity : AppCompatActivity() {
     private fun populateFields() {
         currentProduct?.let { product ->
             binding.productNameInput.setText(product.name)
-            binding.productStockInput.setText(product.quantity.toString())
-            binding.productCostInput.setText(product.cost.toString())
-            binding.productSalePriceInput.setText(product.salePrice.toString())
-            binding.productMinimumQuantityInput.setText(product.minimumQuantity.toString())
+            binding.productStockInput.setText(FormatUtils.formatEditable(product.quantity))
+            binding.productCostInput.setText(FormatUtils.formatEditable(product.cost))
+            binding.productSalePriceInput.setText(FormatUtils.formatEditable(product.salePrice))
+            binding.productMinimumQuantityInput.setText(FormatUtils.formatEditable(product.minimumQuantity))
         }
     }
 

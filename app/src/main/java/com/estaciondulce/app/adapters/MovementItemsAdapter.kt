@@ -1,5 +1,6 @@
 package com.estaciondulce.app.adapters
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -31,9 +32,9 @@ class MovementItemsAdapter(
             quantityWatcher?.let { binding.quantityEditText.removeTextChangedListener(it) }
             costWatcher?.let { binding.costEditText.removeTextChangedListener(it) }
             
-            binding.quantityEditText.setText(item.quantity.toString())
+            binding.quantityEditText.setText(FormatUtils.formatEditable(item.quantity))
             binding.quantityEditText.isEnabled = true
-            binding.costEditText.setText(item.cost.toString())
+            binding.costEditText.setText(FormatUtils.formatEditable(item.cost))
             binding.costEditText.isEnabled = true
 
             binding.deleteItemButton.setOnClickListener {

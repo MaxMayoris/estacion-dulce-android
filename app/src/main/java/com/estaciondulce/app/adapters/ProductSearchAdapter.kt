@@ -1,5 +1,6 @@
 package com.estaciondulce.app.adapters
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,7 +29,7 @@ class ProductSearchAdapter(
         val product = products[position]
         
         holder.binding.productName.text = product.name
-        holder.binding.productCost.text = "$${String.format("%.2f", product.cost)}"
+        holder.binding.productCost.text = FormatUtils.formatCurrency(product.cost)
         
         holder.itemView.setOnClickListener {
             onProductClick(product)

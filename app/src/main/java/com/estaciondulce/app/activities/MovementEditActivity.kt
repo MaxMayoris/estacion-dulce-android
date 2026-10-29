@@ -1,5 +1,6 @@
 package com.estaciondulce.app.activities
 
+import com.estaciondulce.app.utils.FormatUtils
 import android.app.DatePickerDialog
 import android.content.Intent
 import android.net.Uri
@@ -279,7 +280,7 @@ class MovementEditActivity : AppCompatActivity() {
         currentMovement?.let { movement ->
             selectedDate = movement.movementDate
             binding.dateInput.setText(formatDateTime(movement.movementDate))
-            binding.totalAmountInput.setText(movement.totalAmount.toString())
+            binding.totalAmountInput.setText(FormatUtils.formatEditable(movement.totalAmount))
             val movementTypeText = when (movement.type) {
                 EMovementType.PURCHASE -> "Compra"
                 EMovementType.SALE -> "Venta"
@@ -313,7 +314,7 @@ class MovementEditActivity : AppCompatActivity() {
                         val shippingCost = delivery.shipment?.cost ?: 0.0
                         val calculatedCost = delivery.shipment?.calculatedCost ?: 0.0
                         
-                        binding.finalShippingCostInput.setText(String.format("%.2f", shippingCost))
+                        binding.finalShippingCostInput.setText(FormatUtils.formatEditable(shippingCost, twoDecimals = true))
                         calculatedShippingCost = calculatedCost
                         
                         if (delivery.shipment?.addressId?.isNotEmpty() == true) {
@@ -915,11 +916,11 @@ class MovementEditActivity : AppCompatActivity() {
                     distance, settings.fuelPrice, settings.litersPerKm
                 )
                 
-                val formattedCost = String.format("%.2f", calculatedShippingCost)
+                val formattedCost = FormatUtils.formatEditable(calculatedShippingCost, twoDecimals = true)
                 binding.finalShippingCostInput.setText(formattedCost)
                 
-                val formattedDistance = String.format("%.2f", distance)
-                CustomToast.showSuccess(this, "Distancia: ${formattedDistance} km - Costo: $${formattedCost}")
+                val formattedDistance = FormatUtils.formatNumber(distance)
+                CustomToast.showSuccess(this, "Distancia: ${formattedDistance} km - Costo: ${FormatUtils.formatCurrency(calculatedShippingCost)}")
                 recalcTotalAmount()
             }
         }
@@ -948,7 +949,7 @@ class MovementEditActivity : AppCompatActivity() {
     private fun recalcTotalAmount() {
         itemsSubtotal = movementItems.sumOf { it.cost * it.quantity }
         
-        binding.subtotalAmountText.text = String.format("$%.2f", itemsSubtotal)
+        binding.subtotalAmountText.text = FormatUtils.formatCurrency(itemsSubtotal)
         binding.subtotalSection.visibility = if (movementItems.isNotEmpty()) View.VISIBLE else View.GONE
         
         val shippingCost =
@@ -961,7 +962,7 @@ class MovementEditActivity : AppCompatActivity() {
         } else 0.0
         
         val total = itemsSubtotal - discount + shippingCost
-        binding.totalAmountInput.setText(String.format("%.2f", total))
+        binding.totalAmountInput.setText(FormatUtils.formatEditable(total, twoDecimals = true))
         
         binding.itemsHeader.visibility = View.VISIBLE
         binding.itemsHeadersContainer.visibility = if (movementItems.isNotEmpty()) View.VISIBLE else View.GONE

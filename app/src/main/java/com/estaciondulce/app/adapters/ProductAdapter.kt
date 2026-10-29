@@ -1,5 +1,7 @@
 package com.estaciondulce.app.adapters
 
+import android.widget.TextView
+import com.estaciondulce.app.R
 import com.estaciondulce.app.databinding.TableRowDynamicBinding
 import com.estaciondulce.app.models.parcelables.Product
 
@@ -15,14 +17,29 @@ class ProductAdapter(
     }
 
     override fun bindRow(binding: TableRowDynamicBinding, item: Product, position: Int) {
-        bindRowContent(binding, getCellValues(item, position))
+        val cellValues = getCellValues(item, position)
+        bindRowContent(binding, cellValues)
+        highlightStockCell(binding, cellValues, item)
         
-        // Show only delete icon for products
         binding.deleteIcon.visibility = android.view.View.VISIBLE
         binding.actionIcon.visibility = android.view.View.GONE
         binding.mapsIcon.visibility = android.view.View.GONE
         
-        // Configure dynamic icon spacing
         configureIconSpacing(binding)
+    }
+
+    /**
+     * Colors the stock cell red when stock is negative and orange when it is below the minimum quantity.
+     */
+    private fun highlightStockCell(binding: TableRowDynamicBinding, cellValues: List<Any>, item: Product) {
+        val stockIndex = cellValues.indexOfFirst { it is Double && it == item.quantity }
+        val stockCell = binding.rowContainer.getChildAt(stockIndex) as? TextView ?: return
+        val colorRes = when {
+            item.quantity < 0 -> R.color.error_red_dark
+            item.quantity < item.minimumQuantity -> R.color.warning_orange_dark
+            else -> return
+        }
+        stockCell.setTextColor(binding.root.context.getColor(colorRes))
+        stockCell.setTypeface(null, android.graphics.Typeface.BOLD)
     }
 }

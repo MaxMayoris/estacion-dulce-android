@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.play.publisher)
 }
 
-android {
+extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
     namespace = "com.estaciondulce.app"
     compileSdk = 36
 
@@ -14,8 +14,8 @@ android {
         applicationId = "com.estaciondulce.app"
         minSdk = 30
         targetSdk = 36
-        versionCode = 60
-        versionName = "10.6.6"
+        versionCode = 61
+        versionName = "10.7.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
