@@ -14,8 +14,8 @@ extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
         applicationId = "com.estaciondulce.app"
         minSdk = 30
         targetSdk = 36
-        versionCode = 62
-        versionName = "10.8.0"
+        versionCode = 63
+        versionName = "10.9.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

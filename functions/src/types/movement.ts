@@ -19,6 +19,8 @@ export interface Movement {
   delta?: { [productId: string]: number };
   appliedAt?: admin.firestore.Timestamp;
   createdAt?: admin.firestore.Timestamp;
+  updatedAt?: admin.firestore.Timestamp;
+  deleted?: boolean;
 }
 
 

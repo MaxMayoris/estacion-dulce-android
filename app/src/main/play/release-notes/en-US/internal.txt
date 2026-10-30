@@ -1,1 +1,1 @@
-Recipes: new button to mark all in-stock recipes as out of stock, so stock can be re-marked from scratch.
+Performance: movements now sync incrementally from the device cache, drastically reducing Firestore reads; deleted movements sync across devices; fewer redundant writes for kitchen order status.

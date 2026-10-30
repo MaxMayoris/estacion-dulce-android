@@ -22,19 +22,11 @@ async function checkAndSendPendingOrdersNotification(): Promise<{ success: boole
   try {
     const db = admin.firestore();
     
-    // Get all SALE movements where kitchenOrderStatus is not READY
+    // Only fetch SALE movements still in the kitchen, not the whole sales history
     const movementsSnapshot = await db.collection("movements")
       .where("type", "==", "SALE")
+      .where("kitchenOrderStatus", "in", ["PENDING", "PREPARING"])
       .get();
-
-    if (movementsSnapshot.empty) {
-      return {
-        success: false,
-        message: "No SALE movements found",
-        pendingOrdersCount: 0,
-        movementsCount: 0
-      };
-    }
 
     const pendingOrders: PendingOrderGroup[] = [];
 
@@ -42,6 +34,10 @@ async function checkAndSendPendingOrdersNotification(): Promise<{ success: boole
     for (const movementDoc of movementsSnapshot.docs) {
       const movementData = movementDoc.data();
       const kitchenOrderStatus = movementData.kitchenOrderStatus;
+
+      if (movementData.deleted === true) {
+        continue;
+      }
 
       // Skip if status is READY, DONE, CANCELED, or null
       if (!kitchenOrderStatus || 

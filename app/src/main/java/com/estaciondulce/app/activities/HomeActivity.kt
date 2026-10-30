@@ -361,6 +361,7 @@ class HomeActivity : AppCompatActivity() {
     private fun setupLogoutButton() {
         findViewById<MaterialButton>(R.id.logoutButton).setOnClickListener {
             loader.show()
+            FirestoreRepository.stopListeners()
             auth.signOut()
             loader.hide()
             CustomToast.showSuccess(this, getString(R.string.logout_success))

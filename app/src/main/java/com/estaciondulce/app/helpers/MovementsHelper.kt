@@ -89,6 +89,11 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
         )
     }
 
+    /**
+     * Deletes a movement: removes its kitchen orders and reference images, then soft-deletes
+     * the document (`deleted: true`) so the deletion reaches devices that sync incrementally.
+     * The onMovementUpdated Cloud Function reverts the stock.
+     */
     fun deleteMovement(movementId: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         genericHelper.getDocument(
             collectionName = "movements",
@@ -96,43 +101,34 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
             onSuccess = { document ->
                 val movementDTO = document.toObject(MovementDTO::class.java)
                 val movement = movementDTO?.toParcelable()
-                
-        kitchenOrdersHelper.deleteKitchenOrdersForMovement(
-            movementId = movementId,
-            onSuccess = {
+                val softDelete = { softDeleteMovement(movementId, onSuccess, onError) }
+
+                kitchenOrdersHelper.deleteKitchenOrdersForMovement(
+                    movementId = movementId,
+                    onSuccess = {
                         if (movement != null && movement.referenceImages.isNotEmpty()) {
-                            val storageHelper = StorageHelper()
-                            storageHelper.deleteImagesFromStorage(
+                            StorageHelper().deleteImagesFromStorage(
                                 imageUrls = movement.referenceImages,
-                                onSuccess = {
-                genericHelper.deleteDocument(
-                    collectionName = "movements",
-                    documentId = movementId,
-                    onSuccess = onSuccess,
-                                        onError = onError
-                                    )
-                                },
-                                onError = { _ ->
-                                    genericHelper.deleteDocument(
-                                        collectionName = "movements",
-                                        documentId = movementId,
-                                        onSuccess = onSuccess,
-                                        onError = onError
-                                    )
-                                }
+                                onSuccess = { softDelete() },
+                                onError = { _ -> softDelete() }
                             )
                         } else {
-                            genericHelper.deleteDocument(
-                                collectionName = "movements",
-                                documentId = movementId,
-                                onSuccess = onSuccess,
-                                onError = onError
-                            )
+                            softDelete()
                         }
                     },
                     onError = onError
                 )
             },
+            onError = onError
+        )
+    }
+
+    private fun softDeleteMovement(movementId: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+        genericHelper.updateDocument(
+            collectionName = "movements",
+            documentId = movementId,
+            data = mapOf("deleted" to true),
+            onSuccess = onSuccess,
             onError = onError
         )
     }
@@ -502,7 +498,12 @@ class MovementsHelper(private val genericHelper: GenericHelper = GenericHelper()
             movementId = movementId,
             onSuccess = { kitchenOrders ->
                 val newStatus = calculateMovementKitchenOrderStatus(kitchenOrders)
-                
+
+                if (newStatus == movement.kitchenOrderStatus) {
+                    onSuccess()
+                    return@getKitchenOrdersForMovement
+                }
+
                 val movementData = mapOf(
                     "kitchenOrderStatus" to newStatus?.name
                 )

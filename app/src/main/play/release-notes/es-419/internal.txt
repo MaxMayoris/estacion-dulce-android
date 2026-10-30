@@ -1,1 +1,1 @@
-Recetas: nuevo botón para marcar todas las recetas en stock como sin stock, para volver a cargar el stock desde cero.
+Rendimiento: los movimientos ahora se sincronizan de forma incremental desde la caché del dispositivo, lo que reduce mucho las lecturas de Firestore; los movimientos borrados se sincronizan entre dispositivos; menos escrituras redundantes del estado de los pedidos de cocina.

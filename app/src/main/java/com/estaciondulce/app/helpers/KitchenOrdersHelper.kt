@@ -146,37 +146,4 @@ class KitchenOrdersHelper {
             }
             .addOnFailureListener { onError(it) }
     }
-
-    /**
-     * Get all kitchen orders across all movements
-     */
-    fun getAllKitchenOrders(
-        onSuccess: (List<KitchenOrder>) -> Unit,
-        onError: (Exception) -> Unit
-    ) {
-        db.collectionGroup("kitchenOrders")
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .get()
-            .addOnSuccessListener { snapshot ->
-                val kitchenOrders = snapshot.documents.mapNotNull { document ->
-                    try {
-                        KitchenOrder(
-                            id = document.id,
-                            collection = document.getString("collection") ?: "",
-                            collectionId = document.getString("collectionId") ?: "",
-                            customName = document.getString("customName"),
-                            name = document.getString("name") ?: "",
-                            quantity = document.getDouble("quantity") ?: 0.0,
-                            status = EKitchenOrderItemStatus.valueOf(document.getString("status") ?: "PENDING"),
-                            createdAt = (document.getDate("createdAt") ?: Date()),
-                            updatedAt = (document.getDate("updatedAt") ?: Date())
-                        )
-                    } catch (e: Exception) {
-                        null
-                    }
-                }
-                onSuccess(kitchenOrders)
-            }
-            .addOnFailureListener { onError(it) }
-    }
 }

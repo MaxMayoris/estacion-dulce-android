@@ -106,4 +106,4 @@ Asking for a deploy already authorizes this commit and push, so don't ask again.
 - **Keystore**: `../../estacion-dulce-keys/my-release-key.jks` (relative to `app/`). Its credentials are in `local.properties` (gitignored).
 - **Play Store credentials**: `../../estacion-dulce-keys/play-store-credentials.json` (gitignored), used by Gradle Play Publisher.
 - **Java**: always use Android Studio's JDK: `/Applications/Android Studio.app/Contents/jbr/Contents/Home`.
-- **Track**: releases go to `internal`. Promotion to production is done by hand in Play Console.
+- **Track**: releases go to `internal`. The app has a single user who installs it from the internal track, so once it is published there the release is live. There is no need to promote it to production, and no need to mention that as a pending step.
