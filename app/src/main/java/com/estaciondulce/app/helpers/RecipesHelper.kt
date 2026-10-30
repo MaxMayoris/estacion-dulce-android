@@ -6,6 +6,8 @@ import com.estaciondulce.app.models.dtos.RecipeDTO
 import com.estaciondulce.app.models.mappers.toDTO
 import com.estaciondulce.app.models.mappers.toMap
 import com.estaciondulce.app.repository.FirestoreRepository
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.firestore.FirebaseFirestore
 
 /**
  * Handles recipe CRUD operations and cost calculations.
@@ -13,6 +15,8 @@ import com.estaciondulce.app.repository.FirestoreRepository
 class RecipesHelper(
     private val genericHelper: GenericHelper = GenericHelper()
 ) {
+
+    private val db: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
 
     fun addRecipe(recipe: Recipe, onSuccess: (Recipe) -> Unit, onError: (Exception) -> Unit) {
         val recipeDTO = recipe.toDTO()
@@ -51,6 +55,30 @@ class RecipesHelper(
             onSuccess = onSuccess,
             onError = onError
         )
+    }
+
+    /**
+     * Marks the given recipes as out of stock (inStock = false) using batched writes
+     * (Firestore allows at most 500 operations per batch).
+     * @param recipes Recipes to mark as out of stock
+     * @param onSuccess Called once every batch has been committed
+     * @param onError Called with the first error that occurs
+     */
+    fun clearInStock(recipes: List<Recipe>, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+        if (recipes.isEmpty()) {
+            onSuccess()
+            return
+        }
+        val commits = recipes.chunked(MAX_BATCH_OPERATIONS).map { chunk ->
+            val batch = db.batch()
+            chunk.forEach { recipe ->
+                batch.update(db.collection("recipes").document(recipe.id), "inStock", false)
+            }
+            batch.commit()
+        }
+        Tasks.whenAll(commits)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { e -> onError(e) }
     }
 
     fun isRecipeNameUnique(name: String, currentRecipeId: String?, onComplete: (Boolean) -> Unit) {
@@ -94,4 +122,7 @@ class RecipesHelper(
         )
     }
 
+    companion object {
+        private const val MAX_BATCH_OPERATIONS = 500
+    }
 }

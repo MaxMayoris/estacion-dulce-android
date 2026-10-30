@@ -1,1 +1,1 @@
-UI/UX refresh: flat headers, consistent brand colors and light theme; amounts without unnecessary decimals; centered table headers; reset all stocks to 0; low-stock badge and filter replace the low-stock push notification; event detail now has a Movements tab.
+Recipes: new button to mark all in-stock recipes as out of stock, so stock can be re-marked from scratch.

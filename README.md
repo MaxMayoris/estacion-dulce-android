@@ -67,6 +67,7 @@ If you have questions or need help, you can:
 - Contact the developer by email
 
 ## 🔄 Version History
+- **v10.8.0** - Recipes: new button to mark all in-stock recipes as out of stock, so stock can be re-marked from scratch.
 - **v10.7.0** - UI/UX refresh: flat headers, consistent brand colors and light theme; amounts without unnecessary decimals; centered table headers; reset all stocks to 0; low-stock badge and filter replace the low-stock push notification; event detail now has a Movements tab.
 - **v10.6.6** - Security hotfix: ensure skipLoginForDebug is disabled in production.
 - **v10.6.5** - Hotfix: Changed MaterialSwitch to SwitchMaterial to fix inflation crash in EventEditActivity.

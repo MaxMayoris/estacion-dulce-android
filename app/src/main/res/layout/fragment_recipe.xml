@@ -17,9 +17,24 @@
         android:inputType="text"
         android:textSize="14sp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/clearInStockButton"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_margin="16dp" />
+
+    <!-- Mark All Recipes Out Of Stock Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/clearInStockButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="Quitar todas las recetas del stock"
+        android:tooltipText="Quitar todas las recetas del stock"
+        app:srcCompat="@drawable/ic_reset_stock"
+        style="@style/CustomFloatingActionButtonStyle"
+        app:fabSize="mini"
+        app:layout_constraintTop_toTopOf="@id/searchBar"
+        app:layout_constraintBottom_toBottomOf="@id/searchBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="16dp" />
 
     <!-- TableView for Recipes -->
     <com.estaciondulce.app.customviews.TableView

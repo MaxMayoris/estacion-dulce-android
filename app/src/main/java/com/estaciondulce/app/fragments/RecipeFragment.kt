@@ -12,6 +12,7 @@ import com.estaciondulce.app.databinding.FragmentRecipeBinding
 import com.estaciondulce.app.helpers.RecipesHelper
 import com.estaciondulce.app.models.parcelables.Recipe
 import com.estaciondulce.app.repository.FirestoreRepository
+import com.estaciondulce.app.utils.ConfirmationDialog
 import com.estaciondulce.app.utils.CustomToast
 import com.estaciondulce.app.utils.DeleteConfirmationDialog
 import com.estaciondulce.app.utils.CustomLoader
@@ -60,6 +61,9 @@ class RecipeFragment : Fragment() {
             val intent = Intent(requireContext(), RecipeEditActivity::class.java)
             @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
             startActivityForResult(intent, EDIT_RECIPE_REQUEST_CODE)
+        }
+        binding.clearInStockButton.setOnClickListener {
+            confirmClearInStock()
         }
         binding.searchBar.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -153,6 +157,40 @@ class RecipeFragment : Fragment() {
                     onError = { exception ->
                         loader.hide()
                         CustomToast.showError(requireContext(), "Error al eliminar la receta: ${exception.message}")
+                    }
+                )
+            }
+        )
+    }
+
+    /**
+     * Asks for confirmation and then marks every recipe currently in stock as out of stock.
+     */
+    private fun confirmClearInStock() {
+        val recipesToClear = (repository.recipesLiveData.value ?: emptyList()).filter { it.inStock }
+        if (recipesToClear.isEmpty()) {
+            CustomToast.showInfo(requireContext(), "No hay recetas marcadas en stock.")
+            return
+        }
+        val recipesLabel = if (recipesToClear.size == 1) "1 receta" else "${recipesToClear.size} recetas"
+        ConfirmationDialog.show(
+            context = requireContext(),
+            title = "Quitar recetas del stock",
+            message = "Se van a marcar como sin stock $recipesLabel. Esta acción no se puede deshacer.\n\n¿Querés continuar?",
+            confirmButtonText = "Quitar del stock",
+            onConfirm = {
+                val loader = CustomLoader(requireContext())
+                loader.show()
+                recipesHelper.clearInStock(
+                    recipes = recipesToClear,
+                    onSuccess = {
+                        loader.hide()
+                        val markedLabel = if (recipesToClear.size == 1) "marcada" else "marcadas"
+                        CustomToast.showSuccess(requireContext(), "$recipesLabel $markedLabel sin stock.")
+                    },
+                    onError = { exception ->
+                        loader.hide()
+                        CustomToast.showError(requireContext(), "Error al quitar las recetas del stock: ${exception.message}")
                     }
                 )
             }
